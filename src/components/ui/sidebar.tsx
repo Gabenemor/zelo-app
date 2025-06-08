@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -543,43 +544,47 @@ const SidebarMenuButton = React.forwardRef<
 >(
   (
     {
-      asChild = false,
+      asChild: ownAsChildProp = false, // Renamed to avoid conflict
       isActive = false,
       variant = "default",
       size = "default",
       tooltip,
       className,
-      ...props
+      ...forwardedProps
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const Comp = ownAsChildProp ? Slot : "button";
+    const { isMobile, state } = useSidebar();
 
-    const button = (
+    // Remove asChild from forwardedProps if it exists, to prevent passing it to the DOM element
+    const { asChild: _internalAsChild, ...propsToSpread } = forwardedProps as any;
+
+
+    const buttonElement = (
       <Comp
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
+        {...propsToSpread}
       />
-    )
+    );
 
     if (!tooltip) {
-      return button
+      return buttonElement;
     }
 
     if (typeof tooltip === "string") {
       tooltip = {
         children: tooltip,
-      }
+      };
     }
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
@@ -587,9 +592,9 @@ const SidebarMenuButton = React.forwardRef<
           {...tooltip}
         />
       </Tooltip>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuAction = React.forwardRef<
@@ -712,8 +717,11 @@ const SidebarMenuSubButton = React.forwardRef<
     size?: "sm" | "md"
     isActive?: boolean
   }
->(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a"
+>(({ asChild: ownAsChildProp = false, size = "md", isActive, className, ...forwardedProps }, ref) => {
+  const Comp = ownAsChildProp ? Slot : "a";
+
+  // Remove asChild from forwardedProps if it exists, to prevent passing it to the DOM element
+  const { asChild: _internalAsChild, ...propsToSpread } = forwardedProps as any;
 
   return (
     <Comp
@@ -729,10 +737,10 @@ const SidebarMenuSubButton = React.forwardRef<
         "group-data-[collapsible=icon]:hidden",
         className
       )}
-      {...props}
+      {...propsToSpread}
     />
-  )
-})
+  );
+});
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
@@ -761,3 +769,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
