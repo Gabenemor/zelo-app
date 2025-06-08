@@ -12,11 +12,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
-  // SidebarGroup, // Not used, can remove if not needed elsewhere
-  // SidebarGroupLabel, // Not used
-  // SidebarSeparator, // Not used
   useSidebar,
-} from "@/components/ui/sidebar"; // Ensure this path is correct
+} from "@/components/ui/sidebar";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -30,7 +27,9 @@ import {
   MapPin,
   PlusCircle,
   ShieldCheck,
-  FileText
+  FileText,
+  Search, // Added
+  ClipboardList, // Added
 } from "lucide-react";
 import React from "react";
 
@@ -53,6 +52,8 @@ const iconComponentsMap: Record<LucideIconName, React.ElementType> = {
   PlusCircle,
   ShieldCheck,
   FileText,
+  Search, // Added
+  ClipboardList, // Added
 };
 
 export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProps) {
@@ -76,9 +77,21 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
     <SidebarMenu>
       {accessibleItems.map((item, index) => {
         const IconComponent = item.icon ? iconComponentsMap[item.icon] : null;
-        const isActive = item.href === pathname || (item.href !== "/dashboard" && item.children && pathname.startsWith(item.href)) || (item.href === "/dashboard" && pathname === "/dashboard");
+        
+        // Determine if item is active
+        let isActive = item.href === pathname;
+        if (!isActive && item.href && item.href !== "/dashboard" && pathname.startsWith(item.href)) {
+          isActive = true; // Parent active if child route is active
+        }
+        if (item.href === "/dashboard" && pathname === "/dashboard") {
+            isActive = true; // Specific check for main dashboard link
+        }
         
         if (item.children && item.children.length > 0) {
+          // Check if any child is active to make parent active
+          const isChildPathActive = item.children.some(child => pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href !== item.href));
+          const isParentGroupActive = isActive || isChildPathActive;
+
           return (
             <SidebarMenuItem key={index}>
               <SidebarMenuButton
@@ -91,20 +104,20 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
                     currentTarget.setAttribute('aria-expanded', String(!isCurrentlyOpen));
                   }
                 }}
-                isActive={isActive}
+                isActive={isParentGroupActive}
                 className="justify-between"
-                aria-expanded={isActive ? "true" : "false"}
+                aria-expanded={isParentGroupActive ? "true" : "false"}
               >
                 <div className="flex items-center gap-2">
                   {IconComponent && <IconComponent />}
                   <span>{item.title}</span>
                 </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", isActive && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform", isParentGroupActive && "rotate-180")} />
               </SidebarMenuButton>
-              <SidebarMenuSub style={{ display: isActive ? 'block' : 'none' }}>
+              <SidebarMenuSub style={{ display: isParentGroupActive ? 'block' : 'none' }}>
                 {item.children.map((child, childIndex) => {
                   const ChildIconComponent = child.icon ? iconComponentsMap[child.icon] : null;
-                  const isChildActive = pathname === child.href;
+                  const isChildActive = pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href.length > (item.href?.length || 0) );
                   return (
                     <SidebarMenuSubItem key={childIndex}>
                       <Link href={child.href} legacyBehavior passHref>
@@ -143,3 +156,4 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
     </SidebarMenu>
   );
 }
+

@@ -1,3 +1,4 @@
+
 import type { ServiceRequest } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,13 +13,24 @@ interface ServiceRequestCardProps {
 }
 
 export function ServiceRequestCard({ request, showViewButton = true }: ServiceRequestCardProps) {
+  const getStatusVariant = (status: ServiceRequest["status"]) => {
+    switch (status) {
+      case 'open': return 'default';
+      case 'in_progress': return 'secondary';
+      case 'completed': return 'outline'; // Or a success-like variant if you have one
+      case 'cancelled': return 'destructive';
+      case 'awarded': return 'secondary'; // A distinct variant for awarded
+      default: return 'outline';
+    }
+  };
+  
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-md">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="font-headline text-lg line-clamp-2">{request.title}</CardTitle>
-          <Badge variant={request.status === 'open' ? 'default' : request.status === 'completed' ? 'secondary' : 'outline'} className="capitalize">
-            {request.status}
+          <Badge variant={getStatusVariant(request.status)} className="capitalize">
+            {request.status.replace('_', ' ')}
           </Badge>
         </div>
         <CardDescription className="flex items-center gap-1 text-xs">
@@ -51,3 +63,4 @@ export function ServiceRequestCard({ request, showViewButton = true }: ServiceRe
     </Card>
   );
 }
+

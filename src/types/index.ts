@@ -41,15 +41,34 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
+  postedBy?: { // Added to simulate client info on request details
+    name: string;
+    avatarUrl?: string;
+    memberSince?: string;
+  };
   title: string;
   description: string;
   category: string; // Service category
   location: string; // Specific job location
   budget?: number; // Optional, in Naira
   postedAt: Date;
-  status: "open" | "in_progress" | "completed" | "cancelled";
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded"; // Added awarded
   assignedArtisanId?: string;
+  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>; // For file attachments
 }
+
+export interface ArtisanProposal {
+  id: string;
+  serviceRequestId: string;
+  artisanId: string;
+  artisanName: string;
+  artisanAvatarUrl?: string;
+  proposedAmount: number;
+  coverLetter: string;
+  submittedAt: Date;
+  status: "pending" | "accepted" | "rejected";
+}
+
 
 export interface ChatMessage {
   id: string;
@@ -87,15 +106,18 @@ export type LucideIconName =
   | "MapPin"
   | "PlusCircle"
   | "ShieldCheck"
-  | "FileText";
+  | "FileText"
+  | "Search" // Added for Find Jobs
+  | "ClipboardList"; // Added for My Offers
 
 export interface NavItem {
   title: string;
   href: string;
-  icon?: LucideIconName; // Changed from React.ElementType to string name
+  icon?: LucideIconName;
   disabled?: boolean;
   external?: boolean;
   label?: string; // For badges or additional info
   children?: NavItem[]; // For sub-menus
   roles?: UserRole[]; // Roles that can see this nav item
 }
+
