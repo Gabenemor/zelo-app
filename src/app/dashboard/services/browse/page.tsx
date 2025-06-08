@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -23,8 +24,13 @@ const mockServices = [
 
 const serviceCategories = ["Plumbing", "Catering", "Electrical Repair", "Tailoring", "Carpentry", "Hairdressing"];
 
+// Define a constant for the "All Categories" item value
+const ALL_CATEGORIES_ITEM_VALUE = "_all_";
+
 export default function BrowseServicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  // selectedCategory = "" means placeholder is shown.
+  // selectedCategory = ALL_CATEGORIES_ITEM_VALUE means user explicitly selected "All Categories" from the list.
   const [selectedCategory, setSelectedCategory] = useState("");
   const [priceRange, setPriceRange] = useState([0, 50000]); // Example price range in Naira
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
@@ -35,10 +41,13 @@ export default function BrowseServicesPage() {
     // Trigger map update or service refetch based on location
   };
 
-  const filteredServices = mockServices.filter(service => 
+  const filteredServices = mockServices.filter(service =>
     (service.artisanName.toLowerCase().includes(searchTerm.toLowerCase()) || service.service.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedCategory ? service.service === selectedCategory : true)
+    // If selectedCategory is empty (placeholder) or the special "all" value, don't filter by category.
+    // Otherwise, filter by the selected category.
+    (selectedCategory === "" || selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : service.service === selectedCategory) &&
     // Add price range and location filtering here if data supports it
+    true // Placeholder for future price/location filters
   );
 
   return (
@@ -66,9 +75,9 @@ export default function BrowseServicesPage() {
               </div>
               <div>
                 <label htmlFor="location" className="text-sm font-medium">Location</label>
-                <LocationAutocomplete 
-                  onLocationSelect={handleLocationSelect} 
-                  placeholder="Enter your area in Nigeria" 
+                <LocationAutocomplete
+                  onLocationSelect={handleLocationSelect}
+                  placeholder="Enter your area in Nigeria"
                   initialValue={currentLocation?.address}
                   className="mt-1"
                 />
@@ -80,7 +89,7 @@ export default function BrowseServicesPage() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value={ALL_CATEGORIES_ITEM_VALUE}>All Categories</SelectItem>
                     {serviceCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -109,7 +118,7 @@ export default function BrowseServicesPage() {
         {/* Map and Results Column */}
         <div className="lg:col-span-2 space-y-6">
           <MapView className="h-[300px] md:h-[400px]" />
-          
+
           <h2 className="font-headline text-2xl font-semibold">Available Artisans ({filteredServices.length})</h2>
           {filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
