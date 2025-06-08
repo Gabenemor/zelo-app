@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Users, MapPin, MessageSquare, CreditCard } from "lucide-react";
@@ -7,7 +8,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container mx-auto flex h-16 items-center justify-between">
           <Logo />
           <nav className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" asChild>
@@ -21,7 +22,7 @@ export default function HomePage() {
       </header>
 
       <main className="flex-1">
-        <section className="container py-12 text-center md:py-24 lg:py-32">
+        <section className="container mx-auto py-12 text-center md:py-24 lg:py-32">
           <h1 className="font-headline text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
             Connect with Skilled Artisans. <span className="text-primary">Effortlessly.</span>
           </h1>
@@ -39,7 +40,7 @@ export default function HomePage() {
         </section>
 
         <section className="bg-secondary py-12 md:py-24">
-          <div className="container">
+          <div className="container mx-auto">
             <h2 className="font-headline mb-12 text-center text-3xl font-bold text-foreground md:text-4xl">
               Why Choose Zelo?
             </h2>
@@ -77,7 +78,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-         <section className="container py-12 text-center md:py-24 lg:py-32">
+         <section className="container mx-auto py-12 text-center md:py-24 lg:py-32">
            <h2 className="font-headline mb-6 text-3xl font-bold text-foreground md:text-4xl">Ready to get started?</h2>
            <p className="mx-auto mb-10 max-w-[600px] text-lg text-muted-foreground md:text-xl">
              Join Zelo today, whether you're looking for a service or offering your skills.
@@ -89,7 +90,7 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t bg-background py-8">
-        <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 sm:flex-row">
           <Logo size="sm" />
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} Zelo. All rights reserved.
