@@ -120,7 +120,7 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
                   const isChildActive = pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href.length > (item.href?.length || 0) );
                   return (
                     <SidebarMenuSubItem key={childIndex}>
-                      <Link href={child.href}>
+                      <Link href={child.href} asChild>
                         <SidebarMenuSubButton
                           isActive={isChildActive}
                           onClick={() => { if (isMobile) setOpenMobile(false);}}
