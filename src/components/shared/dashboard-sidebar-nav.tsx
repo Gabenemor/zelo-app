@@ -28,8 +28,8 @@ import {
   PlusCircle,
   ShieldCheck,
   FileText,
-  Search, // Added
-  ClipboardList, // Added
+  Search, 
+  ClipboardList, 
 } from "lucide-react";
 import React from "react";
 
@@ -52,8 +52,8 @@ const iconComponentsMap: Record<LucideIconName, React.ElementType> = {
   PlusCircle,
   ShieldCheck,
   FileText,
-  Search, // Added
-  ClipboardList, // Added
+  Search, 
+  ClipboardList, 
 };
 
 export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProps) {
@@ -120,7 +120,7 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
                   const isChildActive = pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href.length > (item.href?.length || 0) );
                   return (
                     <SidebarMenuSubItem key={childIndex}>
-                      <Link href={child.href} legacyBehavior passHref>
+                      <Link href={child.href}>
                         <SidebarMenuSubButton
                           isActive={isChildActive}
                           onClick={() => { if (isMobile) setOpenMobile(false);}}
@@ -139,7 +139,7 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
 
         return (
           <SidebarMenuItem key={index}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
               <SidebarMenuButton
                 isActive={isActive}
                 tooltip={open ? undefined : item.title}
@@ -156,4 +156,3 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
     </SidebarMenu>
   );
 }
-
