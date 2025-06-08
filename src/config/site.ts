@@ -1,18 +1,7 @@
-import type { NavItem, UserRole } from "@/types";
-import {
-  LayoutDashboard,
-  UserCircle,
-  Briefcase,
-  MessageSquare,
-  Settings,
-  CreditCard,
-  Users,
-  LogOut,
-  MapPin,
-  PlusCircle,
-  ShieldCheck,
-  FileText
-} from "lucide-react";
+
+import type { NavItem, UserRole, LucideIconName } from "@/types";
+// We don't need to import the actual icon components here anymore for the NavItem definition.
+// They will be resolved in the DashboardSidebarNav component.
 
 export const siteConfig = {
   name: "Zelo",
@@ -35,69 +24,69 @@ export const dashboardNavItems: NavItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: "LayoutDashboard" as LucideIconName,
     roles: commonRoles,
   },
   {
     title: "Profile",
     href: "/dashboard/profile",
-    icon: UserCircle,
+    icon: "UserCircle" as LucideIconName,
     roles: commonRoles,
     children: [
-       { title: "Edit My Profile", href: "/dashboard/profile/edit", icon: Settings, roles: commonRoles },
-       { title: "Withdrawal Settings", href: "/dashboard/profile/withdrawal-settings", icon: CreditCard, roles: artisanOnly },
+       { title: "Edit My Profile", href: "/dashboard/profile/edit", icon: "Settings" as LucideIconName, roles: commonRoles },
+       { title: "Withdrawal Settings", href: "/dashboard/profile/withdrawal-settings", icon: "CreditCard" as LucideIconName, roles: artisanOnly },
     ]
   },
   {
     title: "Services",
     href: "/dashboard/services",
-    icon: Briefcase,
+    icon: "Briefcase" as LucideIconName,
     roles: commonRoles,
     children: [
-      { title: "Browse Services", href: "/dashboard/services/browse", icon: MapPin, roles: commonRoles },
-      { title: "Post a Request", href: "/dashboard/services/request/new", icon: PlusCircle, roles: clientOnly },
-      { title: "My Service Requests", href: "/dashboard/services/my-requests", icon: FileText, roles: clientOnly },
-      { title: "My Offered Services", href: "/dashboard/services/my-offers", icon: FileText, roles: artisanOnly },
+      { title: "Browse Services", href: "/dashboard/services/browse", icon: "MapPin" as LucideIconName, roles: commonRoles },
+      { title: "Post a Request", href: "/dashboard/services/request/new", icon: "PlusCircle" as LucideIconName, roles: clientOnly },
+      { title: "My Service Requests", href: "/dashboard/services/my-requests", icon: "FileText" as LucideIconName, roles: clientOnly },
+      { title: "My Offered Services", href: "/dashboard/services/my-offers", icon: "FileText" as LucideIconName, roles: artisanOnly },
     ],
   },
   {
     title: "Messages",
     href: "/dashboard/messages",
-    icon: MessageSquare,
+    icon: "MessageSquare" as LucideIconName,
     label: "3", // Example badge
     roles: commonRoles,
   },
   {
     title: "Payments",
     href: "/dashboard/payments",
-    icon: ShieldCheck,
+    icon: "ShieldCheck" as LucideIconName,
     roles: commonRoles,
     children: [
-        { title: "My Escrow Transactions", href: "/dashboard/payments/escrow", icon: ShieldCheck, roles: commonRoles },
-        { title: "Transaction History", href: "/dashboard/payments/history", icon: FileText, roles: commonRoles },
+        { title: "My Escrow Transactions", href: "/dashboard/payments/escrow", icon: "ShieldCheck" as LucideIconName, roles: commonRoles },
+        { title: "Transaction History", href: "/dashboard/payments/history", icon: "FileText" as LucideIconName, roles: commonRoles },
     ]
   },
   {
     title: "Admin Panel",
     href: "/dashboard/admin",
-    icon: Users,
+    icon: "Users" as LucideIconName,
     roles: adminOnly,
     children: [
-        { title: "Manage Users", href: "/dashboard/admin/users", icon: Users, roles: adminOnly },
-        { title: "Manage Services", href: "/dashboard/admin/services", icon: Briefcase, roles: adminOnly },
-        { title: "Platform Settings", href: "/dashboard/admin/settings", icon: Settings, roles: adminOnly },
+        { title: "Manage Users", href: "/dashboard/admin/users", icon: "Users" as LucideIconName, roles: adminOnly },
+        { title: "Manage Services", href: "/dashboard/admin/services", icon: "Briefcase" as LucideIconName, roles: adminOnly },
+        { title: "Platform Settings", href: "/dashboard/admin/settings", icon: "Settings" as LucideIconName, roles: adminOnly },
     ]
   },
   {
     title: "Settings",
     href: "/dashboard/settings",
-    icon: Settings,
+    icon: "Settings" as LucideIconName,
     roles: commonRoles,
   },
   {
     title: "Logout",
     href: "/logout", // This would typically trigger a logout function
-    icon: LogOut,
+    icon: "LogOut" as LucideIconName,
     roles: commonRoles,
   },
 ];

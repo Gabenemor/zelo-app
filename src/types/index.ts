@@ -1,3 +1,4 @@
+
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -73,10 +74,25 @@ export interface EscrowTransaction {
   updatedAt: Date;
 }
 
+// Define a type for the names of Lucide icons used in navigation
+export type LucideIconName =
+  | "LayoutDashboard"
+  | "UserCircle"
+  | "Briefcase"
+  | "MessageSquare"
+  | "Settings"
+  | "CreditCard"
+  | "Users"
+  | "LogOut"
+  | "MapPin"
+  | "PlusCircle"
+  | "ShieldCheck"
+  | "FileText";
+
 export interface NavItem {
   title: string;
   href: string;
-  icon?: React.ElementType; // Lucide Icon
+  icon?: LucideIconName; // Changed from React.ElementType to string name
   disabled?: boolean;
   external?: boolean;
   label?: string; // For badges or additional info

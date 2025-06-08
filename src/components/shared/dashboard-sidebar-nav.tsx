@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { NavItem, UserRole } from "@/types";
+import type { NavItem, UserRole, LucideIconName } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -11,12 +12,26 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarSeparator,
+  // SidebarGroup, // Not used, can remove if not needed elsewhere
+  // SidebarGroupLabel, // Not used
+  // SidebarSeparator, // Not used
   useSidebar,
 } from "@/components/ui/sidebar"; // Ensure this path is correct
-import { ChevronDown } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  UserCircle,
+  Briefcase,
+  MessageSquare,
+  Settings,
+  CreditCard,
+  Users,
+  LogOut,
+  MapPin,
+  PlusCircle,
+  ShieldCheck,
+  FileText
+} from "lucide-react";
 import React from "react";
 
 interface DashboardSidebarNavProps {
@@ -24,12 +39,28 @@ interface DashboardSidebarNavProps {
   userRole: UserRole; // Pass current user's role
 }
 
+// Map of icon names to actual Lucide components
+const iconComponentsMap: Record<LucideIconName, React.ElementType> = {
+  LayoutDashboard,
+  UserCircle,
+  Briefcase,
+  MessageSquare,
+  Settings,
+  CreditCard,
+  Users,
+  LogOut,
+  MapPin,
+  PlusCircle,
+  ShieldCheck,
+  FileText,
+};
+
 export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProps) {
   const pathname = usePathname();
   const { open, isMobile, setOpenMobile } = useSidebar();
 
   // Filter items based on user role
-  const accessibleItems = items.filter(item => 
+  const accessibleItems = items.filter(item =>
     !item.roles || item.roles.includes(userRole)
   ).map(item => ({
     ...item,
@@ -44,15 +75,14 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
   return (
     <SidebarMenu>
       {accessibleItems.map((item, index) => {
-        const Icon = item.icon;
-        const isActive = item.href === pathname || (item.children && pathname.startsWith(item.href));
+        const IconComponent = item.icon ? iconComponentsMap[item.icon] : null;
+        const isActive = item.href === pathname || (item.href !== "/dashboard" && item.children && pathname.startsWith(item.href)) || (item.href === "/dashboard" && pathname === "/dashboard");
         
         if (item.children && item.children.length > 0) {
           return (
             <SidebarMenuItem key={index}>
               <SidebarMenuButton
                 onClick={(e) => {
-                  // Basic accordion toggle for sidebar items with children
                   const currentTarget = e.currentTarget;
                   const subMenu = currentTarget.nextElementSibling as HTMLElement | null;
                   if (subMenu) {
@@ -66,23 +96,23 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
                 aria-expanded={isActive ? "true" : "false"}
               >
                 <div className="flex items-center gap-2">
-                  {Icon && <Icon />}
+                  {IconComponent && <IconComponent />}
                   <span>{item.title}</span>
                 </div>
                 <ChevronDown className={cn("h-4 w-4 transition-transform", isActive && "rotate-180")} />
               </SidebarMenuButton>
               <SidebarMenuSub style={{ display: isActive ? 'block' : 'none' }}>
                 {item.children.map((child, childIndex) => {
-                  const ChildIcon = child.icon;
+                  const ChildIconComponent = child.icon ? iconComponentsMap[child.icon] : null;
                   const isChildActive = pathname === child.href;
                   return (
                     <SidebarMenuSubItem key={childIndex}>
                       <Link href={child.href} legacyBehavior passHref>
-                        <SidebarMenuSubButton 
-                          isActive={isChildActive} 
+                        <SidebarMenuSubButton
+                          isActive={isChildActive}
                           onClick={() => { if (isMobile) setOpenMobile(false);}}
                         >
-                          {ChildIcon && <ChildIcon />}
+                          {ChildIconComponent && <ChildIconComponent />}
                           <span>{child.title}</span>
                         </SidebarMenuSubButton>
                       </Link>
@@ -97,12 +127,12 @@ export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProp
         return (
           <SidebarMenuItem key={index}>
             <Link href={item.href} legacyBehavior passHref>
-              <SidebarMenuButton 
+              <SidebarMenuButton
                 isActive={isActive}
                 tooltip={open ? undefined : item.title}
                 onClick={() => { if (isMobile) setOpenMobile(false);}}
               >
-                {Icon && <Icon />}
+                {IconComponent && <IconComponent />}
                 <span>{item.title}</span>
                 {item.label && <span className="ml-auto text-xs">{item.label}</span>}
               </SidebarMenuButton>
