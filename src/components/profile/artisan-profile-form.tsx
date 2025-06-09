@@ -42,7 +42,7 @@ const artisanProfileSchema = z.object({
   isLocationPublic: z.boolean().default(false).optional(),
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
   serviceExperiences: z.array(serviceExperienceSchema).optional(),
-  // portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
+  portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
 });
 
 type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
@@ -66,7 +66,7 @@ export function ArtisanProfileForm({
 }: ArtisanProfileFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
-  // const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
+  const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
 
   const form = useForm<ArtisanProfileFormValues>({
     resolver: zodResolver(artisanProfileSchema),
@@ -87,7 +87,7 @@ export function ArtisanProfileForm({
             chargeDescription: existingExperience?.chargeDescription ?? '',
           };
         }) || [],
-        // portfolioFiles: null,
+        portfolioFiles: null,
     },
   });
 
@@ -111,30 +111,39 @@ export function ArtisanProfileForm({
     }
   }, [initialData?.servicesOffered, initialData?.serviceExperiences, form]);
 
-  // const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const files = event.target.files;
-  //   if (files) {
-  //     form.setValue('portfolioFiles', files);
-  //     const newPreviews: string[] = [];
-  //     Array.from(files).forEach(file => {
-  //       if (newPreviews.length < 5) { // Max 5 previews
-  //         newPreviews.push(URL.createObjectURL(file));
-  //       }
-  //     });
-  //     setPortfolioPreviews(newPreviews);
-  //   }
-  // };
+  const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      form.setValue('portfolioFiles', files); // Update RHF state
+      const newPreviews: string[] = [];
+      Array.from(files).forEach(file => {
+        if (newPreviews.length < 5) { // Max 5 previews
+          newPreviews.push(URL.createObjectURL(file));
+        }
+      });
+      setPortfolioPreviews(newPreviews);
+    }
+  };
 
 
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
-    // TODO: Handle actual file uploads for values.portfolioFiles
-    // For now, we'll mock saving the URLs if they were part of initialData or new ones (if we had preview logic)
+
+    // TODO: Actual file upload logic for values.portfolioFiles will go here.
+    // For now, we'll just log and use existing URLs or previews.
+    let uploadedImageUrls = initialData?.portfolioImageUrls || []; // Fallback to existing if no new files
+    if (values.portfolioFiles && values.portfolioFiles.length > 0) {
+        console.log("Simulating upload for:", values.portfolioFiles);
+        // In a real app, you'd upload files here and get back URLs
+        // For demo, we can use the local preview URLs if needed, or just keep existing
+        // uploadedImageUrls = portfolioPreviews; // Or new URLs from server
+    }
+
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
       servicesOffered: initialData?.servicesOffered || [], 
-      portfolioImageUrls: initialData?.portfolioImageUrls, // Keep existing, replace with new URLs after upload
+      portfolioImageUrls: uploadedImageUrls, 
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -157,9 +166,9 @@ export function ArtisanProfileForm({
           errorMessages = errorMessages.concat(result.error._form);
         }
         if (result.error.fields) {
-          Object.values(result.error.fields).forEach(fieldErrorArray => {
+          Object.entries(result.error.fields).forEach(([key, fieldErrorArray]) => {
             if (Array.isArray(fieldErrorArray)) {
-              errorMessages = errorMessages.concat(fieldErrorArray as string[]);
+              errorMessages = errorMessages.concat((fieldErrorArray as string[]).map(msg => `${key}: ${msg}`));
             }
           });
         }
@@ -167,13 +176,11 @@ export function ArtisanProfileForm({
             errorMessages = errorMessages.concat(result.error._server_error);
         }
       }
-      const description = errorMessages.length > 0 ? errorMessages.join(' ') : "Could not save profile. Please check input or try again.";
+      const errorMsg = errorMessages.length > 0 ? errorMessages.join('; ') : "Could not save profile. Please check your input or try again.";
       
-      toast({ title: "Update Failed", description, variant: "destructive" });
-      console.error("Artisan profile save error. Full result:", JSON.stringify(result, null, 2));
-      if(result.error) {
-        console.error("Artisan profile save error (parsed error object):", JSON.stringify(result.error, null, 2));
-      }
+      toast({ title: "Update Failed", description: errorMsg, variant: "destructive" });
+      console.error("Artisan profile save error (client error object):", result.error);
+      console.error("Artisan profile save error (full result):", JSON.stringify(result, null, 2));
     }
   }
 
@@ -292,6 +299,7 @@ export function ArtisanProfileForm({
                                 placeholder="e.g. 5000"
                                 min="0"
                                 {...chargeAmountField}
+                                value={chargeAmountField.value ?? ''}
                                 className="pl-10 pr-2 text-sm h-9"
                             />
                             </FormControl>
@@ -312,6 +320,7 @@ export function ArtisanProfileForm({
                             <Input
                                 placeholder="e.g. per hour"
                                 {...chargeDescField}
+                                value={chargeDescField.value ?? ''}
                                 className="pl-10 pr-2 text-sm h-9"
                             />
                             </FormControl>
@@ -398,12 +407,11 @@ export function ArtisanProfileForm({
           </CardHeader>
           <CardContent>
             <FormField
-              // control={form.control} // Control might be needed if managing FileList via RHF
-              // name="portfolioFiles"
-              render={({ field }) => ( // field would be for RHF if managing FileList
+              control={form.control}
+              name="portfolioFiles"
+              render={({ field }) => (
                 <FormItem>
                    <FormControl>
-                    {/* Basic file input, can be styled further */}
                     <div className="flex items-center justify-center w-full">
                         <label
                             htmlFor="portfolio-upload"
@@ -414,9 +422,20 @@ export function ArtisanProfileForm({
                                 <p className="mb-1 text-sm text-muted-foreground">
                                     <span className="font-semibold text-primary">Click to upload</span> or drag and drop
                                 </p>
-                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF</p>
                             </div>
-                            <Input id="portfolio-upload" type="file" multiple className="sr-only" accept="image/*" /* onChange={handlePortfolioChange} disabled={isLoading} */ />
+                            <Input 
+                              id="portfolio-upload" 
+                              type="file" 
+                              multiple 
+                              className="sr-only" 
+                              accept="image/*" 
+                              onChange={(e) => {
+                                field.onChange(e.target.files); // RHF way to handle FileList
+                                handlePortfolioChange(e); // For previews
+                              }} 
+                              disabled={isLoading} 
+                            />
                         </label>
                     </div>
                   </FormControl>
@@ -428,9 +447,8 @@ export function ArtisanProfileForm({
               )}
             />
             
-            {/* Placeholder for image previews */}
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {(initialData?.portfolioImageUrls || ["https://placehold.co/150x100.png?text=Work+1", "https://placehold.co/150x100.png?text=Work+2"]).slice(0,5).map((url, index) => (
+              {portfolioPreviews.slice(0,5).map((url, index) => (
                 <div key={index} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border shadow-sm">
                   <img
                     src={url}
@@ -438,8 +456,14 @@ export function ArtisanProfileForm({
                     className="object-cover w-full h-full"
                     data-ai-hint={url.includes("placehold") ? "portfolio work" : undefined}
                   />
-                  {/* Add a remove button if implementing preview logic */}
                 </div>
+              ))}
+              {/* Fill remaining slots with placeholders if less than 5 previews and no initial portfolio */}
+              {portfolioPreviews.length === 0 && (!initialData?.portfolioImageUrls || initialData.portfolioImageUrls.length === 0) &&
+                Array.from({ length: 5 - portfolioPreviews.length }).map((_, index) => (
+                  <div key={`placeholder-${index}`} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border bg-muted shadow-sm flex items-center justify-center">
+                     <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
               ))}
             </div>
           </CardContent>
