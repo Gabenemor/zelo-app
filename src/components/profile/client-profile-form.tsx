@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Phone, Home, Save, User, Mail, Edit3 } from "lucide-react";
+import { Phone, Home, Save, User, Mail, Edit3, Camera } from "lucide-react"; // Added Camera
 import type { ClientProfile } from "@/types";
 import Image from "next/image";
 
@@ -83,17 +83,17 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
-            <div className="relative">
+            <div className="relative w-32 h-32 rounded-full border-2 border-muted overflow-hidden"> {/* Container is square, rounded, overflow hidden */}
                 <Image 
                     src={avatarPreview || "https://placehold.co/128x128.png?text=Avatar"} 
                     alt="Profile Avatar" 
-                    width={128} 
-                    height={128} 
-                    className="rounded-full border-2 border-muted object-cover"
+                    width={128} // Width and height for next/image optimization
+                    height={128}
+                    className="object-cover w-full h-full" // Image fills container, covers, maintains aspect ratio
                     data-ai-hint="profile avatar"
                 />
-                <label htmlFor="avatarUpload" className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                    <Edit3 className="h-4 w-4" />
+                <label htmlFor="avatarUpload" className="absolute bottom-1 right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
+                    <Camera className="h-4 w-4" /> {/* Changed from Edit3 to Camera for clarity */}
                     <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} />
                 </label>
             </div>
