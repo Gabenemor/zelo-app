@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -123,8 +124,9 @@ export function ChatInterface() {
             <div
               key={conv.id}
               className={cn(
-                "flex cursor-pointer items-center gap-3 p-3 hover:bg-accent",
-                selectedConversation?.id === conv.id && "bg-accent"
+                "group flex cursor-pointer items-center gap-3 p-3", // Added 'group'
+                "hover:bg-accent hover:text-accent-foreground", // Added hover:text-accent-foreground
+                selectedConversation?.id === conv.id && "bg-accent text-accent-foreground" // Added text-accent-foreground
               )}
               onClick={() => setSelectedConversation(conv)}
             >
@@ -135,12 +137,32 @@ export function ChatInterface() {
               </Avatar>
               <div className="flex-1 overflow-hidden">
                 <p className="truncate font-semibold">{conv.otherUser.name}</p>
-                <p className="truncate text-xs text-muted-foreground">{conv.lastMessage}</p>
+                <p className={cn(
+                    "truncate text-xs",
+                    selectedConversation?.id === conv.id 
+                        ? "text-accent-foreground/80" 
+                        : "text-muted-foreground group-hover:text-accent-foreground/80"
+                  )}
+                >
+                  {conv.lastMessage}
+                </p>
               </div>
-              <div className="text-right text-xs text-muted-foreground">
+              <div className={cn(
+                  "text-right text-xs",
+                  selectedConversation?.id === conv.id 
+                      ? "text-accent-foreground/70" 
+                      : "text-muted-foreground group-hover:text-accent-foreground/70"
+                )}
+              >
                 <p>{conv.lastMessageTime}</p>
                 {conv.unreadCount && conv.unreadCount > 0 && (
-                    <span className="mt-1 inline-flex items-center justify-center rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                    <span className={cn(
+                        "mt-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                        selectedConversation?.id === conv.id 
+                            ? "bg-accent-foreground/20 text-accent-foreground" 
+                            : "bg-primary text-primary-foreground group-hover:bg-accent-foreground/20 group-hover:text-accent-foreground"
+                      )}
+                    >
                         {conv.unreadCount}
                     </span>
                 )}
@@ -234,3 +256,4 @@ export function ChatInterface() {
     </div>
   );
 }
+
