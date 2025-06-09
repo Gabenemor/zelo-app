@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation'; // Added useSearchParams
 import { PageHeader } from "@/components/ui/page-header";
 // import { MapView } from "@/components/location/map-view"; // Removed MapView import
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
@@ -28,6 +29,9 @@ const serviceCategories = ["Plumbing", "Catering", "Electrical Repair", "Tailori
 const ALL_CATEGORIES_ITEM_VALUE = "_all_";
 
 export default function BrowseServicesPage() {
+  const searchParams = useSearchParams();
+  const roleFromParams = searchParams.get('role') || 'client'; // Default to client if not present
+
   const [searchTerm, setSearchTerm] = useState("");
   // selectedCategory = "" means placeholder is shown.
   // selectedCategory = ALL_CATEGORIES_ITEM_VALUE means user explicitly selected "All Categories" from the list.
@@ -141,7 +145,7 @@ export default function BrowseServicesPage() {
                         <span className="font-medium text-foreground">{service.priceRange}</span>
                     </div>
                     <Button asChild variant="outline" className="mt-3 w-full">
-                        <Link href={`/dashboard/artisans/${service.id}`}>View Profile</Link>
+                        <Link href={`/dashboard/artisans/${service.id}?role=${roleFromParams}`}>View Profile</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -155,3 +159,4 @@ export default function BrowseServicesPage() {
     </div>
   );
 }
+
