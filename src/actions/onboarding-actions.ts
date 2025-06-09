@@ -68,10 +68,12 @@ export async function saveArtisanStep1Services(experiences: Array<{ serviceName:
       servicesOffered: servicesOffered
     };
 
+    console.log('[SERVER ACTION saveArtisanStep1Services] Data to validate:', JSON.stringify(dataToValidate, null, 2));
+
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
     if (!validation.success) {
       const flattenedErrors = validation.error.flatten();
-      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", flattenedErrors);
+      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", JSON.stringify(flattenedErrors, null, 2));
       
       const clientErrorObject: Record<string, any> = {};
       if (flattenedErrors.formErrors.length > 0) {
@@ -88,13 +90,13 @@ export async function saveArtisanStep1Services(experiences: Array<{ serviceName:
       }
       
       if (Object.keys(clientErrorObject).length === 0) {
-          if (validation.error) { // If Zod error exists but couldn't be parsed into form/field errors
+          if (validation.error) { 
               clientErrorObject._server_error = ["Validation failed with a non-specific Zod error on the server."];
-          } else { // Should not happen if !validation.success is true and validation.error is null
+          } else { 
               clientErrorObject._server_error = ["Validation failed with an unknown error on the server."];
           }
       }
-
+      console.log('[SERVER ACTION saveArtisanStep1Services] Client error object before return:', JSON.stringify(clientErrorObject, null, 2));
       return { success: false, error: clientErrorObject };
     }
     console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
@@ -104,9 +106,21 @@ export async function saveArtisanStep1Services(experiences: Array<{ serviceName:
 
   } catch (e: any) {
     console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanStep1Services:", e);
+    const errorPayload: Record<string, any> = { 
+      _server_error: ["An unexpected error occurred on the server. Please try again later."] 
+    };
+    if (e instanceof Error && e.message) {
+        (errorPayload._server_error as string[]).push(e.message);
+    } else if (typeof e === 'string') {
+        (errorPayload._server_error as string[]).push(e);
+    } else {
+        (errorPayload._server_error as string[]).push("No specific error message available.");
+    }
+
+    console.log('[SERVER ACTION saveArtisanStep1Services] Catch block error payload before return:', JSON.stringify(errorPayload, null, 2));
     return { 
       success: false, 
-      error: { _server_error: ["An unexpected error occurred on the server. Please try again later.", e.message || "No specific error message."] } 
+      error: errorPayload 
     };
   }
 }
@@ -179,3 +193,5 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
   // This is a mock, returning false to trigger the UI prompt for demo purposes
   return { complete: false, missingFields: ['location', 'username'] };
 }
+
+    
