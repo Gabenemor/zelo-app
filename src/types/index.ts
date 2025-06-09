@@ -155,8 +155,10 @@ export type LucideIconName =
   | "Award" 
   | "CheckCircle2"
   | "Menu"
-  | "Camera" // Added
-  | "UploadCloud"; // Added
+  | "Camera"
+  | "UploadCloud"
+  | "CalendarDays" // Added
+  | "Edit"; // Added
 
 
 export interface NavItem {

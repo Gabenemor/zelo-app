@@ -27,7 +27,9 @@ import {
   Edit3,
   TrendingUp,
   CalendarDays, // Added for service experience
-  Edit // Added for edit profile button
+  Edit, // Added for edit profile button
+  Camera, // For LucideIconName map
+  UploadCloud // For LucideIconName map
 } from "lucide-react";
 import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ServiceExperience } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
@@ -77,7 +79,7 @@ const mockNewJobsForArtisan: ServiceRequest[] = [
 ];
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera: UserCircle, UploadCloud: UserCircle, Menu: LayoutDashboard,
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit
 };
 
 export default function DashboardHomePage() {
@@ -296,3 +298,4 @@ function StatCard({ title, value, icon: Icon, description }: StatCardProps) {
     </Card>
   );
 }
+
