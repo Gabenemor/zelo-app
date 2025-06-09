@@ -26,6 +26,7 @@ import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge"; // Added import for Badge
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -616,6 +617,8 @@ export function ArtisanProfileForm({
     </Form>
   );
 }
+    
+
     
 
     
