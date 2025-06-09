@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Users, MapPin, MessageSquare, CreditCard } from "lucide-react";
+import { ArrowRight, ShieldCheck, Users, MapPin, MessageSquare, CreditCard, Briefcase } from "lucide-react"; // Added Briefcase
 import { Logo } from "@/components/shared/logo";
 
 export default function HomePage() {
@@ -34,7 +34,7 @@ export default function HomePage() {
               <Link href="/register">Get Started <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="font-body">
-              <Link href="/dashboard/services/browse">Browse Services</Link>
+              <Link href="/browse-services">Browse Services</Link>
             </Button>
           </div>
         </section>
@@ -71,7 +71,7 @@ export default function HomePage() {
                 description="Artisans can easily set up and manage their withdrawal accounts for prompt payments."
               />
                <FeatureCard
-                icon={BriefcaseIcon}
+                icon={Briefcase} // Using the imported Briefcase
                 title="Post Service Requests"
                 description="Clients can easily post job details and service providers can find relevant opportunities."
               />
@@ -121,25 +121,4 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
       <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   );
-}
-
-// Placeholder for BriefcaseIcon if not available in lucide-react, or use an existing one
-function BriefcaseIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
-  )
 }
