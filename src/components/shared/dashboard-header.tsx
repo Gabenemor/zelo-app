@@ -2,9 +2,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation"; // Added useSearchParams
-import React, { useState, Suspense } from "react"; // Added Suspense
-import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2 } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation"; 
+import React, { useState, Suspense } from "react"; 
+import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2, Settings } from "lucide-react"; // Added Settings
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,9 +36,21 @@ function DashboardHeaderContent() {
   
   const roleFromQuery = searchParams.get("role") as UserRole | null;
   const isAdminPage = pathname.startsWith('/dashboard/admin');
-  const userRole: UserRole = isAdminPage ? 'admin' : (roleFromQuery && ["client", "artisan"].includes(roleFromQuery) ? roleFromQuery : "artisan");
   
-  const user = { name: "Zelo User", email: "user@zelo.app", avatar: "" }; 
+  let determinedUserRole: UserRole;
+  if (isAdminPage) {
+    determinedUserRole = 'admin';
+  } else if (roleFromQuery && ["client", "artisan"].includes(roleFromQuery)) {
+    determinedUserRole = roleFromQuery;
+  } else {
+    // Fallback or default role if not admin and no role in query
+    // This might happen if navigated to /dashboard directly without role
+    // For robustness, decide a default or handle this case (e.g. redirect to role selection or default dashboard)
+    determinedUserRole = "client"; // Defaulting to 'client' for now if no role found
+  }
+  const userRole = determinedUserRole;
+  
+  const user = { name: "Zelo User", email: `${userRole}@zelo.app`, avatar: "" }; 
 
   const accessibleItems = dashboardNavItems
     .filter((item) => !item.roles || item.roles.includes(userRole))
@@ -52,20 +64,22 @@ function DashboardHeaderContent() {
   const NavLink = ({ item, onClick }: { item: NavItem; onClick?: () => void }) => {
     const isActive = pathname === item.href || (item.href && item.href !== "/dashboard" && pathname.startsWith(item.href));
     
-    let finalLinkHref = item.href; // Default to item.href
-    if (item.href) { // Ensure item.href is defined
-        if (item.href === "/dashboard" && userRole !== "admin") {
-            // Specifically handle the main dashboard link
-            finalLinkHref = `/dashboard?role=${userRole}`;
-        } else if (item.href.startsWith('/dashboard') && userRole !== 'admin' && !item.href.includes('/admin')) {
-            // For other dashboard links that are not admin paths
-            if (!item.href.includes('?')) {
-                // Add role if no query parameters exist
-                finalLinkHref = `${item.href}?role=${userRole}`;
-            }
-            // If item.href already contains '?', we assume 'role' is handled if needed,
-            // or should be part of the item.href in dashboardNavItems for more complex cases.
+    let finalLinkHref = item.href;
+    if (item.href) {
+      if (item.href.startsWith('/dashboard') && userRole !== 'admin' && !item.href.includes('/admin')) {
+        if (item.href.includes('?')) {
+          // If query params exist, ensure 'role' is one of them or add it
+          const existingParams = new URLSearchParams(item.href.split('?')[1]);
+          if (!existingParams.has('role')) {
+            existingParams.set('role', userRole);
+            finalLinkHref = `${item.href.split('?')[0]}?${existingParams.toString()}`;
+          }
+          // If role is already there and matches, or is different, it's handled by original item.href
+        } else {
+          // Add role if no query parameters exist
+          finalLinkHref = `${item.href}?role=${userRole}`;
         }
+      }
     }
     const linkHref = finalLinkHref;
     
@@ -87,13 +101,22 @@ function DashboardHeaderContent() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
               {item.children.map((child) => {
-                const childHrefWithRole = (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin") && !child.href.includes("?"))
-                                        ? `${child.href}?role=${userRole}`
-                                        : child.href;
+                let childHrefWithRole = child.href;
+                if (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin")) {
+                   if (child.href.includes('?')) {
+                        const childParams = new URLSearchParams(child.href.split('?')[1]);
+                        if (!childParams.has('role')) {
+                            childParams.set('role', userRole);
+                            childHrefWithRole = `${child.href.split('?')[0]}?${childParams.toString()}`;
+                        }
+                    } else {
+                        childHrefWithRole = `${child.href}?role=${userRole}`;
+                    }
+                }
                 return (
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
-                    href={childHrefWithRole}
+                    href={childHrefWithRole || '#'}
                     onClick={onClick} 
                     className={cn(
                       "text-sm",
@@ -111,7 +134,7 @@ function DashboardHeaderContent() {
 
     return (
       <Link
-        href={linkHref || '#'} // Fallback to '#' if linkHref is undefined
+        href={linkHref || '#'} 
         onClick={onClick}
         className={cn(
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -138,9 +161,18 @@ function DashboardHeaderContent() {
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
               {item.children.map((child) => {
-                 const childHrefWithRole = (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin") && !child.href.includes("?"))
-                                        ? `${child.href}?role=${userRole}`
-                                        : child.href;
+                 let childHrefWithRole = child.href;
+                 if (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin")) {
+                    if (child.href.includes('?')) {
+                        const childParams = new URLSearchParams(child.href.split('?')[1]);
+                        if (!childParams.has('role')) {
+                            childParams.set('role', userRole);
+                            childHrefWithRole = `${child.href.split('?')[0]}?${childParams.toString()}`;
+                        }
+                    } else {
+                        childHrefWithRole = `${child.href}?role=${userRole}`;
+                    }
+                  }
                 return <NavLink key={child.href} item={{...child, href: childHrefWithRole}} onClick={() => setMobileMenuOpen(false)} />
               })}
             </>
@@ -152,7 +184,12 @@ function DashboardHeaderContent() {
     </nav>
   );
 
-  const profileMenuDashboardLink = `/dashboard${userRole !== 'admin' ? `?role=${userRole}` : ''}`;
+  const profileLink = `/dashboard/profile?role=${userRole}`;
+  const editProfileLink = `/dashboard/profile/edit?role=${userRole}`;
+  const settingsLink = `/dashboard/settings?role=${userRole}`;
+  const notificationsLink = `/dashboard/notifications?role=${userRole}`;
+  const artisanServicesEditLink = `/dashboard/profile/artisan/services/edit?role=${userRole}`;
+  const withdrawalSettingsLink = `/dashboard/profile/withdrawal-settings?role=${userRole}`;
 
 
   return (
@@ -187,7 +224,7 @@ function DashboardHeaderContent() {
           </div>
         </form>
         <Button variant="ghost" size="icon" className="rounded-full" asChild>
-          <Link href={`/dashboard/notifications?role=${userRole}`}>
+          <Link href={notificationsLink}>
             <Bell className="h-5 w-5" />
             <span className="sr-only">View notifications</span>
           </Link>
@@ -216,27 +253,27 @@ function DashboardHeaderContent() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href={`/dashboard/profile?role=${userRole}`}>
+                <Link href={profileLink}>
                   <UserCircle className="mr-2 h-4 w-4" />
                   View My Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/dashboard/profile/edit?role=${userRole}`}>
+                <Link href={editProfileLink}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit My Profile
                 </Link>
               </DropdownMenuItem>
-              {(userRole === 'artisan' || userRole === 'admin') && (
+              {(userRole === 'artisan' || userRole === 'admin') && ( // Admin might need to see these if impersonating or similar
                 <>
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/profile/artisan/services/edit?role=${userRole}`}>
+                    <Link href={artisanServicesEditLink}>
                       <Briefcase className="mr-2 h-4 w-4" />
                       Edit Primary Services
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/profile/withdrawal-settings?role=${userRole}`}>
+                    <Link href={withdrawalSettingsLink}>
                       <CreditCard className="mr-2 h-4 w-4" />
                       Withdrawal Settings
                     </Link>
@@ -246,7 +283,7 @@ function DashboardHeaderContent() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/dashboard/settings?role=${userRole}`}>Settings</Link>
+              <Link href={settingsLink}><Settings className="mr-2 h-4 w-4" />Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -308,4 +345,3 @@ function DashboardHeaderSkeleton() {
     </header>
   );
 }
-
