@@ -171,14 +171,12 @@ function DashboardHeaderContent() {
             />
           </div>
         </form>
-        <Link href={`/dashboard/notifications?role=${userRole}`} passHref legacyBehavior>
-          <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <a>
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">View notifications</span>
-            </a>
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="rounded-full" asChild>
+          <Link href={`/dashboard/notifications?role=${userRole}`}>
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">View notifications</span>
+          </Link>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
@@ -295,3 +293,4 @@ function DashboardHeaderSkeleton() {
     </header>
   );
 }
+
