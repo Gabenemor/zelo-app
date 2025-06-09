@@ -30,7 +30,7 @@ const registerSchema = z.object({
   userType: z.enum(["client", "artisan"], { required_error: "Please select your account type." }),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
-  path: ["confirmPassword"], // Error will be shown on the confirmPassword field
+  path: ["confirmPassword"],
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -140,7 +140,7 @@ export function RegisterForm() {
     // Mock success
     setTimeout(() => {
       toast({ title: "Registration Successful", description: "Welcome to Zelo! (Mock)" });
-      router.push(`/auth/verify-email?userType=${values.userType}`);
+      router.push(`/auth/verify-email?userType=${values.userType}&firstName=${encodeURIComponent(values.firstName)}`);
       setIsLoading(false);
     }, 1000);
   }

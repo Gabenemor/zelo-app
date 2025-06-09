@@ -11,27 +11,21 @@ export function VerifyEmailClientContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // It's good practice to ensure searchParams is available before trying to get values
   const userType = searchParams ? searchParams.get('userType') : null;
+  const firstName = searchParams ? searchParams.get('firstName') : null;
 
   const handleContinue = () => {
     setIsLoading(true);
-    if (userType) {
-      // In a real app, you might want to check if the email is actually verified
-      // with Firebase Auth before redirecting.
-      // For now, we directly go to onboarding.
-      router.push(`/onboarding/${userType}/step-1`);
+    if (userType && firstName) {
+      router.push(`/onboarding/${userType}/step-1?firstName=${encodeURIComponent(firstName)}`);
     } else {
-      console.error("User type missing from query params for onboarding.");
-      // Fallback to dashboard or an error page if userType is somehow lost
+      console.error("User type or first name missing from query params for onboarding.");
       router.push('/dashboard'); 
       setIsLoading(false);
     }
-    // No need to setIsLoading(false) here if router.push navigates away
   };
 
   if (!searchParams) {
-    // This can happen during the initial render before Suspense resolves searchParams
     return (
       <div className="text-center space-y-6 flex flex-col items-center justify-center py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -47,7 +41,7 @@ export function VerifyEmailClientContent() {
         Please click the link in the email we sent you to complete your registration.
         If you don&apos;t see the email, please check your spam folder.
       </p>
-      <Button onClick={handleContinue} className="w-full" disabled={isLoading || !userType}>
+      <Button onClick={handleContinue} className="w-full" disabled={isLoading || !userType || !firstName}>
         {isLoading ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
         ) : (
@@ -57,9 +51,9 @@ export function VerifyEmailClientContent() {
       <p className="text-xs text-muted-foreground">
         (For demo purposes, clicking this button simulates email verification.)
       </p>
-      {!userType && (
+      {(!userType || !firstName) && (
         <p className="text-xs text-destructive">
-          Could not determine account type for onboarding. Please try registering again.
+          Could not retrieve necessary details for onboarding. Please try registering again.
         </p>
       )}
     </div>
