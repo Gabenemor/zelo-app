@@ -21,6 +21,7 @@ import { Mail, Lock, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React from "react";
+import type { UserRole } from "@/types";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -30,6 +31,8 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const ADMIN_EMAIL = "admin@zelo.app";
+const ARTISAN_EMAIL = "artisan@zelo.app";
+const CLIENT_EMAIL = "client@zelo.app";
 
 export function LoginForm() {
   const { toast } = useToast();
@@ -47,33 +50,28 @@ export function LoginForm() {
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
     console.log("Login attempt with:", values);
-    // Placeholder for actual Firebase or backend authentication
-    // try {
-    //   await signInWithEmailAndPassword(auth, values.email, values.password);
-    //   toast({ title: "Login Successful", description: "Welcome back!" });
-    //   if (values.email === ADMIN_EMAIL) {
-    //     router.push("/dashboard/admin");
-    //   } else {
-    //     router.push("/dashboard");
-    //   }
-    // } catch (error: any) {
-    //   toast({
-    //     title: "Login Failed",
-    //     description: error.message || "Please check your credentials and try again.",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
 
     // Mock success
     setTimeout(() => {
       toast({ title: "Login Successful", description: "Welcome back! (Mock)" });
+      let redirectPath = "/dashboard";
+      let role: UserRole = "artisan"; // Default role
+
       if (values.email === ADMIN_EMAIL) {
-        router.push("/dashboard/admin");
+        redirectPath = "/dashboard/admin";
+        // Admin role is handled by the admin layout, no query param needed for main dashboard
+      } else if (values.email === ARTISAN_EMAIL) {
+        role = "artisan";
+        redirectPath = `/dashboard?role=${role}`;
+      } else if (values.email === CLIENT_EMAIL) {
+        role = "client";
+        redirectPath = `/dashboard?role=${role}`;
       } else {
-        router.push("/dashboard");
+        // Default for any other email
+        redirectPath = `/dashboard?role=artisan`; // Or 'client' as default
       }
+      
+      router.push(redirectPath);
       setIsLoading(false);
     }, 1000);
   }
@@ -90,7 +88,7 @@ export function LoginForm() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="email" placeholder="your@email.com or admin@zelo.app" {...field} className="pl-10" />
+                  <Input type="email" placeholder="admin@, artisan@, or client@zelo.app" {...field} className="pl-10" />
                 </FormControl>
               </div>
               <FormMessage />
@@ -106,7 +104,7 @@ export function LoginForm() {
                <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} className="pl-10" />
+                  <Input type="password" placeholder="•••••••• (min 6 chars)" {...field} className="pl-10" />
                 </FormControl>
               </div>
               <FormMessage />
