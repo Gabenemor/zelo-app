@@ -14,7 +14,7 @@ import {
   Award,
   CheckCircle2,
   LucideIcon,
-  Settings, // Added Settings here
+  Settings,
   Users, 
   LogOut, 
   MapPin, 
@@ -22,103 +22,169 @@ import {
   Search, 
   ClipboardList, 
   UserCog,
-  UserCircle2
+  UserCircle2,
+  DollarSign, // For Total Earned
+  Edit3, // For Bids Made
+  TrendingUp // For Completion Rate (example)
 } from "lucide-react";
-import type { ActivityItem, ActivityType, LucideIconName } from "@/types";
+import type { ActivityItem, LucideIconName, ServiceRequest } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 
-// Mock data for recent activities
-const mockUserId = "currentUser123"; // Simulate a logged-in user
+const mockUserId = "currentArtisanId123"; // Simulate a logged-in artisan user
+const userType: 'client' | 'artisan' = 'artisan'; // Hardcode for artisan view
 
-const mockRecentActivities: ActivityItem[] = [
+const mockArtisanStats = {
+  totalBidsSent: 25,
+  activeJobs: 3,
+  totalEarned: 175000, // Naira
+  completionRate: 95, // Percentage
+};
+
+const mockRecentActivitiesArtisan: ActivityItem[] = [
   {
-    id: "activity1",
-    type: "new_message",
-    icon: "MessageSquare",
-    title: "New message from Adewale ThePlumber",
-    description: "Regarding your kitchen sink repair...",
-    timestamp: new Date(Date.now() - 3600000 * 2), // 2 hours ago
-    link: "/dashboard/messages?chatId=conv1", // Example link
-    userId: mockUserId,
+    id: "activity1", type: "new_proposal", icon: "FileText", title: "Proposal submitted for 'Kitchen Renovation'",
+    description: "Waiting for client review.", timestamp: new Date(Date.now() - 3600000 * 1), userId: mockUserId, link: "/dashboard/services/my-offers"
   },
   {
-    id: "activity2",
-    type: "request_update",
-    icon: "FileText",
-    title: "Service request 'Garden Landscaping' updated",
-    description: "Status changed to 'In Progress'.",
-    timestamp: new Date(Date.now() - 86400000 * 1), // 1 day ago
-    link: "/dashboard/services/requests/req_garden_xyz", // Example link
-    userId: mockUserId,
+    id: "activity3", type: "job_awarded", icon: "Award", title: "Job 'Catering for Event' awarded!",
+    description: "Client Chioma accepted your proposal.", timestamp: new Date(Date.now() - 86400000 * 0.5), userId: mockUserId, link: "/dashboard/services/my-offers"
   },
   {
-    id: "activity3",
-    type: "job_awarded",
-    icon: "Award",
-    title: "You've been awarded the 'Catering for Event' job!",
-    description: "Client Chioma has accepted your proposal.",
-    timestamp: new Date(Date.now() - 86400000 * 0.5), // 12 hours ago for an artisan
-    link: "/dashboard/services/my-offers/req_catering_abc", 
-    userId: mockUserId, // Assuming this is an artisan
+    id: "activity4", type: "payment_processed", icon: "CreditCard", title: "Payment of ₦15,000 received",
+    description: "For 'Electrical Wiring Fix' completed.", timestamp: new Date(Date.now() - 86400000 * 3), userId: mockUserId, link: "/dashboard/payments"
   },
   {
-    id: "activity4",
-    type: "payment_processed",
-    icon: "CreditCard",
-    title: "Payment of ₦15,000 released",
-    description: "For 'Electrical Wiring Fix' completed.",
-    timestamp: new Date(Date.now() - 86400000 * 3), // 3 days ago
-    link: "/dashboard/payments/history?txnId=txn_payment_123",
-    userId: mockUserId,
-  },
-  {
-    id: "activity5",
-    type: "job_completed",
-    icon: "CheckCircle2",
-    title: "Marked 'Website Design' as completed",
-    description: "Client Bola confirmed completion.",
-    timestamp: new Date(Date.now() - 86400000 * 2), // 2 days ago
-    link: "/dashboard/services/my-requests/req_website_456",
-    userId: mockUserId,
+    id: "activity5", type: "new_message", icon: "MessageSquare", title: "New message from Client Bola",
+    description: "Regarding 'Website Design' project...", timestamp: new Date(Date.now() - 3600000 * 5), userId: mockUserId, link: "/dashboard/messages"
   },
 ];
 
-// Map of icon names to actual Lucide components
+const mockNewJobsForArtisan: ServiceRequest[] = [
+  { id: "job1", clientId: "clientNew1", title: "Urgent Plumbing for Bathroom Leak", description: "Main bathroom pipe burst, need immediate plumbing assistance in Ikeja.", category: "Plumbing", location: "Ikeja, Lagos", budget: 15000, postedAt: new Date(Date.now() - 3600000 * 3), status: "open" },
+  { id: "job2", clientId: "clientNew2", title: "Custom Bookshelf Carpentry", description: "Looking for a skilled carpenter to build a floor-to-ceiling bookshelf. Materials provided.", category: "Carpentry", location: "Lekki Phase 1, Lagos", budget: 80000, postedAt: new Date(Date.now() - 86400000 * 1), status: "open" },
+  { id: "job3", clientId: "clientNew3", title: "House Painting - Exterior", description: "Need exterior painting for a 3-bedroom bungalow in Surulere.", category: "Painting", location: "Surulere, Lagos", postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
+];
+
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2
-  // Add other icons used in nav items if not covered by the list above
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera: UserCircle, UploadCloud: UserCircle, Menu: LayoutDashboard, // Add Menu if used
 };
 
-
 export default function DashboardHomePage() {
-  // Placeholder data - in a real app, this would be dynamic
-  const userType: 'client' | 'artisan' = 'artisan'; // or 'client'
-
-  // Filter activities for the current mock user
-  const userActivities = mockRecentActivities.filter(activity => activity.userId === mockUserId)
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Sort by most recent
-    .slice(0, 5); // Show top 5
-
+  const userActivities = mockRecentActivitiesArtisan.filter(activity => activity.userId === mockUserId)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Welcome to your Dashboard"
-        description="Manage your activities, services, and profile all in one place."
+        title={userType === 'artisan' ? "Artisan Dashboard" : "Welcome to your Dashboard"}
+        description="Oversee your jobs, proposals, and earnings."
         icon={LayoutDashboard}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <DashboardCard
-          title="My Profile"
-          description="View and update your personal information and settings."
-          icon={UserCircle}
-          actionHref="/dashboard/profile"
-          actionText="View Profile"
-        />
+      {/* KPI Cards for Artisan */}
+      {userType === 'artisan' && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard title="Total Bids Sent" value={mockArtisanStats.totalBidsSent.toString()} icon={Edit3} />
+          <StatCard title="Active Jobs" value={mockArtisanStats.activeJobs.toString()} icon={Briefcase} />
+          <StatCard title="Total Earned (₦)" value={`₦${mockArtisanStats.totalEarned.toLocaleString()}`} icon={DollarSign} />
+          {/* Optional: <StatCard title="Completion Rate" value={`${mockArtisanStats.completionRate}%`} icon={TrendingUp} /> */}
+        </div>
+      )}
+
+      {/* Main content area with feeds */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          {/* New Jobs For You - Artisan */}
+          {userType === 'artisan' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> New Jobs For You</CardTitle>
+                <CardDescription>Opportunities matching your skills. (Mocked data based on 'Plumbing', 'Carpentry')</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mockNewJobsForArtisan.length > 0 ? (
+                  mockNewJobsForArtisan.slice(0,3).map(job => ( // Show a few
+                    <ServiceRequestCard key={job.id} request={job} />
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No new jobs matching your services right now. Check back later!</p>
+                )}
+                {mockNewJobsForArtisan.length > 3 && (
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href="/dashboard/jobs">View All Matching Jobs</Link>
+                    </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
         
-        {userType === 'client' && (
+        {/* Recent Activity Feed - Common or Artisan-specific */}
+        <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                <CardTitle className="font-headline">Recent Activity</CardTitle>
+                <CardDescription>Your latest interactions on Zelo.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                {userActivities.length > 0 ? (
+                    <ul className="space-y-4">
+                    {userActivities.map((activity) => {
+                        const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard; // Fallback icon
+                        const activityContent = (
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
+                            <IconComponent className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{activity.title}</p>
+                            {activity.description && <p className="text-xs text-muted-foreground">{activity.description}</p>}
+                            <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                            </p>
+                            </div>
+                        </div>
+                        );
+
+                        return (
+                        <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
+                            {activity.link ? (
+                            <Link href={activity.link} className="block">
+                                {activityContent}
+                            </Link>
+                            ) : (
+                            activityContent
+                            )}
+                        </li>
+                        );
+                    })}
+                    </ul>
+                ) : (
+                    <div className="py-8 text-center">
+                    <LayoutDashboard className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        No recent activity to display yet.
+                    </p>
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+        </div>
+      </div>
+
+      {/* Generic Links - kept for now, might be less relevant for focused artisan dash */}
+      {userType === 'client' && ( // Conditional rendering if needed for client later
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <DashboardCard
+            title="My Profile"
+            description="View and update your personal information and settings."
+            icon={UserCircle}
+            actionHref="/dashboard/profile"
+            actionText="View Profile"
+          />
           <DashboardCard
             title="Post a New Service Request"
             description="Need something done? Let skilled artisans know."
@@ -126,100 +192,20 @@ export default function DashboardHomePage() {
             actionHref="/dashboard/services/request/new"
             actionText="Post Request"
           />
-        )}
-
-        {userType === 'artisan' && (
-           <DashboardCard
-            title="Browse Service Requests"
-            description="Find new job opportunities posted by clients."
-            icon={Briefcase}
-            actionHref="/dashboard/jobs" // Updated to point to the new browse jobs page for artisans
-            actionText="Browse Requests"
-          />
-        )}
-       
-        <DashboardCard
-          title="My Services"
-          description={userType === 'client' ? "Track your ongoing and past service requests." : "Manage your offered services and job applications."}
-          icon={Briefcase}
-          actionHref={userType === 'client' ? "/dashboard/services/my-requests" : "/dashboard/services/my-offers"}
-          actionText="View Services"
-        />
-        
-        <DashboardCard
-          title="Messages"
-          description="Communicate with clients or artisans directly."
-          icon={MessageSquare}
-          actionHref="/dashboard/messages"
-          actionText="Open Messages"
-        />
-
-        {userType === 'artisan' && (
           <DashboardCard
-            title="Withdrawal Settings"
-            description="Manage your bank account details for payments."
-            icon={CreditCard} 
-            actionHref="/dashboard/profile/withdrawal-settings"
-            actionText="Setup Account"
+            title="My Services"
+            description="Track your ongoing and past service requests."
+            icon={Briefcase}
+            actionHref="/dashboard/services/my-requests"
+            actionText="View Services"
           />
-        )}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Recent Activity</CardTitle>
-          <CardDescription>Overview of your latest interactions on Zelo.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {userActivities.length > 0 ? (
-            <ul className="space-y-4">
-              {userActivities.map((activity) => {
-                const IconComponent = iconComponentsMap[activity.icon];
-                const activityContent = (
-                  <div className="flex items-start gap-3">
-                    {IconComponent && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
-                        <IconComponent className="h-4 w-4" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{activity.title}</p>
-                      {activity.description && <p className="text-xs text-muted-foreground">{activity.description}</p>}
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                      </p>
-                    </div>
-                  </div>
-                );
-
-                return (
-                  <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
-                    {activity.link ? (
-                      <Link href={activity.link} className="block">
-                        {activityContent}
-                      </Link>
-                    ) : (
-                      activityContent
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="py-8 text-center">
-              <LayoutDashboard className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-2 text-sm text-muted-foreground">
-                No recent activity to display yet.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
 
-interface DashboardCardProps {
+interface DashboardCardProps { // For the generic cards if still used
   title: string;
   description: string;
   icon: React.ElementType;
@@ -242,6 +228,28 @@ function DashboardCard({ title, description, icon: Icon, actionHref, actionText 
           <Link href={actionHref}>{actionText}</Link>
         </Button>
       </div>
+    </Card>
+  );
+}
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  description?: string;
+}
+
+function StatCard({ title, value, icon: Icon, description }: StatCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-primary" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-foreground">{value}</div>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </CardContent>
     </Card>
   );
 }

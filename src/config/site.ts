@@ -31,29 +31,31 @@ export const dashboardNavItems: NavItem[] = [
     icon: "UserCircle",
     roles: commonRoles,
     children: [
-       { title: "Edit My Profile", href: "/dashboard/profile/edit", icon: "Settings", roles: commonRoles },
+       { title: "Edit My Profile", href: "/dashboard/profile/edit", roles: commonRoles },
        { title: "Withdrawal Settings", href: "/dashboard/profile/withdrawal-settings", icon: "CreditCard", roles: artisanOnly },
     ]
   },
+  // Client-specific section (will be filtered out for artisans by role check in header)
   {
-    title: "Client Services", // Renamed for clarity
+    title: "Find Services",
     href: "/dashboard/services",
     icon: "Briefcase",
-    roles: clientOnly, // Primarily for clients
+    roles: clientOnly,
     children: [
-      { title: "Browse Artisans", href: "/dashboard/services/browse", icon: "MapPin", roles: clientOnly }, // Clients browse artisans
-      { title: "Post a Request", href: "/dashboard/services/request/new", icon: "PlusCircle", roles: clientOnly },
-      { title: "My Service Requests", href: "/dashboard/services/my-requests", icon: "FileText", roles: clientOnly },
+      { title: "Browse Artisans", href: "/dashboard/services/browse", roles: clientOnly },
+      { title: "Post a Request", href: "/dashboard/services/request/new", roles: clientOnly },
+      { title: "My Service Requests", href: "/dashboard/services/my-requests", roles: clientOnly },
     ],
   },
+  // Artisan-specific section
   {
-    title: "Artisan Hub", // New section for artisans
-    href: "/dashboard/jobs",
-    icon: "Search", // Using 'Search' for "Find Jobs"
+    title: "Artisan Hub",
+    href: "/dashboard/jobs", // Main entry point for artisans to find jobs
+    icon: "Search",
     roles: artisanOnly,
     children: [
-        { title: "Find Jobs", href: "/dashboard/jobs", icon: "Search", roles: artisanOnly }, // Points to the new browse jobs page
-        { title: "My Job Offers", href: "/dashboard/services/my-offers", icon: "ClipboardList", roles: artisanOnly }, // Existing page for artisan's offers
+        { title: "Find New Jobs", href: "/dashboard/jobs", roles: artisanOnly },
+        { title: "My Jobs & Proposals", href: "/dashboard/services/my-offers", roles: artisanOnly },
     ]
   },
   {
@@ -65,12 +67,13 @@ export const dashboardNavItems: NavItem[] = [
   },
   {
     title: "Payments",
-    href: "/dashboard/payments",
-    icon: "ShieldCheck",
+    href: "/dashboard/payments", // New top-level payments page
+    icon: "CreditCard", // Changed icon for payments
     roles: commonRoles,
     children: [
-        { title: "My Escrow Transactions", href: "/dashboard/payments/escrow", icon: "ShieldCheck", roles: commonRoles },
-        { title: "Transaction History", href: "/dashboard/payments/history", icon: "FileText", roles: commonRoles },
+        { title: "Payments Overview", href: "/dashboard/payments", roles: commonRoles }, // Link to the new overview
+        { title: "Escrow Details", href: "/dashboard/payments/escrow", roles: commonRoles },
+        { title: "Transaction History", href: "/dashboard/payments/history", roles: commonRoles },
     ]
   },
   {
@@ -79,27 +82,9 @@ export const dashboardNavItems: NavItem[] = [
     icon: "Users",
     roles: adminOnly,
     children: [
-        { title: "Manage Users", href: "/dashboard/admin/users", icon: "Users", roles: adminOnly },
-        { title: "Manage Services", href: "/dashboard/admin/services", icon: "Briefcase", roles: adminOnly }, // This might need to be "Manage Service Categories" or similar
-        { title: "Platform Settings", href: "/dashboard/admin/settings", icon: "Settings", roles: adminOnly },
+        { title: "Manage Users", href: "/dashboard/admin/users", roles: adminOnly },
+        { title: "Manage Services", href: "/dashboard/admin/services", roles: adminOnly },
+        { title: "Platform Settings", href: "/dashboard/admin/settings", roles: adminOnly },
     ]
   },
-  // {
-  //   title: "Settings",
-  //   href: "/dashboard/settings",
-  //   icon: "Settings",
-  //   roles: commonRoles,
-  // },
-  // Logout is handled by the main layout's sidebar footer, so removing from here to avoid duplication if it was just a link.
-  // If it's intended to be a separate page/action, it can stay. Let's assume it's handled.
-  // {
-  //   title: "Logout",
-  //   href: "/api/auth/logout", // Example logout link
-  //   icon: "LogOut" as LucideIconName,
-  //   roles: commonRoles,
-  // },
 ];
-
-// Add new icons to the map in `dashboard-sidebar-nav.tsx` if they are not already there:
-// Search, ClipboardList
-// Make sure they are also added to LucideIconName in types/index.ts
