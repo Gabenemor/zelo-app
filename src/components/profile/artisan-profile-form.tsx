@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
@@ -42,6 +42,7 @@ const artisanProfileSchema = z.object({
   isLocationPublic: z.boolean().default(false).optional(),
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
   serviceExperiences: z.array(serviceExperienceSchema).optional(),
+  // portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
 });
 
 type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
@@ -65,6 +66,7 @@ export function ArtisanProfileForm({
 }: ArtisanProfileFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  // const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
 
   const form = useForm<ArtisanProfileFormValues>({
     resolver: zodResolver(artisanProfileSchema),
@@ -85,6 +87,7 @@ export function ArtisanProfileForm({
             chargeDescription: existingExperience?.chargeDescription ?? '',
           };
         }) || [],
+        // portfolioFiles: null,
     },
   });
 
@@ -108,13 +111,30 @@ export function ArtisanProfileForm({
     }
   }, [initialData?.servicesOffered, initialData?.serviceExperiences, form]);
 
+  // const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = event.target.files;
+  //   if (files) {
+  //     form.setValue('portfolioFiles', files);
+  //     const newPreviews: string[] = [];
+  //     Array.from(files).forEach(file => {
+  //       if (newPreviews.length < 5) { // Max 5 previews
+  //         newPreviews.push(URL.createObjectURL(file));
+  //       }
+  //     });
+  //     setPortfolioPreviews(newPreviews);
+  //   }
+  // };
+
 
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
+    // TODO: Handle actual file uploads for values.portfolioFiles
+    // For now, we'll mock saving the URLs if they were part of initialData or new ones (if we had preview logic)
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
       servicesOffered: initialData?.servicesOffered || [], 
+      portfolioImageUrls: initialData?.portfolioImageUrls, // Keep existing, replace with new URLs after upload
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -151,7 +171,9 @@ export function ArtisanProfileForm({
       
       toast({ title: "Update Failed", description, variant: "destructive" });
       console.error("Artisan profile save error. Full result:", JSON.stringify(result, null, 2));
-      if(result.error) console.error("Artisan profile save error (parsed error object):", JSON.stringify(result.error, null, 2));
+      if(result.error) {
+        console.error("Artisan profile save error (parsed error object):", JSON.stringify(result.error, null, 2));
+      }
     }
   }
 
@@ -367,20 +389,62 @@ export function ArtisanProfileForm({
           )}
         />
 
-        <FormItem>
-            <FormLabel>Portfolio Images (Optional)</FormLabel>
-            <div className="relative">
-                <ImageIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <FormControl>
-                    <Input type="file" multiple className="pl-10 pt-[0.375rem]" />
-                </FormControl>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-primary" /> Portfolio Images (Optional)
+            </CardTitle>
+            <CardDescription>Showcase your best work. Upload up to 5 images.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              // control={form.control} // Control might be needed if managing FileList via RHF
+              // name="portfolioFiles"
+              render={({ field }) => ( // field would be for RHF if managing FileList
+                <FormItem>
+                   <FormControl>
+                    {/* Basic file input, can be styled further */}
+                    <div className="flex items-center justify-center w-full">
+                        <label
+                            htmlFor="portfolio-upload"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors"
+                        >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                                <p className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                            </div>
+                            <Input id="portfolio-upload" type="file" multiple className="sr-only" accept="image/*" /* onChange={handlePortfolioChange} disabled={isLoading} */ />
+                        </label>
+                    </div>
+                  </FormControl>
+                  <FormDescription className="mt-2 text-center">
+                    Upload images of your past work (max 5 images, e.g., JPG, PNG).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Placeholder for image previews */}
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {(initialData?.portfolioImageUrls || ["https://placehold.co/150x100.png?text=Work+1", "https://placehold.co/150x100.png?text=Work+2"]).slice(0,5).map((url, index) => (
+                <div key={index} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border shadow-sm">
+                  <img
+                    src={url}
+                    alt={`Portfolio image ${index + 1}`}
+                    className="object-cover w-full h-full"
+                    data-ai-hint={url.includes("placehold") ? "portfolio work" : undefined}
+                  />
+                  {/* Add a remove button if implementing preview logic */}
+                </div>
+              ))}
             </div>
-            <FormDescription>Upload images of your past work. Max 5 images.</FormDescription>
-            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                <img src="https://placehold.co/100x100.png?text=Work+1" alt="portfolio placeholder 1" className="rounded" data-ai-hint="portfolio work" />
-                <img src="https://placehold.co/100x100.png?text=Work+2" alt="portfolio placeholder 2" className="rounded" data-ai-hint="portfolio design" />
-            </div>
-        </FormItem>
+          </CardContent>
+        </Card>
+
 
         <div className="flex flex-wrap justify-end gap-3 pt-4">
           {backButtonHref && (
@@ -398,5 +462,4 @@ export function ArtisanProfileForm({
     </Form>
   );
 }
-
     
