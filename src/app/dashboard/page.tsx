@@ -2,6 +2,7 @@
 "use client"; // This page now uses client-side hooks
 
 import React, { Suspense } from 'react'; // Added Suspense
+import Image from 'next/image'; // Added this import
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -397,3 +398,5 @@ function DashboardLoadingSkeleton() {
     </div>
   );
 }
+
+    
