@@ -5,20 +5,18 @@ import React, { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { ArtisanProfileForm } from '@/components/profile/artisan-profile-form';
-import { UserCircle2, Save, Loader2 } from 'lucide-react';
+import { UserCircle2, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ArtisanProfile } from '@/types';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
-import { Button } from '@/components/ui/button';
 
 function ArtisanOnboardingStep2Content() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false); // This page's loading state, separate from form
   const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
 
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding";
+  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; // Replace with actual user ID from auth
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   useEffect(() => {
@@ -31,24 +29,24 @@ function ArtisanOnboardingStep2Content() {
         } catch (e) {
           console.error("Failed to parse servicesOffered from URL:", e);
           toast({ title: "Error", description: "Could not load selected services. Please go back and try again.", variant: "destructive" });
-          // Potentially redirect back or handle error
+          // Consider redirecting back if services are crucial and missing
+          // router.push('/onboarding/artisan/step-1'); 
         }
       }
-      setInitialFormValues(prev => ({ ...prev, servicesOffered }));
+      setInitialFormValues(prev => ({ ...prev, servicesOffered, username: firstName || prev.username }));
     }
-  }, [searchParams, toast]);
+  }, [searchParams, toast, firstName]);
 
 
-  // This function will be called by ArtisanProfileForm on successful submission
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
-    router.push('/dashboard');
+    router.push('/dashboard'); // Navigate to dashboard after successful save
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
   const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully.";
 
-  if (!searchParams || !initialFormValues.servicesOffered) { // Wait for searchParams and servicesOffered to be processed
+  if (!searchParams || initialFormValues.servicesOffered === undefined) { 
     return (
       <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -56,6 +54,8 @@ function ArtisanOnboardingStep2Content() {
       </div>
     );
   }
+
+  const backHref = `/onboarding/artisan/step-1${firstName ? `?firstName=${encodeURIComponent(firstName)}` : ''}`;
 
   return (
     <div className="container mx-auto max-w-3xl py-8 sm:py-12">
@@ -68,9 +68,11 @@ function ArtisanOnboardingStep2Content() {
       <div className="p-0 sm:p-6 border-0 sm:border rounded-lg sm:shadow-sm sm:bg-card">
         <ArtisanProfileForm
           userId={MOCK_USER_ID}
-          initialData={initialFormValues} // Pass selected services and potentially other defaults
-          onSaveSuccess={handleFormSaveSuccess} // Callback for successful save
+          initialData={initialFormValues}
+          onSaveSuccess={handleFormSaveSuccess}
           submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
+          backButtonHref={backHref}
+          backButtonText="Back to Step 1"
         />
       </div>
     </div>

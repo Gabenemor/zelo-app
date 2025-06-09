@@ -19,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, MinusCircle, PlusCircle, User } from "lucide-react"; // Added User here
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions"; 
+import Link from "next/link";
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -49,13 +50,17 @@ interface ArtisanProfileFormProps {
   userId: string;
   onSaveSuccess?: () => void; 
   submitButtonText?: React.ReactNode;
+  backButtonHref?: string;
+  backButtonText?: string;
 }
 
 export function ArtisanProfileForm({
   initialData,
   userId,
   onSaveSuccess,
-  submitButtonText = <> <Save className="mr-2 h-4 w-4" /> Save Profile </>
+  submitButtonText = <> <Save className="mr-2 h-4 w-4" /> Save Profile </>,
+  backButtonHref,
+  backButtonText = "Back"
 }: ArtisanProfileFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
@@ -82,13 +87,14 @@ export function ArtisanProfileForm({
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields } = useFieldArray({
     control: form.control,
     name: "serviceExperiences",
   });
 
   useEffect(() => {
-    if (initialData?.servicesOffered && form.getValues('serviceExperiences')?.length === 0) {
+    // Initialize serviceExperiences if servicesOffered exists and serviceExperiences is empty
+    if (initialData?.servicesOffered && initialData.servicesOffered.length > 0 && form.getValues('serviceExperiences')?.length === 0) {
       const experiencesToSet = initialData.servicesOffered.map(serviceName => {
         const existing = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
         return { serviceName, years: existing?.years ?? 0 };
@@ -102,7 +108,7 @@ export function ArtisanProfileForm({
     setIsLoading(true);
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
-      username: values.username, // Ensure username from form is included
+      username: values.username,
       userId,
       servicesOffered: initialData?.servicesOffered || [], 
       onboardingCompleted: true, 
@@ -187,7 +193,6 @@ export function ArtisanProfileForm({
           />
         </div>
 
-        {/* Service Experiences Section */}
         {fields.length > 0 && (
           <div className="space-y-4 rounded-lg border p-4">
             <h3 className="text-lg font-medium leading-none">Service Experience</h3>
@@ -346,9 +351,18 @@ export function ArtisanProfileForm({
             </div>
         </FormItem>
 
-        <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
-          {isLoading ? "Saving..." : submitButtonText}
-        </Button>
+        <div className="flex flex-wrap justify-end gap-3 pt-4">
+          {backButtonHref && (
+            <Link href={backButtonHref} passHref legacyBehavior>
+              <Button type="button" variant="outline" disabled={isLoading}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> {backButtonText}
+              </Button>
+            </Link>
+          )}
+          <Button type="submit" className="font-semibold" disabled={isLoading}>
+            {isLoading ? "Saving..." : submitButtonText}
+          </Button>
+        </div>
       </form>
     </Form>
   );
