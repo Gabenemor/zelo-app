@@ -9,7 +9,7 @@ import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Briefcase, Loader2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveArtisanStep1Details } from '@/actions/onboarding-actions'; // Corrected import
+import { saveArtisanStep1Services } from '@/actions/onboarding-actions'; // Reverted import
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -104,7 +104,7 @@ function ArtisanOnboardingStep1Content() {
     }
 
     setIsLoading(true);
-    const result = await saveArtisanStep1Details(experiencesToSave);
+    const result = await saveArtisanStep1Services(experiencesToSave); // Reverted function call
     setIsLoading(false);
 
     if (result.success && result.data) {
@@ -204,5 +204,3 @@ export default function ArtisanOnboardingStep1Page() {
     </Suspense>
   );
 }
-
-    

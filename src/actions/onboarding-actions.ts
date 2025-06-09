@@ -50,7 +50,7 @@ const ArtisanServiceExperienceSchema = z.object({
   years: z.coerce.number().int().min(0, "Years of experience must be a non-negative number."),
 });
 
-const ArtisanStep1DetailsSchema = z.object({
+const ArtisanStep1ServicesSchema = z.object({ // Renamed schema
   userId: z.string(),
   serviceExperiences: z.array(ArtisanServiceExperienceSchema)
     .min(1, "Select at least one service and provide experience.")
@@ -60,7 +60,7 @@ const ArtisanStep1DetailsSchema = z.object({
 });
 
 // Updated action for artisan step 1
-export async function saveArtisanStep1Details(experiences: Array<{ serviceName: string; years: number }>) {
+export async function saveArtisanStep1Services(experiences: Array<{ serviceName: string; years: number }>) { // Renamed function
   const servicesOffered = experiences.map(exp => exp.serviceName);
   const dataToValidate = {
     userId: MOCK_USER_ID,
@@ -68,13 +68,13 @@ export async function saveArtisanStep1Details(experiences: Array<{ serviceName: 
     servicesOffered: servicesOffered
   };
 
-  const validation = ArtisanStep1DetailsSchema.safeParse(dataToValidate);
+  const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); // Use renamed schema
   if (!validation.success) {
     // Log the detailed error for debugging
-    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Details:", validation.error.flatten());
+    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", validation.error.flatten());
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
-  console.log('[SERVER ACTION] Saving artisan step 1 details (services & experience):', validation.data);
+  console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
   // TODO: Implement actual database write
   // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, serviceExperiences: validation.data.serviceExperiences, onboardingStep1Completed: true }, { merge: true });
   return { success: true, data: validation.data };
@@ -150,5 +150,3 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
   // This is a mock, returning false to trigger the UI prompt for demo purposes
   return { complete: false, missingFields: ['location', 'username'] };
 }
-
-    
