@@ -1,4 +1,6 @@
 
+"use client"; // Added to allow client-side interactivity if any button needs it
+
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,7 @@ export default function AdminPlatformSettingsPage() {
                 <Input id="platformPrimaryColor" defaultValue="#05BA05" />
                  <p className="text-xs text-muted-foreground">Changes theme color across the platform. Ensure good contrast.</p>
             </div>
-            <Button>Save Branding Changes (Mock)</Button>
+            <Button onClick={() => console.log('Mock: Save Branding Changes')}>Save Branding Changes (Mock)</Button>
           </CardContent>
         </Card>
 
@@ -72,7 +74,7 @@ export default function AdminPlatformSettingsPage() {
                 <SettingToggle id="clientStep2Profile" label="Step 2: Basic Profile Setup" defaultChecked />
               </div>
             </div>
-            <Button>Save Onboarding Settings (Mock)</Button>
+            <Button onClick={() => console.log('Mock: Save Onboarding Settings')}>Save Onboarding Settings (Mock)</Button>
           </CardContent>
         </Card>
         
@@ -98,7 +100,7 @@ export default function AdminPlatformSettingsPage() {
                 />
                 <p className="text-xs text-muted-foreground">Add, edit, or remove service categories available on the platform. Changes will reflect in onboarding and job posting.</p>
             </div>
-            <Button>Save Fee & Category Settings (Mock)</Button>
+            <Button onClick={() => console.log('Mock: Save Fee & Category Settings')}>Save Fee & Category Settings (Mock)</Button>
           </CardContent>
         </Card>
       </div>
