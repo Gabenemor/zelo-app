@@ -13,6 +13,8 @@ export interface User {
 export interface ServiceExperience {
   serviceName: string;
   years: number;
+  chargeAmount?: number; // Added for per-service charge
+  chargeDescription?: string; // Added for per-service charge basis (e.g., "per hour")
 }
 
 export interface ArtisanProfile {
@@ -20,29 +22,28 @@ export interface ArtisanProfile {
   username?: string;
   contactPhone?: string;
   contactEmail?: string;
-  servicesOffered: string[]; // Array of service names selected in step 1
-  serviceExperiences?: ServiceExperience[]; // Experience per service
-  serviceChargeDescription?: string; // e.g., "per hour", "per project"
-  serviceChargeAmount?: number; // in Naira
-  location?: string; // General location, e.g., "Lagos, Nigeria"
-  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
-  isLocationPublic?: boolean; // User's preference to share exact location
+  servicesOffered: string[];
+  serviceExperiences?: ServiceExperience[]; // Will now contain charge details
+  // REMOVED: serviceChargeDescription?: string;
+  // REMOVED: serviceChargeAmount?: number;
+  location?: string;
+  locationCoordinates?: { lat: number; lng: number };
+  isLocationPublic?: boolean;
   bio?: string;
   portfolioImageUrls?: string[];
-  // yearsOfExperience?: number; // Replaced by serviceExperiences
-  availability?: string; // e.g., "Weekdays", "Weekends", "Full-time"
+  availability?: string;
   onboardingCompleted?: boolean;
-  onboardingStep1Completed?: boolean; // Added to track step 1
-  profileSetupCompleted?: boolean; // Added to track step 2
+  onboardingStep1Completed?: boolean;
+  profileSetupCompleted?: boolean;
 }
 
 export interface ClientProfile {
   userId: string;
   username?: string;
   contactPhone?: string;
-  location?: string; // General location
-  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
-  isLocationPublic?: boolean; // User's preference to share exact location
+  location?: string;
+  locationCoordinates?: { lat: number; lng: number };
+  isLocationPublic?: boolean;
   onboardingCompleted?: boolean;
   servicesLookingFor?: string[];
   onboardingStep1Completed?: boolean;
@@ -68,10 +69,10 @@ export interface ServiceRequest {
   };
   title: string;
   description: string;
-  category: string; // Service category
-  location: string; // Specific job location
-  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
-  budget?: number; // Optional, in Naira
+  category: string;
+  location: string;
+  locationCoordinates?: { lat: number; lng: number };
+  budget?: number;
   postedAt: Date;
   status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
   assignedArtisanId?: string;
@@ -93,13 +94,13 @@ export interface ArtisanProposal {
 
 export interface ChatMessage {
   id: string;
-  chatId: string; // Conversation ID
+  chatId: string;
   senderId: string;
   receiverId: string;
   text: string;
   timestamp: Date;
   isRead?: boolean;
-  googleMeetLink?: string; // Optional link
+  googleMeetLink?: string;
 }
 
 export interface EscrowTransaction {
@@ -107,8 +108,8 @@ export interface EscrowTransaction {
   serviceRequestId: string;
   clientId: string;
   artisanId: string;
-  amount: number; // Total amount in Naira
-  platformFee: number; // 10% of amount
+  amount: number;
+  platformFee: number;
   status: "funded" | "released_to_artisan" | "refunded_to_client" | "disputed";
   createdAt: Date;
   updatedAt: Date;
@@ -129,7 +130,7 @@ export type LucideIconName =
   | "FileText"
   | "Search"
   | "ClipboardList"
-  | "UserCog" 
+  | "UserCog"
   | "UserCircle2";
 
 
@@ -144,7 +145,6 @@ export interface NavItem {
   roles?: UserRole[];
 }
 
-// Centralized list of services
 export const NIGERIAN_ARTISAN_SERVICES = [
   "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry",
   "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning",

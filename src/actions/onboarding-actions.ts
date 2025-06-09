@@ -4,10 +4,7 @@
 import { z } from 'zod';
 import type { ArtisanProfile, ClientProfile, ServiceExperience } from '@/types';
 
-// Mock user ID - in a real app, this would come from authentication context
 const MOCK_USER_ID = 'mockUserId123';
-
-// --- Client Onboarding Actions ---
 
 const ClientPreferencesSchema = z.object({
   userId: z.string(),
@@ -20,8 +17,6 @@ export async function saveClientStep1Preferences(services: string[]) {
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
   console.log('[SERVER ACTION] Saving client step 1 preferences:', validation.data);
-  // TODO: Implement actual database write to Firestore or other DB
-  // e.g., await db.collection('clientProfiles').doc(validation.data.userId).set({ servicesLookingFor: validation.data.servicesLookingFor, onboardingStep1Completed: true }, { merge: true });
   return { success: true, data: validation.data };
 }
 
@@ -37,15 +32,9 @@ export async function saveClientStep2Profile(data: { location: string; username?
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
   console.log('[SERVER ACTION] Saving client step 2 profile:', validation.data);
-  // TODO: Implement actual database write
-  // e.g., await db.collection('clientProfiles').doc(validation.data.userId).set({ location: validation.data.location, username: validation.data.username, profileSetupCompleted: true, onboardingCompleted: true }, { merge: true });
   return { success: true, data: validation.data };
 }
 
-
-// --- Artisan Onboarding Actions ---
-
-// Updated schema: No longer includes serviceExperiences
 const ArtisanStep1ServicesSchema = z.object({
   userId: z.string(),
   servicesOffered: z.array(z.string().min(1))
@@ -53,8 +42,6 @@ const ArtisanStep1ServicesSchema = z.object({
     .max(2, "You can select a maximum of 2 services during onboarding."),
 });
 
-
-// Updated action: No longer accepts serviceExperiences
 export async function saveArtisanStep1Services(servicesOffered: string[]) {
   try {
     const dataToValidate = {
@@ -94,9 +81,6 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
       return { success: false, error: clientErrorObject };
     }
     console.log('[SERVER ACTION] Saving artisan step 1 services:', validation.data);
-    // TODO: Implement actual database write
-    // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, onboardingStep1Completed: true }, { merge: true });
-    // Return only servicesOffered as serviceExperiences are no longer part of step 1
     return { success: true, data: { userId: validation.data.userId, servicesOffered: validation.data.servicesOffered } };
 
   } catch (e: any) {
@@ -120,7 +104,6 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
   }
 }
 
-
 const ArtisanOnboardingProfileSchema = z.object({
   userId: z.string(),
   username: z.string().min(3, "Username must be at least 3 characters.").optional(),
@@ -131,10 +114,10 @@ const ArtisanOnboardingProfileSchema = z.object({
   serviceExperiences: z.array(z.object({
     serviceName: z.string(),
     years: z.coerce.number().int().min(0),
-  })).optional(), // Keep this optional as it's not collected in onboarding step 1 anymore
+    chargeAmount: z.coerce.number().positive({ message: "Charge amount must be positive."}).optional(),
+    chargeDescription: z.string().optional(),
+  })).optional(),
   servicesOffered: z.array(z.string().min(1)).min(1), 
-  serviceChargeAmount: z.coerce.number().positive().optional(),
-  serviceChargeDescription: z.string().optional(),
   isLocationPublic: z.boolean().optional(),
   onboardingCompleted: z.boolean().optional(),
   profileSetupCompleted: z.boolean().optional(),
@@ -145,16 +128,14 @@ export async function saveArtisanOnboardingProfile(
   profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>>
 ) {
   const dataToValidate = {
-    userId: MOCK_USER_ID, 
+    userId: MOCK_USER_ID,
     username: profileData.username,
     contactEmail: profileData.contactEmail,
     location: profileData.location,
     contactPhone: profileData.contactPhone,
     bio: profileData.bio,
-    serviceExperiences: profileData.serviceExperiences, // This will be undefined/empty from onboarding step 2 initially
-    servicesOffered: profileData.servicesOffered || [], 
-    serviceChargeAmount: profileData.serviceChargeAmount,
-    serviceChargeDescription: profileData.serviceChargeDescription,
+    serviceExperiences: profileData.serviceExperiences,
+    servicesOffered: profileData.servicesOffered || [],
     isLocationPublic: profileData.isLocationPublic,
     onboardingCompleted: true,
     profileSetupCompleted: true,
@@ -168,26 +149,10 @@ export async function saveArtisanOnboardingProfile(
   }
 
   console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2):', validation.data);
-  // TODO: Implement actual database write using all fields from ArtisanProfile.
-  // This would likely update the artisan profile document.
-  // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set(validation.data, { merge: true });
   return { success: true, data: validation.data };
 }
 
-// --- Mock function to check profile completeness ---
 export async function checkClientProfileCompleteness(userId: string): Promise<{ complete: boolean; missingFields?: string[] }> {
   console.log('[SERVER ACTION] Checking client profile completeness for userId (mock):', userId);
-  // Mock logic: Fetch user's clientProfile from DB
-  // const clientProfileDoc = await db.collection('clientProfiles').doc(userId).get();
-  // if (!clientProfileDoc.exists) return { complete: false, missingFields: ['profile_does_not_exist'] };
-  // const clientProfile = clientProfileDoc.data() as ClientProfile;
-  // const isComplete = !!(clientProfile.location && clientProfile.username && clientProfile.onboardingCompleted);
-  // if (isComplete) return { complete: true };
-  // const missing: string[] = [];
-  // if (!clientProfile.location) missing.push('location');
-  // if (!clientProfile.username) missing.push('username');
-  // return { complete: false, missingFields: missing.length > 0 ? missing : ['onboarding_not_marked_complete'] };
-
-  // This is a mock, returning false to trigger the UI prompt for demo purposes
   return { complete: false, missingFields: ['location', 'username'] };
 }

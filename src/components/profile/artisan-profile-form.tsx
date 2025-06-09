@@ -19,14 +19,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft } from "lucide-react"; // Added ArrowLeft
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
   years: z.coerce.number().int().min(0, "Years must be 0 or positive."),
+  chargeAmount: z.coerce.number().positive({ message: "Charge amount must be positive."}).optional(),
+  chargeDescription: z.string().max(50, "Basis description too long.").optional(),
 });
 
 const artisanProfileSchema = z.object({
@@ -35,8 +38,6 @@ const artisanProfileSchema = z.object({
     message: "Invalid phone number format."
   }),
   contactEmail: z.string().email({ message: "Invalid email address." }),
-  serviceChargeDescription: z.string().optional(),
-  serviceChargeAmount: z.coerce.number().positive({ message: "Service charge must be positive."}).optional(),
   location: z.string().min(3, { message: "Location is required." }),
   isLocationPublic: z.boolean().default(false).optional(),
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
@@ -71,8 +72,6 @@ export function ArtisanProfileForm({
       username: initialData?.username || "",
       contactPhone: initialData?.contactPhone || "",
       contactEmail: initialData?.contactEmail || "",
-      serviceChargeDescription: initialData?.serviceChargeDescription || "",
-      serviceChargeAmount: initialData?.serviceChargeAmount || undefined,
       location: initialData?.location || "",
       isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
@@ -81,7 +80,9 @@ export function ArtisanProfileForm({
           const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
           return {
             serviceName: serviceName,
-            years: existingExperience ? existingExperience.years : 0,
+            years: existingExperience?.years ?? 0,
+            chargeAmount: existingExperience?.chargeAmount ?? undefined,
+            chargeDescription: existingExperience?.chargeDescription ?? '',
           };
         }) || [],
     },
@@ -96,7 +97,12 @@ export function ArtisanProfileForm({
     if (initialData?.servicesOffered && initialData.servicesOffered.length > 0 && (form.getValues('serviceExperiences') === undefined || form.getValues('serviceExperiences')?.length === 0) ) {
       const experiencesToSet = initialData.servicesOffered.map(serviceName => {
         const existing = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
-        return { serviceName, years: existing?.years ?? 0 };
+        return {
+            serviceName,
+            years: existing?.years ?? 0,
+            chargeAmount: existing?.chargeAmount ?? undefined,
+            chargeDescription: existing?.chargeDescription ?? '',
+        };
       });
       form.setValue('serviceExperiences', experiencesToSet);
     }
@@ -107,9 +113,8 @@ export function ArtisanProfileForm({
     setIsLoading(true);
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
-      username: values.username,
       userId,
-      servicesOffered: initialData?.servicesOffered || [],
+      servicesOffered: initialData?.servicesOffered || [], // Keep original services offered
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -193,86 +198,99 @@ export function ArtisanProfileForm({
         </div>
 
         {fields.length > 0 && (
-          <div className="space-y-4 rounded-lg border p-4">
-            <h3 className="text-lg font-medium leading-none">Service Experience</h3>
-            <FormDescription>
-              For each service you offer, please specify your years of experience.
-            </FormDescription>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Service Details</CardTitle>
+              <CardDescription>
+                For each service you offer, specify years of experience and optionally, your typical charge.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-3 sm:flex-row sm:items-center sm:gap-4">
+              <div key={field.id} className="space-y-4 rounded-md border bg-secondary/30 p-4">
                 <FormField
                   control={form.control}
                   name={`serviceExperiences.${index}.serviceName`}
                   render={({ field: serviceNameField }) => (
-                    <FormItem className="flex-1 sm:flex-auto">
-                      <FormLabel className="text-sm font-semibold text-foreground">
-                        {serviceNameField.value}
+                    <FormItem>
+                      <FormLabel className="text-md font-semibold text-foreground">
+                        Service: {serviceNameField.value}
                       </FormLabel>
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name={`serviceExperiences.${index}.years`}
-                  render={({ field: yearsField }) => (
-                    <FormItem className="w-full sm:w-auto sm:min-w-[120px]">
-                      <div className="relative">
-                         <Briefcase className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="Years"
-                            min="0"
-                            {...yearsField}
-                            className="pl-10 pr-2 text-sm h-9"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage className="text-xs"/>
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <FormField
+                    control={form.control}
+                    name={`serviceExperiences.${index}.years`}
+                    render={({ field: yearsField }) => (
+                        <FormItem className="sm:col-span-1">
+                        <FormLabel>Years of Experience</FormLabel>
+                        <div className="relative">
+                            <Briefcase className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <FormControl>
+                            <Input
+                                type="number"
+                                placeholder="Years"
+                                min="0"
+                                {...yearsField}
+                                className="pl-10 pr-2 text-sm h-9"
+                            />
+                            </FormControl>
+                        </div>
+                        <FormMessage className="text-xs"/>
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name={`serviceExperiences.${index}.chargeAmount`}
+                    render={({ field: chargeAmountField }) => (
+                        <FormItem className="sm:col-span-1">
+                        <FormLabel>Charge Amount (₦)</FormLabel>
+                        <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <FormControl>
+                            <Input
+                                type="number"
+                                placeholder="e.g. 5000"
+                                min="0"
+                                {...chargeAmountField}
+                                className="pl-10 pr-2 text-sm h-9"
+                            />
+                            </FormControl>
+                        </div>
+                        <FormMessage className="text-xs"/>
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name={`serviceExperiences.${index}.chargeDescription`}
+                    render={({ field: chargeDescField }) => (
+                        <FormItem className="sm:col-span-1">
+                        <FormLabel>Charge Basis</FormLabel>
+                        <div className="relative">
+                            <Tag className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <FormControl>
+                            <Input
+                                placeholder="e.g. per hour"
+                                {...chargeDescField}
+                                className="pl-10 pr-2 text-sm h-9"
+                            />
+                            </FormControl>
+                        </div>
+                        <FormMessage className="text-xs"/>
+                        </FormItem>
+                    )}
+                    />
+                </div>
               </div>
             ))}
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-           <FormField
-            control={form.control}
-            name="serviceChargeAmount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Typical Service Charge (Naira)</FormLabel>
-                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <FormControl>
-                    <Input type="number" placeholder="e.g. 5000" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="serviceChargeDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Service Charge Basis</FormLabel>
-                 <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <FormControl>
-                    <Input placeholder="e.g., per hour, negotiable" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
-                <FormDescription>How do you typically charge?</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
