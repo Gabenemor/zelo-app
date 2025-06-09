@@ -13,8 +13,8 @@ export interface User {
 export interface ServiceExperience {
   serviceName: string;
   years: number;
-  chargeAmount?: number; // Added for per-service charge
-  chargeDescription?: string; // Added for per-service charge basis (e.g., "per hour")
+  chargeAmount?: number; 
+  chargeDescription?: string; 
 }
 
 export interface ArtisanProfile {
@@ -23,9 +23,7 @@ export interface ArtisanProfile {
   contactPhone?: string;
   contactEmail?: string;
   servicesOffered: string[];
-  serviceExperiences?: ServiceExperience[]; // Will now contain charge details
-  // REMOVED: serviceChargeDescription?: string;
-  // REMOVED: serviceChargeAmount?: number;
+  serviceExperiences?: ServiceExperience[]; 
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
   isLocationPublic?: boolean;
@@ -115,6 +113,26 @@ export interface EscrowTransaction {
   updatedAt: Date;
 }
 
+export type ActivityType = 
+  | 'new_message' 
+  | 'request_update' 
+  | 'new_proposal' 
+  | 'payment_processed' 
+  | 'profile_update'
+  | 'job_awarded'
+  | 'job_completed';
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  icon: LucideIconName; // Re-use LucideIconName for consistency
+  title: string;
+  description?: string; // Optional brief description or snippet
+  timestamp: Date;
+  link?: string; // Optional link to the relevant item (e.g., message, request)
+  userId: string; // The user this activity pertains to
+}
+
 export type LucideIconName =
   | "LayoutDashboard"
   | "UserCircle"
@@ -131,7 +149,9 @@ export type LucideIconName =
   | "Search"
   | "ClipboardList"
   | "UserCog"
-  | "UserCircle2";
+  | "UserCircle2"
+  | "Award" // Added for 'job_awarded'
+  | "CheckCircle2"; // Added for 'job_completed'
 
 
 export interface NavItem {
@@ -152,4 +172,3 @@ export const NIGERIAN_ARTISAN_SERVICES = [
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
 ] as const;
-
