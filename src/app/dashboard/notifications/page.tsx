@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Bell, Check, Trash2, Briefcase, MessageSquare, DollarSign, Award, Settings } from "lucide-react";
+import { Bell, Check, Trash2, Briefcase, MessageSquare, DollarSign, Award, Settings, Info } from "lucide-react";
 import type { NotificationItem, LucideIconName } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ const iconMap: Record<NotificationItem['type'], LucideIconName> = {
     payment_received: "DollarSign",
     job_completed_by_artisan: "Check",
     job_confirmed_by_client: "Check",
-    new_review: "Award", // Using Award for review, consider Star if available
+    new_review: "Award", 
     system_update: "Settings",
 };
 
@@ -76,7 +76,7 @@ export default function NotificationsPage() {
           {notifications.length > 0 ? (
             <ul className="space-y-4">
               {notifications.map((notif) => {
-                const IconComponent = iconMap[notif.type] || Bell;
+                const IconComponent = iconMap[notif.type] || Bell; // Fallback to Bell icon
                 const content = (
                   <div className={cn("flex items-start gap-4 p-4 rounded-lg border transition-colors", 
                                     notif.read ? "bg-card hover:bg-secondary/50" : "bg-primary/5 font-medium border-primary/20 hover:bg-primary/10"
@@ -86,7 +86,7 @@ export default function NotificationsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
-                        <h4 className={cn("text-sm", notif.read ? "text-foreground" : "text-primary-foreground")}>{notif.title}</h4>
+                        <h4 className={cn("text-sm font-semibold", notif.read ? "text-foreground" : "text-foreground")}>{notif.title}</h4>
                         {!notif.read && <Badge variant="default" className="h-2 w-2 p-0 rounded-full shrink-0" title="Unread" />}
                       </div>
                       {notif.description && <p className="text-xs text-muted-foreground">{notif.description}</p>}
