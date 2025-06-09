@@ -18,6 +18,8 @@ export interface ArtisanProfile {
   serviceChargeDescription?: string; // e.g., "per hour", "per project"
   serviceChargeAmount?: number; // in Naira
   location?: string; // General location, e.g., "Lagos, Nigeria"
+  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
+  isLocationPublic?: boolean; // User's preference to share exact location
   bio?: string;
   portfolioImageUrls?: string[];
   yearsOfExperience?: number;
@@ -28,6 +30,8 @@ export interface ClientProfile {
   userId: string;
   contactPhone?: string;
   location?: string; // General location
+  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
+  isLocationPublic?: boolean; // User's preference to share exact location
 }
 
 export interface WithdrawalAccount {
@@ -45,14 +49,16 @@ export interface ServiceRequest {
     name: string;
     avatarUrl?: string;
     memberSince?: string;
+    email?: string; // Added for Paystack integration
   };
   title: string;
   description: string;
   category: string; // Service category
   location: string; // Specific job location
+  locationCoordinates?: { lat: number; lng: number }; // For geospatial data
   budget?: number; // Optional, in Naira
   postedAt: Date;
-  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded"; // Added awarded
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
   assignedArtisanId?: string;
   attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>; // For file attachments
 }
@@ -120,4 +126,3 @@ export interface NavItem {
   children?: NavItem[]; // For sub-menus
   roles?: UserRole[]; // Roles that can see this nav item
 }
-

@@ -1,5 +1,5 @@
 
-'use server'; // For Server Actions like initiatePaystackPayment
+'use server'; 
 
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,28 +7,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard } from "lucide-react";
+import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import type { ServiceRequest, ArtisanProposal } from "@/types";
 import { format, formatDistanceToNow } from 'date-fns';
-// import Paystack from 'paystack-node'; // Would be used in a real implementation
-
-// Placeholder for Paystack API key (NEVER commit real keys)
-// const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-// const paystack = new Paystack(PAYSTACK_SECRET_KEY);
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Mock data for a single service request
 const mockServiceRequest: ServiceRequest = {
   id: "req_detail_123",
-  clientId: "client_jane_doe",
+  clientId: "client_jane_doe", // This would be the current logged-in user's ID for "isOwner" to be true
   postedBy: {
     name: "Jane Doe",
     avatarUrl: "https://placehold.co/80x80.png?text=JD",
     memberSince: "March 2023",
+    email: "jane.doe@example.com",
   },
   title: "Professional Catering for Corporate Event (100 Guests)",
   description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner. The event will host approximately 100 executives. We require a three-course meal (appetizer, main course, dessert) with options for vegetarian and gluten-free diets. Service staff, cutlery, and crockery should be included. Please provide sample menus and references if available. The event theme is 'Modern Elegance'.",
@@ -36,8 +42,8 @@ const mockServiceRequest: ServiceRequest = {
   location: "Eko Hotel & Suites, Victoria Island, Lagos",
   budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), // 7 days ago
-  status: "open", // Change to "awarded" to test client payment flow visibility
-  assignedArtisanId: "artisan_john_bull", // Assume this artisan was awarded
+  status: "open", 
+  assignedArtisanId: "artisan_john_bull", 
   attachments: [
     { name: "Event_Layout.pdf", url: "#", type: 'document' },
     { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image' }
@@ -45,59 +51,44 @@ const mockServiceRequest: ServiceRequest = {
 };
 
 const mockProposalsReceived: ArtisanProposal[] = [
-    { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" }, // Changed to accepted for demo
+    { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" }, 
     { id: "prop2", serviceRequestId: "req_detail_123", artisanId: "artisan_ada_eze", artisanName: "Ada's Kitchen Deluxe", artisanAvatarUrl: "https://placehold.co/40x40.png?text=AKD", proposedAmount: 700000, coverLetter: "With 10 years of experience in high-end catering, we are confident we can exceed your expectations. Our package includes everything you need.", submittedAt: new Date(Date.now() - 86400000 * 1), status: "pending" },
 ];
 
 
 // Simulate fetching current user type (replace with actual auth logic)
 const getCurrentUserRole = async (): Promise<'client' | 'artisan'> => {
-  // For demo purposes, toggle this or get from context
-  return 'client'; // or 'artisan'
+  return 'client'; 
 };
 
 // Simulate fetching current user ID (replace with actual auth logic)
 const getCurrentUserId = async (): Promise<string> => {
-    return 'client_jane_doe'; // or 'artisan_john_bull'
+    return 'client_jane_doe'; 
 }
 
 
-// Placeholder Server Action for Paystack
 async function initiatePaystackPayment(requestId: string, amount: number, email: string, artisanId: string) {
-  // In a real app:
-  // 1. Ensure PAYSTACK_SECRET_KEY is set.
-  // 2. Create a unique reference for the transaction.
-  // 3. Call Paystack API to initialize a transaction:
-  //    const transaction = await paystack.transaction.initialize({
-  //      amount: amount * 100, // Paystack expects amount in kobo
-  //      email: email,
-  //      reference: `zelo_${requestId}_${Date.now()}`,
-  //      currency: 'NGN',
-  //      metadata: {
-  //        requestId: requestId,
-  //        artisanId: artisanId,
-  //        clientId: await getCurrentUserId(), // Assuming you have a way to get current user ID
-  //      },
-  //      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/payments/verify?reference=`, // Your verification page
-  //    });
-  // 4. If successful, redirect user to transaction.data.authorization_url or handle Paystack Inline.
-  //    // redirect(transaction.data.authorization_url);
-  // 5. If error, return an error message.
-
   console.log("Initiating Paystack payment for request:", requestId, "Amount:", amount, "Email:", email);
-  // Mock response for demo
   if (amount > 0) {
-    // Simulate redirecting to Paystack or opening inline
     return { success: true, message: "Redirecting to Paystack...", authorization_url: `https://checkout.paystack.com/mock_payment_url_for_${requestId}` };
   } else {
     return { success: false, message: "Invalid amount for payment." };
   }
 }
 
+async function handleCancelRequest(requestId: string) {
+    'use server';
+    console.log("Cancelling request:", requestId);
+    // Add logic to update request status to 'cancelled' in the database
+    // For demo:
+    // revalidatePath(`/dashboard/services/requests/${requestId}`);
+    // redirect('/dashboard/services/my-requests');
+    return { success: true, message: "Request cancelled (mock)." };
+}
+
 
 export default async function ServiceRequestDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, fetch service request by params.id
-  const request = mockServiceRequest; // Using mock data
+  const request = mockServiceRequest; 
   const currentUserRole = await getCurrentUserRole();
   const currentUserId = await getCurrentUserId();
   const isOwner = currentUserRole === 'client' && request.clientId === currentUserId;
@@ -110,21 +101,10 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
   const acceptedProposal = mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId);
 
   const handleFundEscrow = async () => {
-    // This function would be called by a client-side component or form submission
-    if (!acceptedProposal || !request.postedBy?.email) { // Assuming client email is in postedBy
+    if (!acceptedProposal || !request.postedBy?.email) { 
       console.error("Cannot initiate payment: Missing proposal or client email.");
-      // Show toast or error message to user
       return;
     }
-    // const result = await initiatePaystackPayment(request.id, acceptedProposal.proposedAmount, request.postedBy.email, acceptedProposal.artisanId);
-    // if (result.success && result.authorization_url) {
-    //   // In a real app, you'd redirect:
-    //   // import { redirect } from 'next/navigation'
-    //   // redirect(result.authorization_url)
-    //   alert(`Mock: Would redirect to ${result.authorization_url}`);
-    // } else {
-    //   alert(`Mock: Payment initiation failed: ${result.message}`);
-    // }
     alert(`Mock: Initiating payment of NGN ${acceptedProposal.proposedAmount.toLocaleString()} for request '${request.title}' via Paystack.`);
   };
 
@@ -136,12 +116,42 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
         description={`ID: ${request.id}`}
         icon={FileText}
         action={isOwner && request.status === 'open' && (
-            <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Request</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+                <Link href={`/dashboard/services/request/edit/${request.id}`}> {/* Conceptual edit link */}
+                    <Edit className="mr-2 h-4 w-4" /> Edit Request
+                </Link>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" >
+                    <Trash2 className="mr-2 h-4 w-4" /> Cancel Request
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to cancel this request?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. Cancelling will remove this request from being visible to artisans.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep Request</AlertDialogCancel>
+                  <form action={async () => {
+                      const result = await handleCancelRequest(request.id);
+                      // Handle result, e.g. show toast
+                      alert(result.message); // Placeholder for toast
+                  }}>
+                    <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">Yes, Cancel Request</AlertDialogAction>
+                  </form>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -176,7 +186,6 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
             </CardFooter>
           </Card>
 
-          {/* Artisan: Submit Proposal Form */}
           {currentUserRole === 'artisan' && request.status === 'open' && !isAssignedArtisan && (
             <Card>
               <CardHeader>
@@ -184,8 +193,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                 <CardDescription>Let the client know why you're the best fit for this job.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* This would be a client component form in a real app */}
-                <form action="#"> {/* Placeholder */}
+                <form action="#"> 
                   <div>
                     <Label htmlFor="proposedAmount">Your Proposed Amount (₦)</Label>
                     <div className="relative mt-1">
@@ -212,7 +220,6 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
             </Card>
           )}
 
-          {/* Client: View Proposals Received */}
           {isOwner && mockProposalsReceived.length > 0 && request.status !== 'completed' && (
             <Card>
                 <CardHeader>
@@ -230,6 +237,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                                         <div className="text-right">
                                             <Badge variant="outline" className="font-mono">₦{proposal.proposedAmount.toLocaleString()}</Badge>
                                             {proposal.status === 'accepted' && <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>}
+                                             {proposal.status === 'pending' && <Badge className="mt-1">Pending</Badge>}
                                         </div>
                                     </div>
                                     <p className="text-xs text-muted-foreground">Submitted: {formatDistanceToNow(new Date(proposal.submittedAt), { addSuffix: true })}</p>
@@ -241,11 +249,9 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                                     <Button size="sm" variant="outline"><MessageCircle className="mr-2 h-4 w-4"/> Message Artisan</Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
                                         <Button size="sm" 
-                                            // onClick={() => handleAcceptProposal(proposal.id)} // Placeholder
                                         >Accept Proposal
                                         </Button>
                                     )}
-                                    {/* Conceptual Paystack Button */}
                                     {isOwner && request.status === 'awarded' && proposal.status === 'accepted' && request.assignedArtisanId === proposal.artisanId && (
                                        <form action={handleFundEscrow}>
                                             <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
@@ -260,11 +266,8 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                 </CardContent>
             </Card>
           )}
-
-
         </div>
 
-        {/* Sidebar Info */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
@@ -291,7 +294,6 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                     {request.postedBy.memberSince && <p className="text-xs text-muted-foreground">Member since {request.postedBy.memberSince}</p>}
                   </div>
                 </div>
-                {/* Add more client info here if available, e.g., past job history, verification status */}
                 {!isOwner && (
                     <Button variant="outline" className="w-full"><MessageCircle className="mr-2 h-4 w-4" /> Contact Client</Button>
                 )}
@@ -320,4 +322,3 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
-

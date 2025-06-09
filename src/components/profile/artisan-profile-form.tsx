@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,10 +16,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Phone, Mail, Briefcase, Home, Save, DollarSign, Tag, Image as ImageIcon } from "lucide-react";
-import type { ArtisanProfile } from "@/types"; // Assuming types are defined
+import { Phone, Mail, Briefcase, Home, Save, DollarSign, Tag, Image as ImageIcon, EyeOff, Eye } from "lucide-react";
+import type { ArtisanProfile } from "@/types"; 
 
 // Mock available services
 const NIGERIAN_ARTISAN_SERVICES = [
@@ -38,16 +40,16 @@ const artisanProfileSchema = z.object({
   serviceChargeDescription: z.string().optional(),
   serviceChargeAmount: z.coerce.number().positive({ message: "Service charge must be positive."}).optional(),
   location: z.string().min(3, { message: "Location is required." }),
+  isLocationPublic: z.boolean().default(false).optional(),
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
   yearsOfExperience: z.coerce.number().int().min(0).optional(),
-  // portfolioImageUrls: z.array(z.string().url()).optional(), // For actual file uploads, this would be different
 });
 
 type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
 
 interface ArtisanProfileFormProps {
-  initialData?: Partial<ArtisanProfile>; // For editing existing profile
-  userId: string; // To associate profile with user
+  initialData?: Partial<ArtisanProfile>; 
+  userId: string; 
 }
 
 export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormProps) {
@@ -59,11 +61,12 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
     resolver: zodResolver(artisanProfileSchema),
     defaultValues: {
       contactPhone: initialData?.contactPhone || "",
-      contactEmail: initialData?.contactEmail || "", // Should probably be prefilled from user auth
+      contactEmail: initialData?.contactEmail || "", 
       servicesOffered: initialData?.servicesOffered || [],
       serviceChargeDescription: initialData?.serviceChargeDescription || "",
       serviceChargeAmount: initialData?.serviceChargeAmount || undefined,
       location: initialData?.location || "",
+      isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
       yearsOfExperience: initialData?.yearsOfExperience || 0,
     },
@@ -81,22 +84,10 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
 
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
-    console.log("Artisan profile submission for user:", userId, values);
-    // Placeholder for actual backend submission
-    // try {
-    //   // await db.collection("artisanProfiles").doc(userId).set(values, { merge: true });
-    //   toast({ title: "Profile Updated", description: "Your artisan profile has been successfully updated." });
-    // } catch (error: any) {
-    //   toast({
-    //     title: "Update Failed",
-    //     description: error.message || "Could not update profile. Please try again.",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    // In a real app, derive locationCoordinates from 'location' string using a geocoding service
+    const submissionData = { ...values, locationCoordinates: initialData?.locationCoordinates /* or derived */ };
+    console.log("Artisan profile submission for user:", userId, submissionData);
     
-    // Mock success
     setTimeout(() => {
       toast({ title: "Profile Updated (Mock)", description: "Your artisan profile has been saved." });
       setIsLoading(false);
@@ -144,7 +135,7 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
         <FormField
           control={form.control}
           name="servicesOffered"
-          render={() => ( // Field array not strictly needed for this UI if managing state separately
+          render={() => ( 
             <FormItem>
               <FormLabel>Services Offered</FormLabel>
               <FormDescription>Select all services you provide. Choose at least one.</FormDescription>
@@ -215,7 +206,7 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
                     <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" />
                   </FormControl>
                 </div>
-                <FormDescription>Enter your city and state e.g. Ikeja, Lagos. We will use this to help clients find you.</FormDescription>
+                <FormDescription>Enter your city and state. This helps clients find you.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -237,6 +228,28 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="isLocationPublic"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Share Precise Location</FormLabel>
+                <FormDescription>
+                  Allow clients to see your more specific location for services. If off, only your general area is shown.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="Toggle precise location sharing"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

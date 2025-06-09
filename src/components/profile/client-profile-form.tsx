@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,9 +15,10 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Phone, Home, Save, User, Mail } from "lucide-react";
+import { Phone, Home, Save, User, Mail, Edit3 } from "lucide-react";
 import type { ClientProfile } from "@/types";
 import Image from "next/image";
 
@@ -27,6 +29,7 @@ const clientProfileSchema = z.object({
     message: "Invalid phone number format."
   }),
   location: z.string().min(3, { message: "Location is required." }).optional(),
+  isLocationPublic: z.boolean().default(false).optional(),
   // avatarUrl: z.string().url().optional(), // For actual file uploads, this would be different
 });
 
@@ -49,6 +52,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
       contactEmail: initialData?.contactEmail || "",
       contactPhone: initialData?.contactPhone || "",
       location: initialData?.location || "",
+      isLocationPublic: initialData?.isLocationPublic || false,
     },
   });
 
@@ -60,31 +64,15 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
         setAvatarPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      // Here you would also handle file upload to a server and get back a URL
-      // For now, we just use the preview.
-      // form.setValue("avatarUrl", "new_uploaded_url_placeholder"); 
     }
   };
 
   async function onSubmit(values: ClientProfileFormValues) {
     setIsLoading(true);
-    console.log("Client profile submission for user:", userId, { ...values, avatarUrl: avatarPreview });
-    // Placeholder for actual backend submission
-    // try {
-    //   // await db.collection("clientProfiles").doc(userId).set(values, { merge: true });
-    //   // await updateUserAuthProfile({displayName: values.fullName, photoURL: avatarPreview});
-    //   toast({ title: "Profile Updated", description: "Your client profile has been successfully updated." });
-    // } catch (error: any) {
-    //   toast({
-    //     title: "Update Failed",
-    //     description: error.message || "Could not update profile. Please try again.",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
-
-    // Mock success
+    // In a real app, derive locationCoordinates from 'location' string using a geocoding service
+    const submissionData = { ...values, avatarUrl: avatarPreview, locationCoordinates: initialData?.locationCoordinates /* or derived */ };
+    console.log("Client profile submission for user:", userId, submissionData);
+    
     setTimeout(() => {
       toast({ title: "Profile Updated (Mock)", description: "Your client profile has been saved." });
       setIsLoading(false);
@@ -105,7 +93,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
                     data-ai-hint="profile avatar"
                 />
                 <label htmlFor="avatarUpload" className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                    <Edit3Icon className="h-4 w-4" />
+                    <Edit3 className="h-4 w-4" />
                     <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} />
                 </label>
             </div>
@@ -183,6 +171,28 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="isLocationPublic"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Share Precise Location</FormLabel>
+                <FormDescription>
+                  Allow your precise location to be used for job postings to help artisans. If off, only your general area is used.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="Toggle precise location sharing"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
         
         <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
           {isLoading ? "Saving..." : <> <Save className="mr-2 h-4 w-4" /> Save Profile </>}
@@ -191,23 +201,3 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     </Form>
   );
 }
-
-function Edit3Icon(props: React.SVGProps<SVGSVGElement>) {
-    return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 20h9" />
-        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-      </svg>
-    )
-  }
