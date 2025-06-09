@@ -27,15 +27,9 @@ export const dashboardNavItems: NavItem[] = [
   },
   {
     title: "Profile",
-    href: "/dashboard/profile",
+    href: "/dashboard/profile", // No longer has children here
     icon: "UserCircle",
     roles: commonRoles,
-    children: [
-       { title: "View My Profile", href: "/dashboard/profile", roles: commonRoles },
-       { title: "Edit My Profile", href: "/dashboard/profile/edit", roles: commonRoles },
-       { title: "Edit Primary Services", href: "/dashboard/profile/artisan/services/edit", icon: "Briefcase", roles: artisanOnly },
-       { title: "Withdrawal Settings", href: "/dashboard/profile/withdrawal-settings", icon: "CreditCard", roles: artisanOnly },
-    ]
   },
   // Client-specific section (will be filtered out for artisans by role check in header)
   {
@@ -90,3 +84,4 @@ export const dashboardNavItems: NavItem[] = [
     ]
   },
 ];
+

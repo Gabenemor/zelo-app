@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
-import { Bell, Search, UserCircle, Menu, X, ChevronDown } from "lucide-react";
+import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -184,15 +184,43 @@ export function DashboardHeader() {
               <span className="sr-only">Toggle user menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="font-medium">{user.name}</div>
               <div className="text-xs text-muted-foreground">{user.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/profile">Profile</Link>
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  View My Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile/edit">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit My Profile
+                </Link>
+              </DropdownMenuItem>
+              {(userRole === 'artisan' || userRole === 'admin') && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/profile/artisan/services/edit">
+                      <Briefcase className="mr-2 h-4 w-4" />
+                      Edit Primary Services
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/profile/withdrawal-settings">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Withdrawal Settings
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">Settings</Link>
             </DropdownMenuItem>
@@ -228,3 +256,4 @@ export function DashboardHeader() {
     </header>
   );
 }
+
