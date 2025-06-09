@@ -9,7 +9,8 @@ import Image from "next/image";
 export default function ProfilePage() {
   // Placeholder: In a real app, fetch user data and role
   const user = {
-    name: "Zelo User",
+    id: "1", // Added ID, corresponds to Adewale Plumbing in mock artisan profiles
+    name: "Zelo User (Adewale Plumbing)", // Clarified mock user name
     email: "user@zelo.app",
     role: "artisan", // or 'client' or 'admin'
     avatarUrl: "https://placehold.co/128x128.png",
@@ -66,24 +67,26 @@ export default function ProfilePage() {
               icon={Edit3}
             />
             {user.role === 'artisan' && (
-              <ActionItem
-                title="Withdrawal Settings"
-                description="Manage your bank account for receiving payments."
-                href="/dashboard/profile/withdrawal-settings"
-                icon={CreditCard}
-              />
+              <>
+                <ActionItem
+                  title="Withdrawal Settings"
+                  description="Manage your bank account for receiving payments."
+                  href="/dashboard/profile/withdrawal-settings"
+                  icon={CreditCard}
+                />
+                <ActionItem
+                  title="View Public Profile"
+                  description="See how your profile appears to others."
+                  href={`/dashboard/artisans/${user.id}`} // Corrected link
+                  icon={UserCircle}
+                />
+              </>
             )}
             <ActionItem
               title="Account Security"
               description="Change password and manage security settings."
               href="/dashboard/settings/security" // Example link
               icon={ShieldCheck}
-            />
-             <ActionItem
-              title="View Public Profile"
-              description="See how your profile appears to others."
-              href={`/users/${user.email.split('@')[0]}`} // Example link
-              icon={UserCircle}
             />
           </CardContent>
         </Card>
