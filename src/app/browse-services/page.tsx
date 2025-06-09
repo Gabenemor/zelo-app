@@ -6,12 +6,12 @@ import Link from 'next/link';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Briefcase, DollarSign, MapPin, Search, Star, CalendarDays } from 'lucide-react';
+import { ArrowRight, Briefcase, DollarSign, MapPin, Search, Star, CalendarDays, Users } from 'lucide-react';
 import type { ServiceRequest, ArtisanProfile } from '@/types'; // Assuming types exist
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
