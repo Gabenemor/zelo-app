@@ -1,5 +1,5 @@
 
-import type { ServiceRequest } from "@/types";
+import type { ServiceRequest, UserRole } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,10 @@ import { formatDistanceToNow } from 'date-fns';
 interface ServiceRequestCardProps {
   request: ServiceRequest;
   showViewButton?: boolean;
+  currentUserRole?: UserRole; // Added prop
 }
 
-export function ServiceRequestCard({ request, showViewButton = true }: ServiceRequestCardProps) {
+export function ServiceRequestCard({ request, showViewButton = true, currentUserRole }: ServiceRequestCardProps) {
   const getStatusVariant = (status: ServiceRequest["status"]) => {
     switch (status) {
       case 'open': return 'default';
@@ -23,6 +24,8 @@ export function ServiceRequestCard({ request, showViewButton = true }: ServiceRe
       default: return 'outline';
     }
   };
+
+  const detailLink = `/dashboard/services/requests/${request.id}${currentUserRole ? `?role=${currentUserRole}` : ''}`;
   
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-md">
@@ -54,7 +57,7 @@ export function ServiceRequestCard({ request, showViewButton = true }: ServiceRe
         </div>
         {showViewButton && (
             <Button asChild size="sm" variant="outline">
-                <Link href={`/dashboard/services/requests/${request.id}`}>
+                <Link href={detailLink}>
                     <Eye className="mr-2 h-3 w-3" /> View Details
                 </Link>
             </Button>
@@ -63,4 +66,3 @@ export function ServiceRequestCard({ request, showViewButton = true }: ServiceRe
     </Card>
   );
 }
-

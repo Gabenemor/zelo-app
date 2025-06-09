@@ -5,7 +5,7 @@ import React from 'react';
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 import { Briefcase, Search, Send, CheckCircle, XCircle } from "lucide-react";
-import type { ServiceRequest, ArtisanProposal } from "@/types";
+import type { ServiceRequest, ArtisanProposal, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,6 +68,7 @@ export default function MyJobsAndProposalsPage() {
   const proposalsSent = mockArtisanProposals;
   const activeJobs = mockArtisanActiveJobs;
   const completedJobs = mockArtisanCompletedJobs;
+  const currentUserRole: UserRole = "artisan"; // This page is for artisans
 
   return (
     <div className="space-y-6">
@@ -77,7 +78,7 @@ export default function MyJobsAndProposalsPage() {
         icon={Briefcase}
         action={
             <Button asChild variant="outline">
-                <Link href="/dashboard/jobs">
+                <Link href={`/dashboard/jobs?role=${currentUserRole}`}>
                     <Search className="mr-2 h-4 w-4" /> Find New Jobs
                 </Link>
             </Button>
@@ -95,7 +96,7 @@ export default function MyJobsAndProposalsPage() {
           {proposalsSent.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {proposalsSent.map(job => (
-                <ProposalCard key={job.id} job={job} />
+                <ProposalCard key={job.id} job={job} currentUserRole={currentUserRole} />
               ))}
             </div>
           ) : (
@@ -107,7 +108,7 @@ export default function MyJobsAndProposalsPage() {
           {activeJobs.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {activeJobs.map(job => (
-                <ServiceRequestCard key={job.id} request={job} />
+                <ServiceRequestCard key={job.id} request={job} currentUserRole={currentUserRole} />
               ))}
             </div>
           ) : (
@@ -119,7 +120,7 @@ export default function MyJobsAndProposalsPage() {
           {completedJobs.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {completedJobs.map(job => (
-                <ServiceRequestCard key={job.id} request={job} />
+                <ServiceRequestCard key={job.id} request={job} currentUserRole={currentUserRole} />
               ))}
             </div>
           ) : (
@@ -131,7 +132,7 @@ export default function MyJobsAndProposalsPage() {
   );
 }
 
-function ProposalCard({ job }: { job: ArtisanJob }) {
+function ProposalCard({ job, currentUserRole }: { job: ArtisanJob, currentUserRole: UserRole }) {
     const getStatusBadge = (status?: ArtisanProposal['status']) => {
         switch (status) {
             case 'pending': return <Badge variant="outline">Pending Client Review</Badge>;
@@ -140,6 +141,8 @@ function ProposalCard({ job }: { job: ArtisanJob }) {
             default: return <Badge variant="secondary">Submitted</Badge>;
         }
     };
+
+    const detailLink = `/dashboard/services/requests/${job.id}?role=${currentUserRole}`;
 
     return (
         <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-md">
@@ -171,7 +174,7 @@ function ProposalCard({ job }: { job: ArtisanJob }) {
                     Job Posted: {formatDistanceToNow(new Date(job.postedAt), { addSuffix: true })}
                 </div>
                 <Button asChild size="sm" variant="outline">
-                    <Link href={`/dashboard/services/requests/${job.id}`}>
+                    <Link href={detailLink}>
                         <Search className="mr-2 h-3 w-3" /> View Job
                     </Link>
                 </Button>

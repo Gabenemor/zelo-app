@@ -178,7 +178,7 @@ function DashboardHomePageContent() {
               <CardContent className="space-y-4">
                 {mockNewJobsForArtisan.length > 0 ? (
                   mockNewJobsForArtisan.slice(0,3).map(job => (
-                    <ServiceRequestCard key={job.id} request={job} />
+                    <ServiceRequestCard key={job.id} request={job} currentUserRole={userType} />
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">No new jobs matching your services right now. Check back later!</p>
@@ -201,7 +201,7 @@ function DashboardHomePageContent() {
               <CardContent className="space-y-4">
                  {mockClientServiceRequests.length > 0 ? (
                   mockClientServiceRequests.slice(0,3).map(request => (
-                    <ServiceRequestCard key={request.id} request={request} />
+                    <ServiceRequestCard key={request.id} request={request} currentUserRole={userType} />
                   ))
                 ) : (
                   <div className="text-center py-10 text-muted-foreground">

@@ -152,7 +152,7 @@ export default async function ServiceRequestDetailPage({
         action={isOwner && request.status === 'open' && (
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-                <Link href={`/dashboard/services/request/edit/${request.id}?role=client`}>
+                <Link href={`/dashboard/services/request/edit/${request.id}?role=${currentUserRole}`}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Request
                 </Link>
             </Button>
@@ -352,7 +352,7 @@ export default async function ServiceRequestDetailPage({
                                 <Image src={proposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={proposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
-                                        <Link href={`/dashboard/artisans/${proposal.artisanId}?role=client`} className="font-semibold text-primary hover:underline">{proposal.artisanName}</Link>
+                                        <Link href={`/dashboard/artisans/${proposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{proposal.artisanName}</Link>
                                         <div className="text-right">
                                             <Badge variant="outline" className="font-mono">₦{proposal.proposedAmount.toLocaleString()}</Badge>
                                             {proposal.status === 'accepted' && <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>}
@@ -367,7 +367,7 @@ export default async function ServiceRequestDetailPage({
                                 <p className="text-sm text-foreground line-clamp-3 mb-2">{proposal.coverLetter}</p>
                                 <div className="flex gap-2 flex-wrap">
                                     <Button asChild size="sm" variant="outline">
-                                        <Link href={`/dashboard/messages?role=client&chatWith=${proposal.artisanId}`}>
+                                        <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${proposal.artisanId}`}>
                                             <MessageCircle className="mr-2 h-4 w-4"/> Message Artisan
                                         </Link>
                                     </Button>
@@ -394,7 +394,7 @@ export default async function ServiceRequestDetailPage({
                             <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
-                                    <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=client`} className="font-semibold text-primary hover:underline">{acceptedClientProposal.artisanName}</Link>
+                                    <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{acceptedClientProposal.artisanName}</Link>
                                     <div className="text-right">
                                         <Badge variant="outline" className="font-mono">₦{acceptedClientProposal.proposedAmount.toLocaleString()}</Badge>
                                         <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>
@@ -406,7 +406,7 @@ export default async function ServiceRequestDetailPage({
                         <CardContent className="p-4 pt-0">
                             <p className="text-sm text-foreground line-clamp-3 mb-2">{acceptedClientProposal.coverLetter}</p>
                             <Button asChild size="sm" variant="outline">
-                                <Link href={`/dashboard/messages?role=client&chatWith=${acceptedClientProposal.artisanId}`}>
+                                <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${acceptedClientProposal.artisanId}`}>
                                     <MessageCircle className="mr-2 h-4 w-4"/> Message {acceptedClientProposal.artisanName}
                                 </Link>
                             </Button>
@@ -446,7 +446,7 @@ export default async function ServiceRequestDetailPage({
                 {/* Message button conditional logic */}
                 {(isOwner && request.assignedArtisanId && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed')) && (
                     <Button asChild variant="outline" className="w-full">
-                      <Link href={`/dashboard/messages?role=client&chatWith=${request.assignedArtisanId}`}>
+                      <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.assignedArtisanId}`}>
                         <MessageCircle className="mr-2 h-4 w-4" /> 
                         Message Assigned Artisan
                       </Link>
@@ -454,7 +454,7 @@ export default async function ServiceRequestDetailPage({
                 )}
                 {currentUserRole === 'artisan' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed') && (
                      <Button asChild variant="outline" className="w-full">
-                      <Link href={`/dashboard/messages?role=artisan&chatWith=${request.clientId}`}>
+                      <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
                         <MessageCircle className="mr-2 h-4 w-4" /> Message Client
                       </Link>
                     </Button>

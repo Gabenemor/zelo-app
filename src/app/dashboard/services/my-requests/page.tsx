@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 import { FileText, PlusCircle } from "lucide-react";
@@ -18,6 +19,7 @@ export default async function MyServiceRequestsPage() {
   // const clientId = await getCurrentUserId();
   // const requests = await db.collection("serviceRequests").where("clientId", "==", clientId).get();
   const requests = mockClientRequests;
+  const currentUserRole = "client"; // This page is specifically for clients
 
   return (
     <div className="space-y-6">
@@ -27,7 +29,7 @@ export default async function MyServiceRequestsPage() {
         icon={FileText}
         action={
             <Button asChild>
-                <Link href="/dashboard/services/request/new">
+                <Link href={`/dashboard/services/request/new?role=${currentUserRole}`}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Post New Request
                 </Link>
             </Button>
@@ -37,7 +39,7 @@ export default async function MyServiceRequestsPage() {
       {requests.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {requests.map(request => (
-            <ServiceRequestCard key={request.id} request={request} />
+            <ServiceRequestCard key={request.id} request={request} currentUserRole={currentUserRole} />
           ))}
         </div>
       ) : (
@@ -48,7 +50,7 @@ export default async function MyServiceRequestsPage() {
                 When you post a service request, it will appear here.
             </p>
             <Button asChild className="mt-6">
-                <Link href="/dashboard/services/request/new">Post Your First Request</Link>
+                <Link href={`/dashboard/services/request/new?role=${currentUserRole}`}>Post Your First Request</Link>
             </Button>
         </div>
       )}
