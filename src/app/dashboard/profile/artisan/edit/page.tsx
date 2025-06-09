@@ -18,12 +18,10 @@ export default async function EditArtisanProfilePage() {
     location: "Surulere, Lagos",
     servicesOffered: ["Tailoring/Fashion Design", "Plumbing"], // Services offered
     serviceExperiences: [ // Corresponding experiences
-      { serviceName: "Tailoring/Fashion Design", years: 10 },
-      { serviceName: "Plumbing", years: 5 }
+      { serviceName: "Tailoring/Fashion Design", years: 10, chargeAmount: 20000, chargeDescription: "per outfit" },
+      { serviceName: "Plumbing", years: 5, chargeAmount: 5000, chargeDescription: "call-out fee" }
     ],
     bio: "Dedicated artisan with a passion for quality and customer satisfaction.",
-    serviceChargeAmount: 15000,
-    serviceChargeDescription: "per project, negotiable",
     isLocationPublic: true,
     portfolioImageUrls: ["https://placehold.co/300x200.png", "https://placehold.co/300x200.png"],
   };
@@ -38,10 +36,7 @@ export default async function EditArtisanProfilePage() {
       <ArtisanProfileForm
         userId={userId}
         initialData={existingProfileData}
-        onSaveSuccess={() => {
-          // Optional: redirect or show specific message after successful save from edit page
-          console.log("Profile updated from edit page.");
-        }}
+        // onSaveSuccess prop removed here
       />
     </div>
   );
