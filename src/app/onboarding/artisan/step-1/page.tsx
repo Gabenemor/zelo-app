@@ -111,6 +111,7 @@ function ArtisanOnboardingStep1Content() {
       toast({ title: "Details Saved", description: "Your primary services and experience have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
+      // Pass both serviceExperiences (for the profile form data) and servicesOffered (as a simple array for easier access if needed)
       queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
       queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
