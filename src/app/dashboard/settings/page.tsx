@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Bell, Shield, Palette, Trash2, UserCog, AlertTriangle } from "lucide-react";
+import { Settings, Bell, Shield, UserCog, AlertTriangle, Trash2 } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -63,24 +63,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         
-        {/* Theme/Appearance Card (Optional) */}
-         <Card>
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Palette className="h-5 w-5 text-primary" /> Appearance</CardTitle>
-            <CardDescription>Customize the look and feel of Zelo.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="flex items-center justify-between">
-                <div>
-                    <Label htmlFor="darkMode" className="font-medium">Dark Mode</Label>
-                    <p className="text-xs text-muted-foreground">Toggle between light and dark themes.</p>
-                </div>
-                <Switch id="darkMode" />
-            </div>
-            {/* Other appearance settings can go here */}
-          </CardContent>
-        </Card>
-
         {/* Manage Account Card */}
         <Card className="md:col-span-2 lg:col-span-3">
             <CardHeader>
