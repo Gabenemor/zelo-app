@@ -60,43 +60,55 @@ const ArtisanStep1ServicesSchema = z.object({
 
 
 export async function saveArtisanStep1Services(experiences: Array<{ serviceName: string; years: number }>) {
-  const servicesOffered = experiences.map(exp => exp.serviceName);
-  const dataToValidate = {
-    userId: MOCK_USER_ID,
-    serviceExperiences: experiences,
-    servicesOffered: servicesOffered
-  };
+  try {
+    const servicesOffered = experiences.map(exp => exp.serviceName);
+    const dataToValidate = {
+      userId: MOCK_USER_ID,
+      serviceExperiences: experiences,
+      servicesOffered: servicesOffered
+    };
 
-  const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
-  if (!validation.success) {
-    const flattenedErrors = validation.error.flatten();
-    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", flattenedErrors);
-    
-    const clientErrorObject: Record<string, any> = {};
-    if (flattenedErrors.formErrors.length > 0) {
-      clientErrorObject._form = flattenedErrors.formErrors;
-    }
-    if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-      // Ensure fieldErrors are correctly structured for the client
-      clientErrorObject.fields = {};
-      for (const key in flattenedErrors.fieldErrors) {
-        const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
-        if (flattenedErrors.fieldErrors[fieldKey]) {
-           clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
+    const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
+    if (!validation.success) {
+      const flattenedErrors = validation.error.flatten();
+      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", flattenedErrors);
+      
+      const clientErrorObject: Record<string, any> = {};
+      if (flattenedErrors.formErrors.length > 0) {
+        clientErrorObject._form = flattenedErrors.formErrors;
+      }
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = {};
+        for (const key in flattenedErrors.fieldErrors) {
+          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
+          if (flattenedErrors.fieldErrors[fieldKey]) {
+             clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
+          }
         }
       }
-    }
-    
-    if (Object.keys(clientErrorObject).length === 0) {
-        clientErrorObject._server_error = ["Validation failed with an unknown error on the server."];
-    }
+      
+      if (Object.keys(clientErrorObject).length === 0) {
+          if (validation.error) { // If Zod error exists but couldn't be parsed into form/field errors
+              clientErrorObject._server_error = ["Validation failed with a non-specific Zod error on the server."];
+          } else { // Should not happen if !validation.success is true and validation.error is null
+              clientErrorObject._server_error = ["Validation failed with an unknown error on the server."];
+          }
+      }
 
-    return { success: false, error: clientErrorObject };
+      return { success: false, error: clientErrorObject };
+    }
+    console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
+    // TODO: Implement actual database write
+    // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, serviceExperiences: validation.data.serviceExperiences, onboardingStep1Completed: true }, { merge: true });
+    return { success: true, data: validation.data };
+
+  } catch (e: any) {
+    console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanStep1Services:", e);
+    return { 
+      success: false, 
+      error: { _server_error: ["An unexpected error occurred on the server. Please try again later.", e.message || "No specific error message."] } 
+    };
   }
-  console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
-  // TODO: Implement actual database write
-  // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, serviceExperiences: validation.data.serviceExperiences, onboardingStep1Completed: true }, { merge: true });
-  return { success: true, data: validation.data };
 }
 
 
