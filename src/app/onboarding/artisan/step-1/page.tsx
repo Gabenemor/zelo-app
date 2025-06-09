@@ -113,12 +113,12 @@ function ArtisanOnboardingStep1Content() {
       if (firstName) queryParams.append('firstName', firstName);
       // Pass both serviceExperiences (for the profile form data) and servicesOffered (as a simple array for easier access if needed)
       queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
-      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
+      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered)); // servicesOffered is also part of result.data
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
       toast({
         title: "Error",
-        description: result.error?.serviceExperiences?.[0] || result.error?.servicesOffered?.[0] || "Could not save your details. Please try again.",
+        description: result.error?.serviceExperiences?.[0] || result.error?.servicesOffered?.[0] || (typeof result.error === 'string' ? result.error : "Could not save your details. Please try again."),
         variant: "destructive",
       });
       console.error("Error saving artisan step 1 details:", result.error);
@@ -204,3 +204,5 @@ export default function ArtisanOnboardingStep1Page() {
     </Suspense>
   );
 }
+
+    
