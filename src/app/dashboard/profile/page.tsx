@@ -25,11 +25,7 @@ export default function ProfilePage() {
         title="My Profile"
         description="Manage your personal information, settings, and Zelo activities."
         icon={UserCircle}
-        action={
-          <Button asChild variant="outline">
-            <Link href="/dashboard/profile/edit"><Edit3 className="mr-2 h-4 w-4" /> Edit Profile</Link>
-          </Button>
-        }
+        // Removed action button from here
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -85,7 +81,7 @@ export default function ProfilePage() {
             <ActionItem
               title="Account Security"
               description="Change password and manage security settings."
-              href="/dashboard/settings/security" // Example link
+              href="/dashboard/settings" // Updated link
               icon={ShieldCheck}
             />
           </CardContent>
