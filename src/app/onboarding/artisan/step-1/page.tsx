@@ -9,7 +9,7 @@ import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Briefcase, Loader2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveArtisanStep1Details } from '@/actions/onboarding-actions'; // Updated action name
+import { saveArtisanStep1Details } from '@/actions/onboarding-actions'; // Corrected import
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,7 +40,8 @@ function ArtisanOnboardingStep1Content() {
         const existing = currentExperiences.find(exp => exp.serviceName === serviceName);
         newExperiences.push(existing || { serviceName, years: '' });
       }
-      return newExperiences;
+      // Filter out experiences for services no longer selected
+      return newExperiences.filter(exp => selectedPrimaryServices.includes(exp.serviceName));
     });
   }, [selectedPrimaryServices]);
 
@@ -71,33 +72,38 @@ function ArtisanOnboardingStep1Content() {
     }
 
     const experiencesToSave: Array<{ serviceName: string; years: number }> = [];
-    for (const exp of serviceExperiences) {
-      if (selectedPrimaryServices.includes(exp.serviceName)) { // Only consider selected services
-        const yearsNum = parseInt(exp.years, 10);
-        if (exp.years.trim() === '' || isNaN(yearsNum) || yearsNum < 0) {
-          toast({
-            title: "Invalid Experience",
-            description: `Please enter valid, non-negative years of experience for ${exp.serviceName}.`,
-            variant: "destructive",
-          });
-          return;
-        }
-        experiencesToSave.push({ serviceName: exp.serviceName, years: yearsNum });
+    for (const serviceName of selectedPrimaryServices) {
+      const exp = serviceExperiences.find(e => e.serviceName === serviceName);
+      if (!exp || exp.years.trim() === '') {
+        toast({
+          title: "Missing Experience",
+          description: `Please enter years of experience for ${serviceName}.`,
+          variant: "destructive",
+        });
+        return;
       }
+      const yearsNum = parseInt(exp.years, 10);
+      if (isNaN(yearsNum) || yearsNum < 0) {
+        toast({
+          title: "Invalid Experience",
+          description: `Please enter valid, non-negative years of experience for ${exp.serviceName}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      experiencesToSave.push({ serviceName: exp.serviceName, years: yearsNum });
     }
     
     if (experiencesToSave.length !== selectedPrimaryServices.length) {
         toast({
-            title: "Missing Experience",
-            description: "Please ensure years of experience are entered for all selected services.",
+            title: "Data Mismatch",
+            description: "Error preparing experience data. Please re-check your inputs.",
             variant: "destructive",
         });
         return;
     }
 
-
     setIsLoading(true);
-    // Use the updated action: saveArtisanStep1Details
     const result = await saveArtisanStep1Details(experiencesToSave);
     setIsLoading(false);
 
@@ -105,14 +111,13 @@ function ArtisanOnboardingStep1Content() {
       toast({ title: "Details Saved", description: "Your primary services and experience have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      // Pass the full serviceExperiences structure to step 2
       queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
-      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered)); // Keep for ArtisanProfileForm initialData
+      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
       toast({
         title: "Error",
-        description: result.error?.serviceExperiences?.[0] || "Could not save your details. Please try again.",
+        description: result.error?.serviceExperiences?.[0] || result.error?.servicesOffered?.[0] || "Could not save your details. Please try again.",
         variant: "destructive",
       });
       console.error("Error saving artisan step 1 details:", result.error);
@@ -179,7 +184,7 @@ function ArtisanOnboardingStep1Content() {
 
       <div className="mt-8 flex justify-end">
         <Button onClick={handleNext} disabled={isLoading || selectedPrimaryServices.length === 0}>
-          {isLoading ? "Saving..." : "Next: Complete Your Profile"}
+          {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>) : "Next: Complete Your Profile"}
         </Button>
       </div>
     </div>
@@ -198,5 +203,3 @@ export default function ArtisanOnboardingStep1Page() {
     </Suspense>
   );
 }
-
-    
