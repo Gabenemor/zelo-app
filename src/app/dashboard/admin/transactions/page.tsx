@@ -1,4 +1,6 @@
 
+"use client"; // Added to allow onClick handlers
+
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,7 +43,7 @@ export default function AdminTransactionLogsPage() {
         description="View a detailed log of all financial transactions on the Zelo platform."
         icon={CreditCard}
         action={
-             <Button variant="outline">
+             <Button variant="outline" onClick={() => console.log('Mock: Exporting CSV...')}>
                 <Download className="mr-2 h-4 w-4" /> Export CSV (Mock)
             </Button>
         }
