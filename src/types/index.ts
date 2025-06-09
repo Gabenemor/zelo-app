@@ -65,6 +65,7 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
+  clientName?: string; // Added for easier display
   postedBy?: {
     name: string;
     avatarUrl?: string;
@@ -78,8 +79,9 @@ export interface ServiceRequest {
   locationCoordinates?: { lat: number; lng: number };
   budget?: number;
   postedAt: Date;
-  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed"; // Added 'disputed'
   assignedArtisanId?: string;
+  assignedArtisanName?: string; // Added for easier display
   attachments?: Array<{ name: string; url: string; type: 'image' | 'document'; "data-ai-hint"?: string }>;
 }
 
@@ -163,6 +165,18 @@ export interface NotificationItem {
   link?: string;
 }
 
+export interface DisputeItem {
+  id: string;
+  serviceRequestId: string;
+  jobTitle: string;
+  clientName: string;
+  artisanName: string;
+  reason: string;
+  status: 'open' | 'reviewing' | 'resolved_client' | 'resolved_artisan' | 'resolved_compromise';
+  createdAt: Date;
+  lastUpdatedAt: Date;
+}
+
 
 export type LucideIconName =
   | "LayoutDashboard"
@@ -195,7 +209,9 @@ export type LucideIconName =
   | "Info"
   | "ListChecks"
   | "ShoppingCart" 
-  | "Edit3";
+  | "Edit3"
+  | "AlertTriangle"
+  | "SlidersHorizontal";
 
 
 export interface NavItem {
