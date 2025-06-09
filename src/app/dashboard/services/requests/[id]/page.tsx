@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2 } from "lucide-react";
+import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,9 +27,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Mock data for a single service request
+// To test different artisan states, modify:
+// - mockProposalsReceived[0].status (e.g., 'pending', 'accepted', 'rejected')
+// - request.status (e.g., 'open', 'awarded', 'in_progress')
+// - request.assignedArtisanId (should match currentUserId if proposal accepted)
+
 const mockServiceRequest: ServiceRequest = {
   id: "req_detail_123",
-  clientId: "client_jane_doe", // This would be the current logged-in user's ID for "isOwner" to be true
+  clientId: "client_jane_doe", 
   postedBy: {
     name: "Jane Doe",
     avatarUrl: "https://placehold.co/80x80.png?text=JD",
@@ -42,11 +47,11 @@ const mockServiceRequest: ServiceRequest = {
   location: "Eko Hotel & Suites, Victoria Island, Lagos",
   budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), // 7 days ago
-  status: "open", 
-  assignedArtisanId: "artisan_john_bull", 
+  status: "awarded", // Changed to 'awarded' to test artisan accepted state
+  assignedArtisanId: "artisan_john_bull", // Assigned to our test artisan
   attachments: [
     { name: "Event_Layout.pdf", url: "#", type: 'document' },
-    { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image' }
+    { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }
   ]
 };
 
@@ -58,12 +63,12 @@ const mockProposalsReceived: ArtisanProposal[] = [
 
 // Simulate fetching current user type (replace with actual auth logic)
 const getCurrentUserRole = async (): Promise<'client' | 'artisan'> => {
-  return 'client'; 
+  return 'artisan'; // CHANGED: Simulating artisan user for this flow
 };
 
 // Simulate fetching current user ID (replace with actual auth logic)
 const getCurrentUserId = async (): Promise<string> => {
-    return 'client_jane_doe'; 
+    return 'artisan_john_bull'; // CHANGED: Simulating specific artisan
 }
 
 
@@ -86,26 +91,41 @@ async function handleCancelRequest(requestId: string) {
     return { success: true, message: "Request cancelled (mock)." };
 }
 
+async function handleMarkJobAsComplete(requestId: string, artisanId: string) {
+    'use server';
+    console.log(`Artisan ${artisanId} is marking job ${requestId} as complete.`);
+    // Logic to:
+    // 1. Update serviceRequest status to 'pending_client_approval' or similar
+    // 2. Notify the client to review and release funds
+    return { success: true, message: "Job marked as complete. Client will be notified. (Mock)" };
+}
+
 
 export default async function ServiceRequestDetailPage({ params }: { params: { id: string } }) {
   const request = mockServiceRequest; 
   const currentUserRole = await getCurrentUserRole();
   const currentUserId = await getCurrentUserId();
   const isOwner = currentUserRole === 'client' && request.clientId === currentUserId;
+  
+  const currentArtisanProposal = currentUserRole === 'artisan' 
+    ? mockProposalsReceived.find(p => p.artisanId === currentUserId && p.serviceRequestId === request.id)
+    : undefined;
+
   const isAssignedArtisan = currentUserRole === 'artisan' && request.assignedArtisanId === currentUserId;
 
   if (!request) {
     return <div className="p-8 text-center">Service request not found.</div>;
   }
 
-  const acceptedProposal = mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId);
+  const acceptedClientProposal = isOwner ? mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId) : undefined;
 
   const handleFundEscrow = async () => {
-    if (!acceptedProposal || !request.postedBy?.email) { 
+    if (!acceptedClientProposal || !request.postedBy?.email) { 
       console.error("Cannot initiate payment: Missing proposal or client email.");
+      alert("Error: Missing proposal or client email for payment.");
       return;
     }
-    alert(`Mock: Initiating payment of NGN ${acceptedProposal.proposedAmount.toLocaleString()} for request '${request.title}' via Paystack.`);
+    alert(`Mock: Client initiating payment of NGN ${acceptedClientProposal.proposedAmount.toLocaleString()} for request '${request.title}' via Paystack.`);
   };
 
 
@@ -118,7 +138,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
         action={isOwner && request.status === 'open' && (
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-                <Link href={`/dashboard/services/request/edit/${request.id}`}> {/* Conceptual edit link */}
+                <Link href={`/dashboard/services/request/edit/${request.id}`}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Request
                 </Link>
             </Button>
@@ -139,7 +159,6 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                   <AlertDialogCancel>Keep Request</AlertDialogCancel>
                   <form action={async () => {
                       const result = await handleCancelRequest(request.id);
-                      // Handle result, e.g. show toast
                       alert(result.message); // Placeholder for toast
                   }}>
                     <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">Yes, Cancel Request</AlertDialogAction>
@@ -171,7 +190,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                     {request.attachments.map((file, index) => (
                       <li key={index} className="flex items-center gap-2">
                         {file.type === 'image' ? 
-                           <Image src={file.url} alt={file.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint="attachment image" /> :
+                           <Image src={file.url} alt={file.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={file['data-ai-hint'] || 'attachment image'} /> :
                            <FileText className="h-6 w-6 text-primary" />
                         }
                         <Link href={file.url} target="_blank" className="text-sm text-primary hover:underline">{file.name}</Link>
@@ -186,41 +205,81 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
             </CardFooter>
           </Card>
 
-          {currentUserRole === 'artisan' && request.status === 'open' && !isAssignedArtisan && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle>
-                <CardDescription>Let the client know why you're the best fit for this job.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form action="#"> 
-                  <div>
-                    <Label htmlFor="proposedAmount">Your Proposed Amount (₦)</Label>
-                    <div className="relative mt-1">
-                      <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input id="proposedAmount" type="number" placeholder="e.g. 700000" className="pl-10" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="coverLetter">Your Message to the Client</Label>
-                    <Textarea
-                      id="coverLetter"
-                      placeholder="Explain your approach, experience, and why your quote is competitive. Be clear and concise."
-                      className="mt-1 min-h-[120px]"
-                    />
-                  </div>
-                  <div>
-                      <Label htmlFor="attachments_proposal">Attach Supporting Documents (Optional)</Label>
-                      <Input id="attachments_proposal" type="file" multiple className="mt-1"/>
-                      <p className="text-xs text-muted-foreground mt-1">E.g., portfolio samples, detailed quote breakdown.</p>
-                  </div>
-                  <Button className="w-full sm:w-auto mt-4"><Send className="mr-2 h-4 w-4" /> Send Proposal</Button>
-                </form>
-              </CardContent>
-            </Card>
+          {/* Artisan's View: Proposal Submission or Status */}
+          {currentUserRole === 'artisan' && (
+            <>
+              {!currentArtisanProposal && request.status === 'open' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle>
+                    <CardDescription>Let the client know why you're the best fit for this job.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <form action="#"> 
+                      <div>
+                        <Label htmlFor="proposedAmount">Your Proposed Amount (₦)</Label>
+                        <div className="relative mt-1">
+                          <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input id="proposedAmount" type="number" placeholder="e.g. 700000" className="pl-10" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="coverLetter">Your Message to the Client</Label>
+                        <Textarea
+                          id="coverLetter"
+                          placeholder="Explain your approach, experience, and why your quote is competitive. Be clear and concise."
+                          className="mt-1 min-h-[120px]"
+                        />
+                      </div>
+                      <div>
+                          <Label htmlFor="attachments_proposal">Attach Supporting Documents (Optional)</Label>
+                          <Input id="attachments_proposal" type="file" multiple className="mt-1"/>
+                          <p className="text-xs text-muted-foreground mt-1">E.g., portfolio samples, detailed quote breakdown.</p>
+                      </div>
+                      <Button className="w-full sm:w-auto mt-4"><Send className="mr-2 h-4 w-4" /> Send Proposal</Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {currentArtisanProposal && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-headline">Your Proposal Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p>You proposed: <span className="font-semibold font-mono">₦{currentArtisanProposal.proposedAmount.toLocaleString()}</span></p>
+                    <p>Status: 
+                      <Badge 
+                        variant={
+                          currentArtisanProposal.status === 'accepted' ? 'default' : 
+                          currentArtisanProposal.status === 'rejected' ? 'destructive' : 
+                          'outline'
+                        } 
+                        className="ml-2 capitalize"
+                      >
+                        {currentArtisanProposal.status}
+                      </Badge>
+                    </p>
+                    {currentArtisanProposal.status === 'accepted' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress') && (
+                        <form action={async () => {
+                            const result = await handleMarkJobAsComplete(request.id, currentUserId);
+                            alert(result.message); // Placeholder for toast
+                        }}>
+                            <Button type="submit" className="w-full mt-2 bg-green-600 hover:bg-green-700">
+                                <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete
+                            </Button>
+                        </form>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
-          {isOwner && mockProposalsReceived.length > 0 && request.status !== 'completed' && (
+
+          {/* Client's View: Proposals Received (if owner and job is not completed/cancelled) */}
+          {isOwner && request.status !== 'completed' && request.status !== 'cancelled' && mockProposalsReceived.length > 0 && (
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Proposals Received ({mockProposalsReceived.length})</CardTitle>
@@ -237,7 +296,8 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                                         <div className="text-right">
                                             <Badge variant="outline" className="font-mono">₦{proposal.proposedAmount.toLocaleString()}</Badge>
                                             {proposal.status === 'accepted' && <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>}
-                                             {proposal.status === 'pending' && <Badge className="mt-1">Pending</Badge>}
+                                            {proposal.status === 'pending' && <Badge className="mt-1">Pending</Badge>}
+                                             {proposal.status === 'rejected' && <Badge variant="destructive" className="mt-1">Rejected</Badge>}
                                         </div>
                                     </div>
                                     <p className="text-xs text-muted-foreground">Submitted: {formatDistanceToNow(new Date(proposal.submittedAt), { addSuffix: true })}</p>
@@ -248,7 +308,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                                 <div className="flex gap-2 flex-wrap">
                                     <Button size="sm" variant="outline"><MessageCircle className="mr-2 h-4 w-4"/> Message Artisan</Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
-                                        <Button size="sm" 
+                                        <Button size="sm" onClick={() => alert(`Mock: Accepting proposal from ${proposal.artisanName}`)}
                                         >Accept Proposal
                                         </Button>
                                     )}
@@ -294,9 +354,14 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                     {request.postedBy.memberSince && <p className="text-xs text-muted-foreground">Member since {request.postedBy.memberSince}</p>}
                   </div>
                 </div>
-                {!isOwner && (
-                    <Button variant="outline" className="w-full"><MessageCircle className="mr-2 h-4 w-4" /> Contact Client</Button>
+                {(isOwner || (isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress'))) && (
+                    <Button variant="outline" className="w-full"><MessageCircle className="mr-2 h-4 w-4" /> 
+                        {isOwner ? "View Messages (Concept)" : "Message Client"}
+                    </Button>
                 )}
+                 {currentUserRole === 'artisan' && !isAssignedArtisan && (
+                    <Button variant="outline" className="w-full" disabled><MessageCircle className="mr-2 h-4 w-4" /> Contact Client (Proposal must be accepted)</Button>
+                 )}
               </CardContent>
             </Card>
           )}
@@ -322,3 +387,6 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
+
+
+    
