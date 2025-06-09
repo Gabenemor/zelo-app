@@ -20,6 +20,8 @@ export interface ServiceExperience {
 export interface ArtisanProfile {
   userId: string;
   username?: string;
+  profilePhotoUrl?: string; // Added for dedicated profile photo
+  headline?: string; // Added for artisan headline
   contactPhone?: string;
   contactEmail?: string;
   servicesOffered: string[];
@@ -29,7 +31,7 @@ export interface ArtisanProfile {
   isLocationPublic?: boolean;
   bio?: string;
   portfolioImageUrls?: string[];
-  availability?: string;
+  availabilityStatus?: 'available' | 'busy' | 'unavailable'; // Added for availability
   onboardingCompleted?: boolean;
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
@@ -152,7 +154,9 @@ export type LucideIconName =
   | "UserCircle2"
   | "Award" 
   | "CheckCircle2"
-  | "Menu"; // Added Menu icon
+  | "Menu"
+  | "Camera" // Added
+  | "UploadCloud"; // Added
 
 
 export interface NavItem {

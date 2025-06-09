@@ -38,8 +38,7 @@ export async function saveClientStep2Profile(data: { location: string; username?
 const ArtisanStep1ServicesSchema = z.object({
   userId: z.string(),
   servicesOffered: z.array(z.string().min(1))
-    .min(1, "Select at least one service.")
-    .max(2, "You can select a maximum of 2 services during onboarding."),
+    .length(2, "You must select exactly 2 primary services."), // Updated for exactly 2 services
 });
 
 export async function saveArtisanStep1Services(servicesOffered: string[]) {
@@ -107,10 +106,12 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
 const ArtisanOnboardingProfileSchema = z.object({
   userId: z.string(),
   username: z.string().min(3, "Username must be at least 3 characters.").optional(),
-  contactPhone: z.string().optional(),
+  profilePhotoUrl: z.string().url("Invalid URL for profile photo").optional().or(z.literal('')), // For mock, could be actual file later
+  headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
+  contactPhone: z.string().optional().or(z.literal('')),
   contactEmail: z.string().email(),
   location: z.string().min(1),
-  bio: z.string().optional(),
+  bio: z.string().optional().or(z.literal('')),
   serviceExperiences: z.array(z.object({
     serviceName: z.string(),
     years: z.coerce.number().int().min(0),
@@ -119,6 +120,7 @@ const ArtisanOnboardingProfileSchema = z.object({
   })).optional(),
   servicesOffered: z.array(z.string().min(1)).min(1), 
   isLocationPublic: z.boolean().optional(),
+  availabilityStatus: z.enum(['available', 'busy', 'unavailable']).optional(),
   onboardingCompleted: z.boolean().optional(),
   profileSetupCompleted: z.boolean().optional(),
 });
@@ -129,8 +131,10 @@ export async function saveArtisanOnboardingProfile(
 ) {
   try {
     const dataToValidate = {
-      userId: MOCK_USER_ID,
+      userId: MOCK_USER_ID, // This should be dynamic in a real app
       username: profileData.username,
+      profilePhotoUrl: profileData.profilePhotoUrl,
+      headline: profileData.headline,
       contactEmail: profileData.contactEmail,
       location: profileData.location,
       contactPhone: profileData.contactPhone,
@@ -138,6 +142,7 @@ export async function saveArtisanOnboardingProfile(
       serviceExperiences: profileData.serviceExperiences,
       servicesOffered: profileData.servicesOffered || [],
       isLocationPublic: profileData.isLocationPublic,
+      availabilityStatus: profileData.availabilityStatus,
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -176,7 +181,7 @@ export async function saveArtisanOnboardingProfile(
 
     console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2):', validation.data);
     // Mock database save
-    return { success: true, data: validation.data };
+    return { success: true, data: validation.data as ArtisanProfile };
 
   } catch (e: any) {
     console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanOnboardingProfile:", e);

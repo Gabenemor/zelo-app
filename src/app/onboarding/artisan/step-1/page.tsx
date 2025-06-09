@@ -19,38 +19,28 @@ function ArtisanOnboardingStep1Content() {
   const { toast } = useToast();
   const [selectedPrimaryServices, setSelectedPrimaryServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const MAX_SERVICES = 2;
+  const REQUIRED_SERVICES_COUNT = 2;
 
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   const handleNext = async () => {
-    if (selectedPrimaryServices.length === 0) {
+    if (selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT) {
       toast({
         title: "Selection Required",
-        description: "Please select at least one service you offer.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (selectedPrimaryServices.length > MAX_SERVICES) {
-      toast({
-        title: "Too Many Services",
-        description: `Please select a maximum of ${MAX_SERVICES} primary services.`,
+        description: `Please select exactly ${REQUIRED_SERVICES_COUNT} primary services you offer.`,
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    // Pass only selected service names
     const result = await saveArtisanStep1Services(selectedPrimaryServices);
     setIsLoading(false);
 
     if (result.success && result.data) {
-      toast({ title: "Details Saved", description: "Your primary services have been noted." });
+      toast({ title: "Services Saved", description: "Your primary services have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      // Pass only servicesOffered for Step 2 pre-fill
       queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
@@ -86,7 +76,7 @@ function ArtisanOnboardingStep1Content() {
   };
 
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
-  const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer. You can add more services and details like years of experience later from your profile.`;
+  const pageDescription = `Showcase your skills. Select exactly ${REQUIRED_SERVICES_COUNT} primary services you offer. You can add more details like years of experience later.`;
 
   return (
     <div className="container mx-auto max-w-2xl py-8 sm:py-12">
@@ -100,7 +90,7 @@ function ArtisanOnboardingStep1Content() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Select Your Primary Services</CardTitle>
-          <CardDescription>Choose up to {MAX_SERVICES} services you are most skilled in.</CardDescription>
+          <CardDescription>Choose exactly {REQUIRED_SERVICES_COUNT} services you are most skilled in.</CardDescription>
         </CardHeader>
         <CardContent>
           <ServiceSelectionChips
@@ -108,13 +98,13 @@ function ArtisanOnboardingStep1Content() {
             selectedServices={selectedPrimaryServices}
             onSelectedServicesChange={setSelectedPrimaryServices}
             selectionType="multiple"
-            maxSelections={MAX_SERVICES}
+            maxSelections={REQUIRED_SERVICES_COUNT} // This prop limits to "up to X", validation in handleNext ensures "exactly X"
           />
         </CardContent>
       </Card>
 
       <div className="mt-8 flex justify-end">
-        <Button onClick={handleNext} disabled={isLoading || selectedPrimaryServices.length === 0}>
+        <Button onClick={handleNext} disabled={isLoading || selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT}>
           {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>) : "Next: Complete Your Profile"}
         </Button>
       </div>

@@ -17,12 +17,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const serviceExperienceSchema = z.object({
@@ -33,14 +35,17 @@ const serviceExperienceSchema = z.object({
 });
 
 const artisanProfileSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters.").optional(),
+  username: z.string().min(3, "Username must be at least 3 characters.").optional().or(z.literal('')),
+  profilePhotoFile: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
+  headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), {
     message: "Invalid phone number format."
-  }),
+  }).or(z.literal('')),
   contactEmail: z.string().email({ message: "Invalid email address." }),
   location: z.string().min(3, { message: "Location is required." }),
   isLocationPublic: z.boolean().default(false).optional(),
-  bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
+  bio: z.string().max(500, "Bio should not exceed 500 characters.").optional().or(z.literal('')),
+  availabilityStatus: z.enum(['available', 'busy', 'unavailable'], {required_error: "Availability status is required."}).optional(),
   serviceExperiences: z.array(serviceExperienceSchema).optional(),
   portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
 });
@@ -54,6 +59,7 @@ interface ArtisanProfileFormProps {
   submitButtonText?: React.ReactNode;
   backButtonHref?: string;
   backButtonText?: string;
+  isOnboarding?: boolean;
 }
 
 export function ArtisanProfileForm({
@@ -62,21 +68,26 @@ export function ArtisanProfileForm({
   onSaveSuccess,
   submitButtonText = <> <Save className="mr-2 h-4 w-4" /> Save Profile </>,
   backButtonHref,
-  backButtonText = "Back"
+  backButtonText = "Back",
+  isOnboarding = false,
 }: ArtisanProfileFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [profilePhotoPreview, setProfilePhotoPreview] = React.useState<string | null>(initialData?.profilePhotoUrl || null);
   const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
 
   const form = useForm<ArtisanProfileFormValues>({
     resolver: zodResolver(artisanProfileSchema),
     defaultValues: {
       username: initialData?.username || "",
+      profilePhotoFile: null,
+      headline: initialData?.headline || "",
       contactPhone: initialData?.contactPhone || "",
       contactEmail: initialData?.contactEmail || "",
       location: initialData?.location || "",
       isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
+      availabilityStatus: initialData?.availabilityStatus || 'available',
       serviceExperiences: initialData?.servicesOffered
         ?.map(serviceName => {
           const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
@@ -87,7 +98,7 @@ export function ArtisanProfileForm({
             chargeDescription: existingExperience?.chargeDescription ?? '',
           };
         }) || [],
-        portfolioFiles: null,
+      portfolioFiles: null,
     },
   });
 
@@ -109,7 +120,24 @@ export function ArtisanProfileForm({
       });
       form.setValue('serviceExperiences', experiencesToSet);
     }
-  }, [initialData?.servicesOffered, initialData?.serviceExperiences, form]);
+    if (initialData?.profilePhotoUrl) {
+      setProfilePhotoPreview(initialData.profilePhotoUrl);
+    }
+    if (initialData?.portfolioImageUrls) {
+      setPortfolioPreviews(initialData.portfolioImageUrls);
+    }
+  }, [initialData, form]);
+
+  const handleProfilePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -128,24 +156,38 @@ export function ArtisanProfileForm({
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
 
-    let uploadedImageUrls = initialData?.portfolioImageUrls || []; 
-    if (values.portfolioFiles && values.portfolioFiles.length > 0) {
-        console.log("Simulating upload for:", values.portfolioFiles);
+    let profilePhotoUrlToSave = profilePhotoPreview;
+    if (values.profilePhotoFile && values.profilePhotoFile.length > 0) {
+        console.log("Simulating profile photo upload for:", values.profilePhotoFile[0].name);
+        // In real app, upload file values.profilePhotoFile[0] and get URL
+        // For mock, if a new file is selected, we might use its preview URL or a placeholder
+        // For now, if a new file is selected, we'll assume its preview is the one to save (mock)
     }
+
+
+    let uploadedPortfolioUrls = portfolioPreviews.filter(url => !url.startsWith('blob:')); // Keep existing URLs
+    if (values.portfolioFiles && values.portfolioFiles.length > 0) {
+        console.log("Simulating portfolio upload for:", values.portfolioFiles.length, "files");
+        const newUploadedUrls = portfolioPreviews.filter(url => url.startsWith('blob:')); // Mock: use blob URLs as if they were real
+        uploadedPortfolioUrls = [...uploadedPortfolioUrls, ...newUploadedUrls];
+    }
+
 
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
+      profilePhotoUrl: profilePhotoUrlToSave || undefined, // Save the preview URL or existing URL
       servicesOffered: initialData?.servicesOffered || [], 
-      portfolioImageUrls: uploadedImageUrls, 
+      portfolioImageUrls: uploadedPortfolioUrls.slice(0,5), 
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
+    delete (submissionData as any).profilePhotoFile; // Don't send FileList object
+    delete (submissionData as any).portfolioFiles; // Don't send FileList object
+
 
     console.log("Artisan profile submission for user:", userId, JSON.stringify(submissionData, null, 2));
-
     const result = await saveArtisanOnboardingProfile(submissionData as Omit<ArtisanProfile, 'onboardingStep1Completed'>);
-
     setIsLoading(false);
 
     if (result.success) {
@@ -181,23 +223,83 @@ export function ArtisanProfileForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-         <FormField
+        
+        <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6 md:space-y-0">
+          <FormField
             control={form.control}
-            name="username"
+            name="profilePhotoFile"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username (Public)</FormLabel>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <FormControl>
-                    <Input placeholder="e.g. ZeloMasterArtisan" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
-                <FormDescription>This will be part of your public profile URL.</FormDescription>
+              <FormItem className="flex flex-col items-center md:items-start">
+                <FormLabel>Profile Photo</FormLabel>
+                <Image
+                  src={profilePhotoPreview || "https://placehold.co/128x128.png?text=Photo"}
+                  alt="Profile photo preview"
+                  width={128}
+                  height={128}
+                  className="rounded-full object-cover w-32 h-32 border shadow-sm"
+                  data-ai-hint="profile photo"
+                />
+                <Button type="button" variant="outline" size="sm" asChild className="mt-2">
+                  <label htmlFor="profile-photo-upload" className="cursor-pointer">
+                    <Camera className="mr-2 h-4 w-4" /> Upload Photo
+                  </label>
+                </Button>
+                <FormControl>
+                  <Input 
+                    id="profile-photo-upload" 
+                    type="file" 
+                    className="sr-only" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      field.onChange(e.target.files);
+                      handleProfilePhotoChange(e);
+                    }}
+                    disabled={isLoading}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <div className="w-full space-y-6">
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username (Public)</FormLabel>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <FormControl>
+                      <Input placeholder="e.g. ZeloMasterArtisan" {...field} className="pl-10" />
+                    </FormControl>
+                  </div>
+                  <FormDescription>This will be part of your public profile URL.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="headline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Headline / Tagline</FormLabel>
+                  <div className="relative">
+                    <Info className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <FormControl>
+                      <Input placeholder="e.g., Expert Plumber - 10+ Years Experience" {...field} className="pl-10" />
+                    </FormControl>
+                  </div>
+                  <FormDescription>A short, catchy phrase for your profile.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
@@ -233,13 +335,28 @@ export function ArtisanProfileForm({
             )}
           />
         </div>
+        
+        {!isOnboarding && initialData?.servicesOffered && (
+          <FormItem>
+            <FormLabel className="text-md font-semibold">Your Primary Services</FormLabel>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {initialData.servicesOffered.map(service => (
+                <Badge key={service} variant="secondary" className="py-1 px-3 text-sm">{service}</Badge>
+              ))}
+            </div>
+            <FormDescription>
+              To change your primary services (max 2), please visit the dedicated service management section. (This is a placeholder for future functionality).
+            </FormDescription>
+          </FormItem>
+        )}
+
 
         {fields.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Service Details</CardTitle>
               <CardDescription>
-                For each service you offer, specify years of experience and optionally, your typical charge.
+                For each of your selected primary services, specify years of experience and optionally, your typical charge.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -371,6 +488,31 @@ export function ArtisanProfileForm({
             )}
           />
         </div>
+        
+        <FormField
+          control={form.control}
+          name="availabilityStatus"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Availability Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="relative pl-10">
+                    <Activity className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <SelectValue placeholder="Select your availability" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="available">Available for new jobs</SelectItem>
+                  <SelectItem value="busy">Currently busy, limited availability</SelectItem>
+                  <SelectItem value="unavailable">Not taking new jobs</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>Let clients know if you are open to new work.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
 
         <FormField
@@ -416,7 +558,7 @@ export function ArtisanProfileForm({
                                 <p className="mb-1 text-sm text-muted-foreground">
                                     <span className="font-semibold text-primary">Click to upload</span> or drag and drop
                                 </p>
-                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF</p>
+                                <p className="text-xs text-muted-foreground">Up to 5 images (JPG, PNG, GIF)</p>
                             </div>
                             <Input 
                               id="portfolio-upload" 
@@ -433,10 +575,7 @@ export function ArtisanProfileForm({
                         </label>
                     </div>
                   </FormControl>
-                  <FormDescription className="mt-2 text-center">
-                    Upload images of your past work (max 5 images, e.g., JPG, PNG).
-                  </FormDescription>
-                  <FormMessage />
+                  <FormMessage className="mt-1"/>
                 </FormItem>
               )}
             />
@@ -445,9 +584,11 @@ export function ArtisanProfileForm({
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {portfolioPreviews.slice(0,5).map((url, index) => (
                   <div key={index} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border shadow-sm">
-                    <img
+                    <Image
                       src={url}
                       alt={`Portfolio image ${index + 1}`}
+                      width={300}
+                      height={200}
                       className="object-cover w-full h-full"
                       data-ai-hint={url.includes("placehold.co") ? "portfolio work" : undefined}
                     />
