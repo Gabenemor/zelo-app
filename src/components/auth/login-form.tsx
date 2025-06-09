@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +29,8 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const ADMIN_EMAIL = "admin@zelo.app";
+
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
@@ -48,7 +51,11 @@ export function LoginForm() {
     // try {
     //   await signInWithEmailAndPassword(auth, values.email, values.password);
     //   toast({ title: "Login Successful", description: "Welcome back!" });
-    //   router.push("/dashboard");
+    //   if (values.email === ADMIN_EMAIL) {
+    //     router.push("/dashboard/admin");
+    //   } else {
+    //     router.push("/dashboard");
+    //   }
     // } catch (error: any) {
     //   toast({
     //     title: "Login Failed",
@@ -62,7 +69,11 @@ export function LoginForm() {
     // Mock success
     setTimeout(() => {
       toast({ title: "Login Successful", description: "Welcome back! (Mock)" });
-      router.push("/dashboard");
+      if (values.email === ADMIN_EMAIL) {
+        router.push("/dashboard/admin");
+      } else {
+        router.push("/dashboard");
+      }
       setIsLoading(false);
     }, 1000);
   }
@@ -79,7 +90,7 @@ export function LoginForm() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="email" placeholder="your@email.com" {...field} className="pl-10" />
+                  <Input type="email" placeholder="your@email.com or admin@zelo.app" {...field} className="pl-10" />
                 </FormControl>
               </div>
               <FormMessage />
