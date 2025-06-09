@@ -171,10 +171,7 @@ export default async function ServiceRequestDetailPage({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep Request</AlertDialogCancel>
-                  <form action={async () => {
-                    const result = await handleCancelRequest(request.id);
-                    // Handle revalidation/redirect if needed based on result
-                  }}>
+                  <form action={handleCancelRequest.bind(null, request.id)}>
                     <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">Yes, Cancel Request</AlertDialogAction>
                   </form>
                 </AlertDialogFooter>
@@ -222,16 +219,7 @@ export default async function ServiceRequestDetailPage({
                     <CardDescription>Your proposal from {acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} has been accepted. Please fund the escrow to start the service.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form action={async () => {
-                        const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy?.email );
-                        if(result.success && result.redirectUrl) {
-                           // In a real app, this redirect would be handled, possibly on client-side after server action response
-                           console.log("Redirecting to:", result.redirectUrl);
-                           // For server components, typically use redirect from next/navigation if within a server action
-                           // redirect(result.redirectUrl);
-                        }
-                        // Handle errors or display messages based on result
-                      }}>
+                    <form action={handleFundEscrowServerAction.bind(null, request.id, acceptedClientProposal.proposedAmount, request.postedBy?.email )}>
                       <Button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
                         <ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow Securely (₦{acceptedClientProposal.proposedAmount.toLocaleString()})
                       </Button>
@@ -247,10 +235,7 @@ export default async function ServiceRequestDetailPage({
                     <CardDescription>If the artisan has completed the service to your satisfaction, please mark it as complete to release payment.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                     <form action={async () => {
-                        const result = await handleClientMarkCompleteAndReleaseFunds(request.id, currentUserId);
-                        // Handle result - e.g., show toast, revalidate path
-                     }}>
+                     <form action={handleClientMarkCompleteAndReleaseFunds.bind(null, request.id, currentUserId)}>
                         <Button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
                             <CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Complete & Release Funds
                         </Button>
@@ -322,10 +307,7 @@ export default async function ServiceRequestDetailPage({
                       </Badge>
                     </p>
                     {currentArtisanProposalForThisRequest.status === 'accepted' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress') && (
-                        <form action={async () => {
-                             const result = await handleMarkJobAsCompleteArtisan(request.id, currentUserId);
-                             // Handle result
-                        }}>
+                        <form action={handleMarkJobAsCompleteArtisan.bind(null, request.id, currentUserId)}>
                             <Button type="submit" className="w-full mt-2 bg-green-600 hover:bg-green-700">
                                 <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete (Artisan)
                             </Button>
@@ -489,3 +471,5 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
+
+    
