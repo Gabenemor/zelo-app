@@ -84,12 +84,12 @@ export const dashboardNavItems: NavItem[] = [
         { title: "Platform Settings", href: "/dashboard/admin/settings", icon: "Settings", roles: adminOnly },
     ]
   },
-  {
-    title: "Settings",
-    href: "/dashboard/settings",
-    icon: "Settings",
-    roles: commonRoles,
-  },
+  // {
+  //   title: "Settings",
+  //   href: "/dashboard/settings",
+  //   icon: "Settings",
+  //   roles: commonRoles,
+  // },
   // Logout is handled by the main layout's sidebar footer, so removing from here to avoid duplication if it was just a link.
   // If it's intended to be a separate page/action, it can stay. Let's assume it's handled.
   // {
