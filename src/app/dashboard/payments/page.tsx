@@ -1,23 +1,45 @@
 
+"use client";
+
+import React, { Suspense } from 'react'; // Added Suspense
+import { useSearchParams } from "next/navigation"; // Added useSearchParams
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CreditCard, DollarSign, List, TrendingUp, Download } from "lucide-react";
+import { CreditCard, DollarSign, List, TrendingUp, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react";
+import type { UserRole } from '@/types';
 
-// Mock payment summary data for an artisan
-const mockPaymentSummary = {
+// Mock payment summary data
+const mockArtisanPaymentSummary = {
   availableForWithdrawal: 125000, // Naira
   pendingPayouts: 45000, // Naira
   totalEarnedLifetime: 850000, // Naira
 };
 
-export default function PaymentsOverviewPage() {
+const mockClientPaymentSummary = {
+  totalSpent: 250000, // Naira
+  activeJobsFunded: 2, // Number of jobs currently funded in escrow
+  requestsAwaitingFunding: 1, // Number of awarded jobs not yet funded
+};
+
+function PaymentsOverviewPageContent() {
+  const searchParams = useSearchParams();
+  const roleFromQuery = searchParams.get("role") as UserRole | null;
+  // Default to artisan if role is not client or admin (admin might see combined view or artisan view)
+  const userRole: UserRole = roleFromQuery === 'client' ? 'client' : 'artisan';
+
+  const summary = userRole === 'client' ? mockClientPaymentSummary : mockArtisanPaymentSummary;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Payments Overview"
-        description="Track your earnings, manage withdrawals, and view transaction history."
+        title={userRole === 'client' ? "Client Payments" : "Artisan Payments Overview"}
+        description={
+          userRole === 'client' 
+          ? "Manage your service payments, view transaction history, and track job funding." 
+          : "Track your earnings, manage withdrawals, and view transaction history."
+        }
         icon={CreditCard}
         action={
             <Button variant="outline" size="sm">
@@ -26,44 +48,78 @@ export default function PaymentsOverviewPage() {
         }
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard 
-          title="Available for Withdrawal" 
-          value={`₦${mockPaymentSummary.availableForWithdrawal.toLocaleString()}`} 
-          icon={DollarSign}
-          color="text-green-500"
-        />
-        <StatCard 
-          title="Pending Payouts" 
-          value={`₦${mockPaymentSummary.pendingPayouts.toLocaleString()}`} 
-          icon={DollarSign}
-          color="text-yellow-500"
-          description="From recently completed jobs"
-        />
-        <StatCard 
-          title="Lifetime Earnings" 
-          value={`₦${mockPaymentSummary.totalEarnedLifetime.toLocaleString()}`} 
-          icon={TrendingUp}
-        />
-      </div>
+      {userRole === 'artisan' && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard 
+            title="Available for Withdrawal" 
+            value={`₦${mockArtisanPaymentSummary.availableForWithdrawal.toLocaleString()}`} 
+            icon={DollarSign}
+            color="text-green-500"
+          />
+          <StatCard 
+            title="Pending Payouts" 
+            value={`₦${mockArtisanPaymentSummary.pendingPayouts.toLocaleString()}`} 
+            icon={DollarSign}
+            color="text-yellow-500"
+            description="From recently completed jobs"
+          />
+          <StatCard 
+            title="Lifetime Earnings" 
+            value={`₦${mockArtisanPaymentSummary.totalEarnedLifetime.toLocaleString()}`} 
+            icon={TrendingUp}
+          />
+        </div>
+      )}
+
+      {userRole === 'client' && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard 
+            title="Total Spent on Zelo" 
+            value={`₦${mockClientPaymentSummary.totalSpent.toLocaleString()}`} 
+            icon={ShoppingCart}
+          />
+          <StatCard 
+            title="Active Jobs Funded" 
+            value={`${mockClientPaymentSummary.activeJobsFunded}`} 
+            icon={CheckCircle2}
+            color="text-green-500"
+            description="Services currently in progress"
+          />
+          <StatCard 
+            title="Requests Awaiting Funding" 
+            value={`${mockClientPaymentSummary.requestsAwaitingFunding}`} 
+            icon={CreditCard}
+            color="text-orange-500"
+            description="Awarded jobs that need escrow funding"
+          />
+        </div>
+      )}
+
 
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Payment Actions</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Button asChild variant="default" className="w-full">
-            <Link href="/dashboard/profile/withdrawal-settings">
-              Manage Withdrawal Account
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/dashboard/payments/history">
+          {userRole === 'artisan' && (
+            <Button asChild variant="default" className="w-full">
+              <Link href={`/dashboard/profile/withdrawal-settings?role=${userRole}`}>
+                Manage Withdrawal Account
+              </Link>
+            </Button>
+          )}
+           <Button asChild variant="outline" className="w-full">
+            <Link href={`/dashboard/payments/history?role=${userRole}`}>
               <List className="mr-2 h-4 w-4" /> View Transaction History
             </Link>
           </Button>
-          {/* Future: Request Withdrawal Button */}
-          {/* <Button className="w-full sm:col-span-2" disabled>Request Withdrawal (Coming Soon)</Button> */}
+          {userRole === 'client' && (
+             <Button asChild variant="default" className="w-full">
+                <Link href={`/dashboard/services/my-requests?role=${userRole}`}>
+                    <FileText className="mr-2 h-4 w-4" /> Fund a Job / View Requests
+                </Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -72,16 +128,24 @@ export default function PaymentsOverviewPage() {
           <CardTitle className="font-headline">Understanding Your Payments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p><strong>Available for Withdrawal:</strong> Funds from completed jobs that are ready to be transferred to your bank account.</p>
-            <p><strong>Pending Payouts:</strong> Earnings from jobs marked as complete by clients, currently undergoing processing before becoming available for withdrawal. This usually takes a few business days.</p>
-            <p><strong>Platform Fee:</strong> Zelo charges a 10% service fee on completed jobs, which is automatically deducted before payouts.</p>
+            {userRole === 'artisan' ? (
+              <>
+                <p><strong>Available for Withdrawal:</strong> Funds from completed jobs that are ready to be transferred to your bank account.</p>
+                <p><strong>Pending Payouts:</strong> Earnings from jobs marked as complete by clients, currently undergoing processing before becoming available for withdrawal. This usually takes a few business days.</p>
+                <p><strong>Platform Fee:</strong> Zelo charges a 10% service fee on completed jobs, which is automatically deducted before payouts.</p>
+              </>
+            ) : (
+              <>
+                <p><strong>Funding Jobs:</strong> When you accept an artisan's proposal, you'll need to fund the agreed amount into Zelo's secure escrow. This protects both you and the artisan.</p>
+                <p><strong>Releasing Payments:</strong> Only release payment from escrow once the service has been completed to your satisfaction.</p>
+                <p><strong>Platform Fee:</strong> Artisans are charged a 10% service fee. This is deducted from their earnings, not an extra charge to you.</p>
+              </>
+            )}
              <Button asChild variant="link" className="p-0 h-auto text-sm">
-                <Link href="/dashboard/payments/escrow">Learn more about Zelo Secure Escrow</Link>
+                <Link href={`/dashboard/payments/escrow?role=${userRole}`}>Learn more about Zelo Secure Escrow</Link>
             </Button>
         </CardContent>
       </Card>
-
-
     </div>
   );
 }
@@ -106,5 +170,37 @@ function StatCard({ title, value, icon: Icon, color = "text-primary", descriptio
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+export default function PaymentsOverviewPage() {
+  return (
+    <Suspense fallback={<PaymentsLoadingSkeleton />}>
+      <PaymentsOverviewPageContent />
+    </Suspense>
+  );
+}
+
+function PaymentsLoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-md bg-muted"></div>
+            <div className="h-8 w-48 rounded-md bg-muted"></div>
+          </div>
+          <div className="h-4 w-64 rounded-md bg-muted"></div>
+        </div>
+        <div className="h-9 w-32 rounded-md bg-muted"></div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
+        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
+        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
+      </div>
+      <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted"></div></CardHeader><CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div className="h-10 w-full rounded-md bg-muted"></div><div className="h-10 w-full rounded-md bg-muted"></div></CardContent></Card>
+      <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted"></div></CardHeader><CardContent className="space-y-2"><div className="h-4 w-full rounded-md bg-muted"></div><div className="h-4 w-full rounded-md bg-muted"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardContent></Card>
+    </div>
   );
 }

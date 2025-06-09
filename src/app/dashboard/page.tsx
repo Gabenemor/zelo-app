@@ -1,8 +1,8 @@
 
 "use client"; // This page now uses client-side hooks
 
-import React, { Suspense } from 'react'; // Added Suspense
-import Image from 'next/image'; // Added this import
+import React, { Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +35,8 @@ import {
   Edit, 
   Camera, 
   UploadCloud,
-  Loader2 // Added Loader2 for Suspense fallback
+  Loader2,
+  ListChecks
 } from "lucide-react";
 import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ServiceExperience, UserRole } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
@@ -44,20 +45,21 @@ import { ServiceRequestCard } from "@/components/service-requests/service-reques
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-const mockUserId = "currentArtisanId123"; // Simulate a logged-in artisan user
-// userType is now determined by query param
+const mockUserId = "currentArtisanId123"; 
+const mockClientUserId = "mockClientUserId456";
+
 
 const mockArtisanStats = {
   totalBidsSent: 25,
   activeJobs: 3,
-  totalEarned: 175000, // Naira
-  completionRate: 95, // Percentage
+  totalEarned: 175000, 
+  completionRate: 95, 
 };
 
 const mockClientStats = {
   activeRequests: 2,
   artisansHired: 5,
-  totalSpent: 250000, // Naira
+  totalSpent: 250000, 
 };
 
 
@@ -88,15 +90,15 @@ const mockRecentActivitiesArtisan: ActivityItem[] = [
 const mockRecentActivitiesClient: ActivityItem[] = [
   {
     id: "activity_c1", type: "request_update", icon: "Briefcase", title: "Plumber Adewale sent a proposal for 'Leaky Faucet'",
-    description: "Review their offer now.", timestamp: new Date(Date.now() - 3600000 * 2), userId: "mockClientUserId", link: "/dashboard/services/my-requests/req1"
+    description: "Review their offer now.", timestamp: new Date(Date.now() - 3600000 * 2), userId: mockClientUserId, link: "/dashboard/services/my-requests/req1"
   },
   {
     id: "activity_c2", type: "payment_processed", icon: "CreditCard", title: "Payment of ₦50,000 funded to escrow for 'Event Catering'",
-    description: "Artisan Chioma can now begin work.", timestamp: new Date(Date.now() - 86400000 * 1), userId: "mockClientUserId", link: "/dashboard/payments/escrow?transactionId=txn_mock_catering"
+    description: "Artisan Chioma can now begin work.", timestamp: new Date(Date.now() - 86400000 * 1), userId: mockClientUserId, link: "/dashboard/payments/escrow?transactionId=txn_mock_catering"
   },
    {
     id: "activity_c3", type: "new_message", icon: "MessageSquare", title: "New message from Artisan Bola",
-    description: "Regarding your 'Aso Ebi Tailoring' request...", timestamp: new Date(Date.now() - 3600000 * 4), userId: "mockClientUserId", link: "/dashboard/messages"
+    description: "Regarding your 'Aso Ebi Tailoring' request...", timestamp: new Date(Date.now() - 3600000 * 4), userId: mockClientUserId, link: "/dashboard/messages"
   },
 ];
 
@@ -107,7 +109,13 @@ const mockNewJobsForArtisan: ServiceRequest[] = [
   { id: "job3", clientId: "clientNew3", title: "House Painting - Exterior", description: "Need exterior painting for a 3-bedroom bungalow in Surulere.", category: "Painting", location: "Surulere, Lagos", postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
 ];
 
-// Mock suggestions for clients
+// Mock client's own service requests
+const mockClientServiceRequests: ServiceRequest[] = [
+  { id: "myreq1", clientId: mockClientUserId, title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days.", category: "Plumbing", location: "Ikeja, Lagos", budget: 7000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
+  { id: "myreq2", clientId: mockClientUserId, title: "Catering for Birthday Party (30 guests)", description: "Looking for reliable catering for a small birthday party.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 120000, postedAt: new Date(Date.now() - 86400000 * 3), status: "awarded", assignedArtisanId: "art_pub_2" },
+  { id: "myreq3", clientId: mockClientUserId, title: "Repaint Living Room", description: "Need one room repainted.", category: "Painting", location: "Surulere, Lagos", budget: 40000, postedAt: new Date(Date.now() - 86400000 * 10), status: "completed", assignedArtisanId: "art_pub_random" },
+];
+
 const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username' | 'profilePhotoUrl' | 'location' | 'servicesOffered' | 'headline'> & { rating?: number })[] = [
   { userId: "art_pub_1", username: "Adewale Plumbing Masters", profilePhotoUrl: "https://placehold.co/80x80.png?text=AP", location: "Ikeja, Lagos", servicesOffered: ["Plumbing"], headline: "Your Go-To for Quick Plumbing Fixes!", rating: 4.7 },
   { userId: "art_pub_2", username: "Chioma's Exquisite Catering", profilePhotoUrl: "https://placehold.co/80x80.png?text=CC", location: "Lekki, Lagos", servicesOffered: ["Catering"], headline: "Delicious Meals for Memorable Events.", rating: 4.9 },
@@ -115,13 +123,13 @@ const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username
 
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks
 };
 
 function DashboardHomePageContent() {
   const searchParams = useSearchParams();
   const roleFromQuery = searchParams.get("role") as UserRole | null;
-  const userType: UserRole = roleFromQuery && ["client", "artisan", "admin"].includes(roleFromQuery) ? roleFromQuery : "artisan"; // Default to artisan
+  const userType: UserRole = roleFromQuery && ["client", "artisan", "admin"].includes(roleFromQuery) ? roleFromQuery : "artisan"; 
 
   const userActivities = (userType === 'client' ? mockRecentActivitiesClient : mockRecentActivitiesArtisan)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
@@ -133,6 +141,13 @@ function DashboardHomePageContent() {
         title={userType === 'artisan' ? "Artisan Dashboard" : "Client Dashboard"}
         description={userType === 'artisan' ? "Oversee your jobs, proposals, and earnings." : "Manage your service requests and connect with artisans."}
         icon={LayoutDashboard}
+        action={userType === 'client' && (
+          <Button asChild size="lg">
+            <Link href={`/dashboard/services/request/new?role=${userType}`}>
+              <PlusCircle className="mr-2 h-5 w-5" /> Post New Service Request
+            </Link>
+          </Button>
+        )}
       />
 
       {/* KPI Cards */}
@@ -145,8 +160,8 @@ function DashboardHomePageContent() {
       )}
       {userType === 'client' && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard title="Active Requests" value={mockClientStats.activeRequests.toString()} icon={ClipboardList} />
-          <StatCard title="Artisans Hired" value={mockClientStats.artisansHired.toString()} icon={Users} />
+          <StatCard title="Active Requests" value={mockClientServiceRequests.filter(r => r.status === 'open' || r.status === 'awarded').length.toString()} icon={ClipboardList} />
+          <StatCard title="Artisans Hired" value={mockClientServiceRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length.toString()} icon={Users} />
           <StatCard title="Total Spent (₦)" value={`₦${mockClientStats.totalSpent.toLocaleString()}`} icon={DollarSign} />
         </div>
       )}
@@ -170,7 +185,7 @@ function DashboardHomePageContent() {
                 )}
                 {mockNewJobsForArtisan.length > 3 && (
                     <Button variant="outline" className="w-full" asChild>
-                        <Link href="/dashboard/jobs">View All Matching Jobs</Link>
+                        <Link href={`/dashboard/jobs?role=${userType}`}>View All Matching Jobs</Link>
                     </Button>
                 )}
               </CardContent>
@@ -180,20 +195,28 @@ function DashboardHomePageContent() {
           {userType === 'client' && (
              <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Find Artisans</CardTitle>
-                <CardDescription>Discover skilled professionals for your needs.</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2"><ListChecks className="text-primary h-5 w-5"/> My Service Requests</CardTitle>
+                <CardDescription>Track and manage the jobs you've posted.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                 {mockSuggestedArtisansForClient.length > 0 ? (
-                  mockSuggestedArtisansForClient.slice(0,2).map(artisan => (
-                    <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} />
+                 {mockClientServiceRequests.length > 0 ? (
+                  mockClientServiceRequests.slice(0,3).map(request => (
+                    <ServiceRequestCard key={request.id} request={request} />
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">Could not find artisan suggestions at this time.</p>
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Briefcase className="mx-auto h-12 w-12 mb-4" />
+                    <p>You haven't posted any service requests yet.</p>
+                    <Button asChild className="mt-4">
+                      <Link href={`/dashboard/services/request/new?role=${userType}`}>Post Your First Request</Link>
+                    </Button>
+                  </div>
                 )}
-                <Button variant="outline" className="w-full" asChild>
-                    <Link href="/dashboard/services/browse">Browse All Artisans</Link>
-                </Button>
+                {mockClientServiceRequests.length > 3 && (
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href={`/dashboard/services/my-requests?role=${userType}`}>View All My Requests</Link>
+                    </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -226,7 +249,7 @@ function DashboardHomePageContent() {
                   </div>
                 ))}
                  <Button variant="outline" size="sm" className="w-full mt-4" asChild>
-                    <Link href="/dashboard/profile/artisan/edit"><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
+                    <Link href={`/dashboard/profile/artisan/edit?role=${userType}`}><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -235,15 +258,20 @@ function DashboardHomePageContent() {
           {userType === 'client' && (
              <Card>
                 <CardHeader>
-                  <CardTitle className="font-headline">Quick Actions</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans</CardTitle>
+                  <CardDescription>Find skilled professionals for your needs.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 gap-3">
-                    <Button asChild className="w-full justify-start text-base py-6">
-                        <Link href="/dashboard/services/request/new"><PlusCircle className="mr-2 h-5 w-5" /> Post New Service Request</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="w-full justify-start text-base py-6">
-                        <Link href="/dashboard/services/my-requests"><ClipboardList className="mr-2 h-5 w-5" /> My Service Requests</Link>
-                    </Button>
+                <CardContent className="space-y-3">
+                  {mockSuggestedArtisansForClient.length > 0 ? (
+                    mockSuggestedArtisansForClient.slice(0,2).map(artisan => (
+                      <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} userRole={userType} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Could not find artisan suggestions at this time.</p>
+                  )}
+                  <Button variant="outline" className="w-full" asChild>
+                      <Link href={`/dashboard/services/browse?role=${userType}`}>Browse All Artisans</Link>
+                  </Button>
                 </CardContent>
             </Card>
           )}
@@ -258,7 +286,8 @@ function DashboardHomePageContent() {
                   <ul className="space-y-4">
                   {userActivities.map((activity) => {
                       const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard;
-                      const activityContent = (
+                      const activityLink = activity.link?.includes("?") ? `${activity.link}&role=${userType}` : `${activity.link}?role=${userType}`;
+                      const content = (
                       <div className="flex items-start gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
                           <IconComponent className="h-4 w-4" />
@@ -272,17 +301,17 @@ function DashboardHomePageContent() {
                           </div>
                       </div>
                       );
-
+                      
                       return (
-                      <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
+                        <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
                           {activity.link ? (
-                          <Link href={activity.link} className="block">
-                              {activityContent}
-                          </Link>
+                            <Link href={activityLink} className="block">
+                              {content}
+                            </Link>
                           ) : (
-                          activityContent
+                            content
                           )}
-                      </li>
+                        </li>
                       );
                   })}
                   </ul>
@@ -325,11 +354,11 @@ function StatCard({ title, value, icon: Icon, description }: StatCardProps) {
   );
 }
 
-// Simplified card for artisan suggestions on client dashboard
 interface ArtisanSuggestionCardProps {
   artisan: Pick<ArtisanProfile, 'userId' | 'username' | 'profilePhotoUrl' | 'location' | 'servicesOffered'| 'headline'> & { rating?: number };
+  userRole: UserRole;
 }
-function ArtisanSuggestionCard({ artisan }: ArtisanSuggestionCardProps) {
+function ArtisanSuggestionCard({ artisan, userRole }: ArtisanSuggestionCardProps) {
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg">
       <CardContent className="p-4 flex items-start gap-4">
@@ -342,7 +371,7 @@ function ArtisanSuggestionCard({ artisan }: ArtisanSuggestionCardProps) {
           data-ai-hint="profile avatar"
         />
         <div className="flex-1">
-          <Link href={`/dashboard/artisans/${artisan.userId}`}>
+          <Link href={`/dashboard/artisans/${artisan.userId}?role=${userRole}`}>
             <h3 className="font-headline text-md font-semibold text-primary hover:underline mb-0.5 line-clamp-1">
               {artisan.username || 'Skilled Artisan'}
             </h3>
@@ -354,7 +383,7 @@ function ArtisanSuggestionCard({ artisan }: ArtisanSuggestionCardProps) {
           </div>
         </div>
          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/artisans/${artisan.userId}`}>View</Link>
+            <Link href={`/dashboard/artisans/${artisan.userId}?role=${userRole}`}>View</Link>
         </Button>
       </CardContent>
     </Card>
@@ -363,7 +392,6 @@ function ArtisanSuggestionCard({ artisan }: ArtisanSuggestionCardProps) {
 
 export default function DashboardPage() {
   return (
-    // Suspense boundary is important because useSearchParams can only be used in Client Components
     <Suspense fallback={<DashboardLoadingSkeleton />}>
       <DashboardHomePageContent />
     </Suspense>
@@ -381,6 +409,7 @@ function DashboardLoadingSkeleton() {
           </div>
           <div className="h-4 w-64 rounded-md bg-muted"></div>
         </div>
+        <div className="h-10 w-48 rounded-md bg-muted sm:h-12"></div> {/* Skeleton for PageHeader Action */}
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
@@ -389,14 +418,13 @@ function DashboardLoadingSkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-24 w-full rounded-md bg-muted"></div></CardContent></Card>
+          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-32 w-full rounded-md bg-muted"></div><div className="h-10 w-full rounded-md bg-muted mt-4"></div></CardContent></Card>
         </div>
         <div className="lg:col-span-1 space-y-6">
-          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-32 w-full rounded-md bg-muted"></div></CardContent></Card>
+          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-40 w-full rounded-md bg-muted"></div></CardContent></Card>
+          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-48 w-full rounded-md bg-muted"></div></CardContent></Card>
         </div>
       </div>
     </div>
   );
 }
-
-    

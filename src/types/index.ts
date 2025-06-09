@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -40,7 +41,10 @@ export interface ArtisanProfile {
 
 export interface ClientProfile {
   userId: string;
-  username?: string;
+  username?: string; // Corresponds to username in ClientProfileSetupForm
+  avatarUrl?: string; // Added for consistency with ClientProfileForm
+  fullName?: string; // Added for consistency with ClientProfileForm
+  contactEmail?: string; // Added for consistency
   contactPhone?: string;
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
@@ -185,11 +189,14 @@ export type LucideIconName =
   | "UploadCloud"
   | "CalendarDays" 
   | "Edit"
-  | "Bell" // Added Bell
-  | "Check" // Added Check
-  | "Trash2" // Added Trash2
-  | "DollarSign" // Added DollarSign
-  | "Info"; // Added Info (if system_update icon becomes Info)
+  | "Bell" 
+  | "Check" 
+  | "Trash2" 
+  | "DollarSign" 
+  | "Info"
+  | "ListChecks" // Added for Client Dashboard "My Service Requests"
+  | "ShoppingCart" // Added for Client Payments "Total Spent"
+  | "Edit3"; // Added Edit3 from artisan dashboard
 
 
 export interface NavItem {
