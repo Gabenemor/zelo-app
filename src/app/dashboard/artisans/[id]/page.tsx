@@ -10,12 +10,6 @@ import Link from "next/link";
 import { UserCircle2, Mail, Phone, MapPin, Briefcase, CalendarDays, DollarSign, MessageSquare, Star, Info, PlusCircle } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 
 // Mock data for artisan profiles - in a real app, fetch this from your backend
 const mockArtisanProfiles: ArtisanProfile[] = [
@@ -168,25 +162,21 @@ export default async function ArtisanProfilePage({ params }: { params: { id: str
               <CardHeader>
                 <CardTitle className="font-headline text-xl flex items-center gap-2"><Briefcase className="text-primary h-5 w-5"/> Services Offered</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible className="w-full">
-                  {artisan.serviceExperiences.map((exp, index) => (
-                    <AccordionItem value={`service-${index}`} key={index}>
-                      <AccordionTrigger className="font-semibold text-md hover:no-underline">
-                        {exp.serviceName}
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-2 pt-2 text-sm">
-                        <InfoItem icon={CalendarDays} label="Experience" value={`${exp.years} years`} />
-                        {exp.chargeAmount && (
-                           <InfoItem icon={DollarSign} label="Typical Charge" value={`₦${exp.chargeAmount.toLocaleString()} ${exp.chargeDescription || ''}`.trim()} />
-                        )}
-                         {!exp.chargeAmount && (
-                           <InfoItem icon={Info} label="Pricing" value="Available upon request" />
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+              <CardContent className="space-y-4">
+                {artisan.serviceExperiences.map((exp, index) => (
+                  <div key={index} className="p-3 border rounded-md bg-secondary/30">
+                    <h4 className="font-semibold text-md mb-2 text-foreground">{exp.serviceName}</h4>
+                    <div className="space-y-1.5 text-sm">
+                      <InfoItem icon={CalendarDays} label="Experience" value={`${exp.years} years`} />
+                      {exp.chargeAmount && (
+                         <InfoItem icon={DollarSign} label="Typical Charge" value={`₦${exp.chargeAmount.toLocaleString()} ${exp.chargeDescription || ''}`.trim()} />
+                      )}
+                       {!exp.chargeAmount && (
+                         <InfoItem icon={Info} label="Pricing" value="Available upon request" />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}
@@ -241,3 +231,4 @@ function InfoItem({ icon: Icon, label, value, isLink }: InfoItemProps) {
         </div>
     )
 }
+
