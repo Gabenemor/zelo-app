@@ -1,0 +1,151 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isArtisan() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'artisan';
+    }
+    
+    function isClient() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client';
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Artisan profiles
+    match /artisanProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Client profiles
+    match /clientProfiles/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Service requests
+    match /serviceRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isClient() && isOwner(resource.data.clientId);
+      allow update: if isAuthenticated() && 
+                   (isOwner(resource.data.clientId) || 
+                    resource.data.assignedArtisanId == request.auth.uid || 
+                    isAdmin());
+      allow delete: if isAuthenticated() && 
+                   (isOwner(resource.data.clientId) || isAdmin());
+    }
+
+    // Artisan proposals
+    match /proposals/{proposalId} {
+      allow read: if isAuthenticated() && 
+                 (isOwner(resource.data.artisanId) || 
+                  isOwner(resource.data.clientId) || 
+                  isAdmin());
+      allow create: if isAuthenticated() && isArtisan() && isOwner(resource.data.artisanId);
+      allow update: if isAuthenticated() && 
+                   (isOwner(resource.data.artisanId) || 
+                    isOwner(resource.data.clientId) || 
+                    isAdmin());
+      allow delete: if isAuthenticated() && 
+                   (isOwner(resource.data.artisanId) || isAdmin());
+    }
+
+    // Chat messages
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, create: if isAuthenticated() && 
+                         (request.auth.uid in resource.data.participants || 
+                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+      allow update: if isAuthenticated() && isOwner(resource.data.senderId);
+      allow delete: if isAdmin();
+    }
+
+    // Chat metadata
+    match /chats/{chatId} {
+      allow read, create, update: if isAuthenticated() && 
+                                  request.auth.uid in resource.data.participants;
+      allow delete: if isAdmin();
+    }
+
+    // Escrow transactions
+    match /escrowTransactions/{transactionId} {
+      allow read: if isAuthenticated() && 
+                 (isOwner(resource.data.clientId) || 
+                  isOwner(resource.data.artisanId) || 
+                  isAdmin());
+      allow create: if isAuthenticated() && isClient() && isOwner(resource.data.clientId);
+      allow update: if isAdmin(); // Only admins can update transaction status
+      allow delete: if isAdmin();
+    }
+
+    // Withdrawal accounts
+    match /withdrawalAccounts/{userId} {
+      allow read, create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated(); // System can create notifications
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isAuthenticated() && 
+                   (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    // Disputes
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated() && 
+                 (isOwner(resource.data.clientId) || 
+                  isOwner(resource.data.artisanId) || 
+                  isAdmin());
+      allow create: if isAuthenticated() && 
+                   (isOwner(resource.data.clientId) || 
+                    isOwner(resource.data.artisanId));
+      allow update: if isAdmin(); // Only admins can resolve disputes
+      allow delete: if isAdmin();
+    }
+
+    // Reviews and ratings
+    match /reviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                   (isOwner(resource.data.reviewerId));
+      allow update: if isAuthenticated() && isOwner(resource.data.reviewerId);
+      allow delete: if isAuthenticated() && 
+                   (isOwner(resource.data.reviewerId) || isAdmin());
+    }
+
+    // Platform settings (admin only)
+    match /platformSettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
