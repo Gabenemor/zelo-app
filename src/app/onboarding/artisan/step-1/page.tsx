@@ -34,10 +34,12 @@ function ArtisanOnboardingStep1Content() {
   useEffect(() => {
     setServiceExperiences(currentExperiences => {
       const newExperiences: ServiceExperienceItem[] = [];
+      // Add or update experiences for currently selected primary services
       for (const serviceName of selectedPrimaryServices) {
         const existing = currentExperiences.find(exp => exp.serviceName === serviceName);
         newExperiences.push(existing || { serviceName, years: '' });
       }
+      // Filter out experiences for services that are no longer selected
       return newExperiences.filter(exp => selectedPrimaryServices.includes(exp.serviceName));
     });
   }, [selectedPrimaryServices]);
@@ -108,6 +110,7 @@ function ArtisanOnboardingStep1Content() {
       toast({ title: "Details Saved", description: "Your primary services and experience have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
+      // Pass both serviceExperiences and servicesOffered for Step 2 pre-fill
       queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
       queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
@@ -122,7 +125,6 @@ function ArtisanOnboardingStep1Content() {
             if (Array.isArray(fieldErrorArray)) {
               errorMessages = errorMessages.concat(fieldErrorArray as string[]);
             } else if (typeof fieldErrorArray === 'object' && fieldErrorArray !== null) {
-              // Handle nested field errors if any, e.g., for serviceExperiences array items
               Object.values(fieldErrorArray).forEach(nestedErrorArray => {
                 if(Array.isArray(nestedErrorArray)) {
                   errorMessages = errorMessages.concat(nestedErrorArray as string[]);
@@ -185,25 +187,28 @@ function ArtisanOnboardingStep1Content() {
             <CardDescription>For each selected service, please enter your years of professional experience.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {serviceExperiences.filter(exp => selectedPrimaryServices.includes(exp.serviceName)).map((exp) => (
-              <div key={exp.serviceName} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between bg-secondary/30">
-                <Label htmlFor={`years-${exp.serviceName}`} className="text-sm font-medium text-foreground sm:w-2/5">
-                  {exp.serviceName}
-                </Label>
-                <div className="relative sm:w-3/5">
-                  <Hash className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id={`years-${exp.serviceName}`}
-                    type="number"
-                    min="0"
-                    placeholder="e.g., 5"
-                    value={exp.years}
-                    onChange={(e) => handleYearsChange(exp.serviceName, e.target.value)}
-                    className="pl-10 text-sm h-9"
-                  />
+            {selectedPrimaryServices.map((serviceName) => {
+              const experienceItem = serviceExperiences.find(exp => exp.serviceName === serviceName);
+              return (
+                <div key={serviceName} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between bg-secondary/30">
+                  <Label htmlFor={`years-${serviceName}`} className="text-sm font-medium text-foreground sm:w-2/5">
+                    {serviceName}
+                  </Label>
+                  <div className="relative sm:w-3/5">
+                    <Hash className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id={`years-${serviceName}`}
+                      type="number"
+                      min="0"
+                      placeholder="e.g., 5"
+                      value={experienceItem?.years || ''}
+                      onChange={(e) => handleYearsChange(serviceName, e.target.value)}
+                      className="pl-10 text-sm h-9"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}
