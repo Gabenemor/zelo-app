@@ -19,9 +19,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, MinusCircle, PlusCircle } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, MinusCircle, PlusCircle, User } from "lucide-react"; // Added User here
 import type { ArtisanProfile, ServiceExperience } from "@/types";
-import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions"; // Assuming this is your server action
+import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions"; 
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -40,7 +40,6 @@ const artisanProfileSchema = z.object({
   isLocationPublic: z.boolean().default(false).optional(),
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional(),
   serviceExperiences: z.array(serviceExperienceSchema).optional(),
-  // servicesOffered is managed in step 1, not part of this form's direct input fields for submission
 });
 
 type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
@@ -48,7 +47,7 @@ type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
 interface ArtisanProfileFormProps {
   initialData?: Partial<ArtisanProfile>;
   userId: string;
-  onSaveSuccess?: () => void; // Callback for successful save
+  onSaveSuccess?: () => void; 
   submitButtonText?: React.ReactNode;
 }
 
@@ -72,7 +71,7 @@ export function ArtisanProfileForm({
       location: initialData?.location || "",
       isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
-      serviceExperiences: initialData?.servicesOffered // Use servicesOffered to build default serviceExperiences
+      serviceExperiences: initialData?.servicesOffered 
         ?.map(serviceName => {
           const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
           return {
@@ -88,33 +87,31 @@ export function ArtisanProfileForm({
     name: "serviceExperiences",
   });
 
-  // Populate field array based on initialData.servicesOffered if not already populated by defaultValues
   useEffect(() => {
-    if (initialData?.servicesOffered && fields.length === 0) {
+    if (initialData?.servicesOffered && form.getValues('serviceExperiences')?.length === 0) {
       const experiencesToSet = initialData.servicesOffered.map(serviceName => {
         const existing = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
         return { serviceName, years: existing?.years ?? 0 };
       });
       form.setValue('serviceExperiences', experiencesToSet);
     }
-  }, [initialData?.servicesOffered, initialData?.serviceExperiences, fields.length, form]);
+  }, [initialData?.servicesOffered, initialData?.serviceExperiences, form]);
 
 
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
-    // The 'servicesOffered' list comes from initialData (passed from step 1),
-    // not directly from the form values for this step.
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
+      username: values.username, // Ensure username from form is included
       userId,
-      servicesOffered: initialData?.servicesOffered || [], // Ensure servicesOffered is included from initial data
-      onboardingCompleted: true, // Mark onboarding as completed
+      servicesOffered: initialData?.servicesOffered || [], 
+      onboardingCompleted: true, 
       profileSetupCompleted: true,
     };
 
     console.log("Artisan profile submission for user:", userId, submissionData);
 
-    const result = await saveArtisanOnboardingProfile(submissionData as Omit<ArtisanProfile, 'onboardingStep1Completed'>); // Cast might be needed depending on exact action signature
+    const result = await saveArtisanOnboardingProfile(submissionData as Omit<ArtisanProfile, 'onboardingStep1Completed'>);
 
     setIsLoading(false);
 
@@ -205,7 +202,7 @@ export function ArtisanProfileForm({
                   render={({ field: serviceNameField }) => (
                     <FormItem className="flex-1 sm:flex-auto">
                       <FormLabel className="text-sm font-semibold text-foreground">
-                        {serviceNameField.value} {/* Display service name as label */}
+                        {serviceNameField.value} 
                       </FormLabel>
                     </FormItem>
                   )}
