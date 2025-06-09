@@ -27,11 +27,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Mock data for a single service request
-// To test different artisan states, modify:
-// - mockProposalsReceived[0].status (e.g., 'pending', 'accepted', 'rejected')
-// - request.status (e.g., 'open', 'awarded', 'in_progress')
-// - request.assignedArtisanId (should match currentUserId if proposal accepted)
-
 const mockServiceRequest: ServiceRequest = {
   id: "req_detail_123",
   clientId: "client_jane_doe", 
@@ -47,8 +42,8 @@ const mockServiceRequest: ServiceRequest = {
   location: "Eko Hotel & Suites, Victoria Island, Lagos",
   budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), // 7 days ago
-  status: "awarded", // Changed to 'awarded' to test artisan accepted state
-  assignedArtisanId: "artisan_john_bull", // Assigned to our test artisan
+  status: "awarded", 
+  assignedArtisanId: "artisan_john_bull", 
   attachments: [
     { name: "Event_Layout.pdf", url: "#", type: 'document' },
     { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }
@@ -63,16 +58,16 @@ const mockProposalsReceived: ArtisanProposal[] = [
 
 // Simulate fetching current user type (replace with actual auth logic)
 const getCurrentUserRole = async (): Promise<'client' | 'artisan'> => {
-  return 'artisan'; // CHANGED: Simulating artisan user for this flow
+  return 'artisan'; 
 };
 
 // Simulate fetching current user ID (replace with actual auth logic)
 const getCurrentUserId = async (): Promise<string> => {
-    return 'artisan_john_bull'; // CHANGED: Simulating specific artisan
+    return 'artisan_john_bull'; 
 }
 
 
-async function initiatePaystackPayment(requestId: string, amount: number, email: string, artisanId: string) {
+async function initiatePaystackPayment(requestId: string, amount: number, email: string) {
   console.log("Initiating Paystack payment for request:", requestId, "Amount:", amount, "Email:", email);
   if (amount > 0) {
     return { success: true, message: "Redirecting to Paystack...", authorization_url: `https://checkout.paystack.com/mock_payment_url_for_${requestId}` };
@@ -100,6 +95,21 @@ async function handleMarkJobAsComplete(requestId: string, artisanId: string) {
     return { success: true, message: "Job marked as complete. Client will be notified. (Mock)" };
 }
 
+async function handleFundEscrowServerAction(requestId: string, amount: number, clientEmail: string | undefined) {
+  'use server';
+  if (!clientEmail || amount <= 0) {
+    console.error("Server Action: Cannot initiate payment: Missing proposal or client email.");
+    // In a real app, return an error object or throw
+    return { success: false, message: "Error: Missing proposal or client email for payment." };
+  }
+  console.log(`Server Action: Mock initiating payment of NGN ${amount.toLocaleString()} for request '${requestId}' via Paystack for email ${clientEmail}.`);
+  // Perform Paystack initiation logic here on the server
+  // This would typically involve revalidatePath or redirect in a real scenario
+  // For mock:
+  // redirect(`/dashboard/payments/escrow?transactionId=mock_txn_for_${requestId}`);
+  return { success: true, message: `Mock server action: Payment initiated for ${requestId}. Awaiting Paystack redirect.` };
+}
+
 
 export default async function ServiceRequestDetailPage({ params }: { params: { id: string } }) {
   const request = mockServiceRequest; 
@@ -118,16 +128,6 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
   }
 
   const acceptedClientProposal = isOwner ? mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId) : undefined;
-
-  const handleFundEscrow = async () => {
-    if (!acceptedClientProposal || !request.postedBy?.email) { 
-      console.error("Cannot initiate payment: Missing proposal or client email.");
-      alert("Error: Missing proposal or client email for payment.");
-      return;
-    }
-    alert(`Mock: Client initiating payment of NGN ${acceptedClientProposal.proposedAmount.toLocaleString()} for request '${request.title}' via Paystack.`);
-  };
-
 
   return (
     <div className="space-y-6">
@@ -157,10 +157,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep Request</AlertDialogCancel>
-                  <form action={async () => {
-                      const result = await handleCancelRequest(request.id);
-                      alert(result.message); // Placeholder for toast
-                  }}>
+                  <form action={handleCancelRequest.bind(null, request.id)}>
                     <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">Yes, Cancel Request</AlertDialogAction>
                   </form>
                 </AlertDialogFooter>
@@ -215,7 +212,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                     <CardDescription>Let the client know why you're the best fit for this job.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <form action="#"> 
+                    <form action="#"> {/* Replace # with actual server action for submitting proposal */}
                       <div>
                         <Label htmlFor="proposedAmount">Your Proposed Amount (₦)</Label>
                         <div className="relative mt-1">
@@ -262,10 +259,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                       </Badge>
                     </p>
                     {currentArtisanProposal.status === 'accepted' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress') && (
-                        <form action={async () => {
-                            const result = await handleMarkJobAsComplete(request.id, currentUserId);
-                            alert(result.message); // Placeholder for toast
-                        }}>
+                        <form action={handleMarkJobAsComplete.bind(null, request.id, currentUserId)}>
                             <Button type="submit" className="w-full mt-2 bg-green-600 hover:bg-green-700">
                                 <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete
                             </Button>
@@ -308,12 +302,12 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                                 <div className="flex gap-2 flex-wrap">
                                     <Button size="sm" variant="outline"><MessageCircle className="mr-2 h-4 w-4"/> Message Artisan</Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
-                                        <Button size="sm" onClick={() => alert(`Mock: Accepting proposal from ${proposal.artisanName}`)}
+                                        <Button size="sm" onClick={() => console.log(`Mock: Accepting proposal from ${proposal.artisanName}`)} // Replace console.log with server action
                                         >Accept Proposal
                                         </Button>
                                     )}
-                                    {isOwner && request.status === 'awarded' && proposal.status === 'accepted' && request.assignedArtisanId === proposal.artisanId && (
-                                       <form action={handleFundEscrow}>
+                                    {isOwner && request.status === 'awarded' && proposal.status === 'accepted' && request.assignedArtisanId === proposal.artisanId && acceptedClientProposal && (
+                                       <form action={handleFundEscrowServerAction.bind(null, request.id, acceptedClientProposal.proposedAmount, request.postedBy?.email )}>
                                             <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                                                 <CreditCard className="mr-2 h-4 w-4" /> Fund Escrow via Paystack (₦{proposal.proposedAmount.toLocaleString()})
                                             </Button>
@@ -387,6 +381,3 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
-
-
-    
