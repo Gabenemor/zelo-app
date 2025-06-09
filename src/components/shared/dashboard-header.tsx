@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
 import { Bell, Search, UserCircle, Menu, X, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -63,7 +63,8 @@ export function DashboardHeader() {
                 isActive ? "text-primary" : "text-foreground/70",
                 "justify-start px-3 py-2 md:px-2 md:py-1"
               )}
-              onClick={onClick}
+              // onClick prop for DropdownMenuTrigger's Button is typically handled by DropdownMenu itself for opening/closing.
+              // If onClick is specifically for mobile sheet closing, it should be handled by the individual DropdownMenuItems.
             >
               {item.title}
               <ChevronDown className="ml-1 h-4 w-4" />
@@ -75,7 +76,7 @@ export function DashboardHeader() {
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
                     href={child.href}
-                    onClick={onClick}
+                    onClick={onClick} // This onClick is for closing the mobile sheet
                     className={cn(
                       "text-sm",
                       pathname === child.href ? "font-semibold text-primary" : ""
@@ -92,23 +93,24 @@ export function DashboardHeader() {
     }
 
     return (
-      <Link href={item.href} legacyBehavior passHref>
-        <Button
-          variant="ghost"
-          className={cn(
-            "text-sm font-medium transition-colors hover:text-primary",
-            isActive ? "text-primary" : "text-foreground/70",
-            "justify-start px-3 py-2 md:px-2 md:py-1"
-          )}
-          onClick={onClick}
-        >
-          {item.title}
-          {item.label && (
-            <span className="ml-2 rounded-lg bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
-              {item.label}
-            </span>
-          )}
-        </Button>
+      <Link
+        href={item.href}
+        onClick={onClick} // This onClick is for closing the mobile sheet
+        className={cn(
+          // Base structural and accessibility styles similar to buttonVariants
+          "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          // Custom layout and specific styling for NavLink
+          "justify-start", // Align text to the start
+          "px-3 py-2 md:px-2 md:py-1", // Specific padding from original Button
+          isActive ? "text-primary" : "text-foreground/70 hover:text-primary" // Active/inactive/hover states
+        )}
+      >
+        {item.title}
+        {item.label && (
+          <span className="ml-2 rounded-lg bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+            {item.label}
+          </span>
+        )}
       </Link>
     );
   };
@@ -116,7 +118,7 @@ export function DashboardHeader() {
   const MobileNavContent = () => (
     <nav className="flex flex-col gap-2 p-4">
       {accessibleItems.map((item) => (
-        <div key={item.href}>
+        <div key={item.href || item.title}> {/* Use item.title as key if href is undefined (for parent items) */}
           {item.children && item.children.length > 0 ? (
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
@@ -152,7 +154,7 @@ export function DashboardHeader() {
       {/* Desktop Navigation */}
       <nav className="hidden flex-1 items-center justify-center gap-1 md:flex lg:gap-2">
         {accessibleItems.map((item) => (
-          <NavLink key={item.href} item={item} />
+          <NavLink key={item.href || item.title} item={item} /> // Use item.title as key if href is undefined
         ))}
       </nav>
 
