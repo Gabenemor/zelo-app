@@ -160,15 +160,15 @@ export function RegisterForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="client">
+                  <SelectItem value="client" className="group">
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" /> 
+                      <Users className="h-4 w-4 text-muted-foreground group-data-[highlighted]:text-accent-foreground" /> 
                       <span>Client (Looking for services)</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="artisan">
+                  <SelectItem value="artisan" className="group">
                      <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <Briefcase className="h-4 w-4 text-muted-foreground group-data-[highlighted]:text-accent-foreground" />
                       <span>Artisan (Offering services)</span>
                     </div>
                   </SelectItem>
