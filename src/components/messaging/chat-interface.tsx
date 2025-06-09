@@ -1,12 +1,13 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Paperclip, Send, Video, Smile, Search } from "lucide-react";
+import { Paperclip, Send, Video, Smile, Search, MessageSquare, Loader2 } from "lucide-react";
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -16,48 +17,78 @@ interface User { id: string; name: string; avatarUrl?: string; online?: boolean;
 interface Message { id: string; senderId: string; text: string; timestamp: Date; isOwn: boolean; }
 interface Conversation { id: string; otherUser: User; lastMessage: string; lastMessageTime: string; unreadCount?: number; }
 
-const mockCurrentUser: User = { id: "user1", name: "You" };
+// Adjusted to match IDs from service request page mock data
+const mockCurrentUser: User = { id: "artisan_john_bull", name: "You (John Bull)", avatarUrl: "https://placehold.co/40x40.png?text=JB" };
+
 const mockUsers: User[] = [
+  { id: "client_jane_doe", name: "Jane Doe (Client)", avatarUrl: "https://placehold.co/40x40.png?text=JD", online: true },
   { id: "user2", name: "Adewale Plumbing", avatarUrl: "https://placehold.co/40x40.png?text=AP", online: true },
   { id: "user3", name: "Chioma's Catering", avatarUrl: "https://placehold.co/40x40.png?text=CC", online: false },
-  { id: "user4", name: "Musa Electrics", avatarUrl: "https://placehold.co/40x40.png?text=ME", online: true },
 ];
 
 const mockConversations: Conversation[] = [
-    { id: "conv1", otherUser: mockUsers[0], lastMessage: "Okay, I'll be there by 2 PM.", lastMessageTime: "10:30 AM", unreadCount: 2},
-    { id: "conv2", otherUser: mockUsers[1], lastMessage: "Thanks for the quick service!", lastMessageTime: "Yesterday"},
-    { id: "conv3", otherUser: mockUsers[2], lastMessage: "Can you send me a quote?", lastMessageTime: "Mon"},
+    { id: "conv_client_jane_doe", otherUser: mockUsers[0], lastMessage: "Great, thank you for the update!", lastMessageTime: "11:30 AM", unreadCount: 0},
+    { id: "conv1", otherUser: mockUsers[1], lastMessage: "Okay, I'll be there by 2 PM.", lastMessageTime: "10:30 AM", unreadCount: 2},
+    { id: "conv2", otherUser: mockUsers[2], lastMessage: "Thanks for the quick service!", lastMessageTime: "Yesterday"},
 ];
 
 const mockMessages: { [conversationId: string]: Message[] } = {
-  "conv1": [
+  "conv_client_jane_doe": [
+    { id: "msg_jd1", senderId: "client_jane_doe", text: "Hi John, just wanted to confirm the details for the corporate event catering.", timestamp: new Date(Date.now() - 3600000 * 2), isOwn: false },
+    { id: "msg_jb1", senderId: "artisan_john_bull", text: "Hi Jane! Yes, everything is on track. We're preparing the 'Modern Elegance' menu.", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
+    { id: "msg_jd2", senderId: "client_jane_doe", text: "Excellent! Do you need any more information from my side?", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: false },
+    { id: "msg_jb2", senderId: "artisan_john_bull", text: "Not at the moment, thank you. We'll deliver and set up by 5 PM on the event day.", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
+    { id: "msg_jd3", senderId: "client_jane_doe", text: "Great, thank you for the update!", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: false },
+  ],
+   "conv1": [
     { id: "msg1", senderId: "user2", text: "Hello! I'm interested in your plumbing service.", timestamp: new Date(Date.now() - 3600000 * 2), isOwn: false },
-    { id: "msg2", senderId: "user1", text: "Hi Adewale, sure. What do you need help with?", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
+    { id: "msg2", senderId: "artisan_john_bull", text: "Hi Adewale, sure. What do you need help with?", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
     { id: "msg3", senderId: "user2", text: "My kitchen sink is leaking badly.", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: false },
-    { id: "msg4", senderId: "user1", text: "Okay, I can come take a look. When are you available?", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
+    { id: "msg4", senderId: "artisan_john_bull", text: "Okay, I can come take a look. When are you available?", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
     { id: "msg5", senderId: "user2", text: "Okay, I'll be there by 2 PM.", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: false },
   ],
    "conv2": [
     { id: "msg6", senderId: "user3", text: "The food was amazing!", timestamp: new Date(Date.now() - 86400000 * 1), isOwn: false },
-    { id: "msg7", senderId: "user1", text: "Glad you enjoyed it, Chioma!", timestamp: new Date(Date.now() - 86400000 * 0.9), isOwn: true },
+    { id: "msg7", senderId: "artisan_john_bull", text: "Glad you enjoyed it, Chioma!", timestamp: new Date(Date.now() - 86400000 * 0.9), isOwn: true },
     { id: "msg8", senderId: "user3", text: "Thanks for the quick service!", timestamp: new Date(Date.now() - 86400000 * 0.8), isOwn: false },
   ],
 };
 
-
-export function ChatInterface() {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(mockConversations[0]);
-  const [messages, setMessages] = useState<Message[]>(selectedConversation ? mockMessages[selectedConversation.id] || [] : []);
+function ChatInterfaceContent() {
+  const searchParams = useSearchParams();
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    if (selectedConversation) {
+    setIsInitializing(true);
+    const chatWithUserId = searchParams.get('chatWith');
+    if (chatWithUserId) {
+      const conversationToSelect = mockConversations.find(conv => conv.otherUser.id === chatWithUserId);
+      if (conversationToSelect) {
+        setSelectedConversation(conversationToSelect);
+        setMessages(mockMessages[conversationToSelect.id] || []);
+      } else {
+        // Optionally handle case where conversation is not found, e.g., select first or none
+        setSelectedConversation(mockConversations.length > 0 ? mockConversations[0] : null);
+      }
+    } else if (mockConversations.length > 0) {
+      // Default to first conversation if no query param
+      setSelectedConversation(mockConversations[0]);
+      setMessages(mockMessages[mockConversations[0].id] || []);
+    }
+    setIsInitializing(false);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (selectedConversation && !isInitializing) {
       setMessages(mockMessages[selectedConversation.id] || []);
-    } else {
+    } else if (!selectedConversation && !isInitializing) {
       setMessages([]);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, isInitializing]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,19 +104,13 @@ export function ChatInterface() {
       isOwn: true,
     };
     setMessages(prev => [...prev, newMsg]);
-    // Also update mockMessages for persistence in this demo
     mockMessages[selectedConversation.id] = [...(mockMessages[selectedConversation.id] || []), newMsg];
     setNewMessage("");
   };
   
   const createGoogleMeetLink = () => {
-    // This is a placeholder. In a real app, you might make an API call to Google Calendar API
-    // or construct a pre-filled link: https://meet.google.com/new?hs=180&authuser=0&ij=1
-    // Or use a service that generates meet links.
     const meetLink = `https://meet.google.com/new?uid=${Math.random().toString(36).substring(2)}&utm_medium=web&utm_source=zelo`;
-    
-    // Add this link as a message
-     if (!selectedConversation) return;
+    if (!selectedConversation) return;
     const newMsg: Message = {
       id: `msg${Date.now()}`,
       senderId: mockCurrentUser.id,
@@ -93,7 +118,7 @@ export function ChatInterface() {
       timestamp: new Date(),
       isOwn: true,
     };
-    const linkMsg: Message = { // A separate message for the link itself for better formatting
+    const linkMsg: Message = {
       id: `msg${Date.now() + 1}`,
       senderId: mockCurrentUser.id,
       text: meetLink,
@@ -102,11 +127,16 @@ export function ChatInterface() {
     }
     setMessages(prev => [...prev, newMsg, linkMsg]);
     mockMessages[selectedConversation.id] = [...(mockMessages[selectedConversation.id] || []), newMsg, linkMsg];
-
-    // Optionally, open the link in a new tab for the user who created it
-    // window.open(meetLink, '_blank');
   };
 
+  if (isInitializing) {
+    return (
+      <div className="flex h-[calc(100vh-12rem)] rounded-lg border bg-card shadow-sm items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">Loading chats...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-12rem)] rounded-lg border bg-card shadow-sm">
@@ -124,9 +154,9 @@ export function ChatInterface() {
             <div
               key={conv.id}
               className={cn(
-                "group flex cursor-pointer items-center gap-3 p-3", // Added 'group'
-                "hover:bg-accent hover:text-accent-foreground", // Added hover:text-accent-foreground
-                selectedConversation?.id === conv.id && "bg-accent text-accent-foreground" // Added text-accent-foreground
+                "group flex cursor-pointer items-center gap-3 p-3",
+                "hover:bg-accent hover:text-accent-foreground",
+                selectedConversation?.id === conv.id && "bg-accent text-accent-foreground"
               )}
               onClick={() => setSelectedConversation(conv)}
             >
@@ -257,3 +287,16 @@ export function ChatInterface() {
   );
 }
 
+// Wrap the ChatInterfaceContent with Suspense for useSearchParams
+export function ChatInterface() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-[calc(100vh-12rem)] rounded-lg border bg-card shadow-sm items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">Initializing chat...</p>
+      </div>
+    }>
+      <ChatInterfaceContent />
+    </Suspense>
+  )
+}

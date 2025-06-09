@@ -349,8 +349,11 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                   </div>
                 </div>
                 {(isOwner || (isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress'))) && (
-                    <Button variant="outline" className="w-full"><MessageCircle className="mr-2 h-4 w-4" /> 
+                    <Button asChild variant="outline" className="w-full">
+                      <Link href={`/dashboard/messages?chatWith=${request.clientId}`}>
+                        <MessageCircle className="mr-2 h-4 w-4" /> 
                         {isOwner ? "View Messages (Concept)" : "Message Client"}
+                      </Link>
                     </Button>
                 )}
                  {currentUserRole === 'artisan' && !isAssignedArtisan && (
@@ -381,3 +384,4 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
+
