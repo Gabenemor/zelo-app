@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ServiceSelectionChips } from '@/components/onboarding/service-selection-chips';
 import { NIGERIAN_ARTISAN_SERVICES } from '@/types'; // Assuming this list is suitable
 import { PageHeader } from '@/components/ui/page-header';
-import { HeartHandshake } from 'lucide-react'; // Or another relevant icon
+import { Users } from 'lucide-react'; // Changed from HeartHandshake to Users
 import { useToast } from '@/hooks/use-toast';
 import { saveClientStep1Preferences } from '@/actions/onboarding-actions';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
@@ -37,7 +37,7 @@ export default function ClientOnboardingStep1() {
     } else {
       toast({
         title: "Error",
-        description: "Could not save your preferences. Please try again.",
+        description: result.error?.servicesLookingFor?.[0] || "Could not save your preferences. Please try again.",
         variant: "destructive",
       });
       console.error("Error saving client preferences:", result.error);
@@ -49,7 +49,7 @@ export default function ClientOnboardingStep1() {
       <PageHeader
         title="Welcome to Zelo!"
         description="Let's get you started. What services are you looking for?"
-        icon={HeartHandshake}
+        icon={Users} // Changed from HeartHandshake
       />
       <OnboardingProgressIndicator currentStep={1} totalSteps={2} />
       <div className="space-y-6 p-6 border rounded-lg shadow-sm bg-card">

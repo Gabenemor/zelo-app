@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ServiceSelectionChips } from '@/components/onboarding/service-selection-chips';
 import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
-import { Wrench } from 'lucide-react'; // Or another relevant icon
+import { Briefcase } from 'lucide-react'; // Changed from Wrench to Briefcase
 import { useToast } from '@/hooks/use-toast';
 import { saveArtisanStep1Services } from '@/actions/onboarding-actions';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
@@ -47,7 +47,7 @@ export default function ArtisanOnboardingStep1() {
     } else {
       toast({
         title: "Error",
-        description: "Could not save your services. Please try again.",
+        description: result.error?.servicesOffered?.[0] || "Could not save your services. Please try again.",
         variant: "destructive",
       });
       console.error("Error saving artisan services:", result.error);
@@ -59,7 +59,7 @@ export default function ArtisanOnboardingStep1() {
       <PageHeader
         title="Welcome, Artisan!"
         description={`Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer.`}
-        icon={Wrench}
+        icon={Briefcase} // Changed from Wrench
       />
       <OnboardingProgressIndicator currentStep={1} totalSteps={2} />
       <div className="space-y-6 p-6 border rounded-lg shadow-sm bg-card">
