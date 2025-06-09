@@ -46,6 +46,7 @@ function ArtisanOnboardingStep1Content() {
 
     if (result.success) {
       toast({ title: "Services Selected (Mock)", description: "Your primary services have been noted." });
+      // Pass firstName to the next step
       router.push(`/onboarding/artisan/step-2${firstName ? `?firstName=${encodeURIComponent(firstName)}` : ''}`);
     } else {
       toast({
@@ -58,9 +59,9 @@ function ArtisanOnboardingStep1Content() {
   };
 
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
-  const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer.`;
+  const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer. You can add more later from your profile.`;
 
-  if (!searchParams) { // Still waiting for searchParams
+  if (!searchParams) { 
     return (
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
