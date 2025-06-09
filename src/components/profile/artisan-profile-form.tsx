@@ -26,7 +26,7 @@ import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; // Added import for Badge
+import { Badge } from "@/components/ui/badge";
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -448,47 +448,45 @@ export function ArtisanProfileForm({
           </Card>
         )}
 
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Your Base Location</FormLabel>
-                 <div className="relative">
-                  <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <FormControl>
-                    <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
-                <FormDescription>Enter your city and state.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="isLocationPublic"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-full">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Share Precise Location</FormLabel>
-                  <FormDescription>
-                    Allow clients to see your more specific location.
-                  </FormDescription>
-                </div>
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Your Base Location</FormLabel>
+                <div className="relative">
+                <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    aria-label="Toggle precise location sharing"
-                  />
+                  <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" />
                 </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
+              </div>
+              <FormDescription>Enter your city and state.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="isLocationPublic"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Share Precise Location</FormLabel>
+                <FormDescription>
+                  Allow clients to see your more specific location.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="Toggle precise location sharing"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}
