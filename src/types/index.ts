@@ -1,4 +1,5 @@
 
+
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -12,6 +13,7 @@ export interface User {
 
 export interface ArtisanProfile {
   userId: string;
+  username?: string;
   contactPhone?: string;
   contactEmail?: string;
   servicesOffered: string[]; // Array of service names or IDs
@@ -24,14 +26,18 @@ export interface ArtisanProfile {
   portfolioImageUrls?: string[];
   yearsOfExperience?: number;
   availability?: string; // e.g., "Weekdays", "Weekends", "Full-time"
+  onboardingCompleted?: boolean;
 }
 
 export interface ClientProfile {
   userId: string;
+  username?: string;
   contactPhone?: string;
   location?: string; // General location
   locationCoordinates?: { lat: number; lng: number }; // For geospatial data
   isLocationPublic?: boolean; // User's preference to share exact location
+  onboardingCompleted?: boolean;
+  servicesLookingFor?: string[];
 }
 
 export interface WithdrawalAccount {
@@ -45,11 +51,11 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  postedBy?: { // Added to simulate client info on request details
+  postedBy?: { 
     name: string;
     avatarUrl?: string;
     memberSince?: string;
-    email?: string; // Added for Paystack integration
+    email?: string; 
   };
   title: string;
   description: string;
@@ -60,7 +66,7 @@ export interface ServiceRequest {
   postedAt: Date;
   status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
   assignedArtisanId?: string;
-  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>; // For file attachments
+  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>; 
 }
 
 export interface ArtisanProposal {
@@ -99,7 +105,6 @@ export interface EscrowTransaction {
   updatedAt: Date;
 }
 
-// Define a type for the names of Lucide icons used in navigation
 export type LucideIconName =
   | "LayoutDashboard"
   | "UserCircle"
@@ -113,8 +118,13 @@ export type LucideIconName =
   | "PlusCircle"
   | "ShieldCheck"
   | "FileText"
-  | "Search" // Added for Find Jobs
-  | "ClipboardList"; // Added for My Offers
+  | "Search" 
+  | "ClipboardList"
+  | "HeartHandshake" // For client onboarding step 1
+  | "UserCog" // For client onboarding step 2
+  | "Wrench" // For artisan onboarding step 1
+  | "UserCircle2"; // For artisan onboarding step 2
+
 
 export interface NavItem {
   title: string;
@@ -122,7 +132,16 @@ export interface NavItem {
   icon?: LucideIconName;
   disabled?: boolean;
   external?: boolean;
-  label?: string; // For badges or additional info
-  children?: NavItem[]; // For sub-menus
-  roles?: UserRole[]; // Roles that can see this nav item
+  label?: string; 
+  children?: NavItem[]; 
+  roles?: UserRole[]; 
 }
+
+// Centralized list of services
+export const NIGERIAN_ARTISAN_SERVICES = [
+  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry", 
+  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning", 
+  "Photography/Videography", "Graphic Design", "Web Development", "Appliance Repair",
+  "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
+  "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
+];
