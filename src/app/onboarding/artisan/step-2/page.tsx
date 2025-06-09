@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ArtisanProfileForm } from '@/components/profile/artisan-profile-form';
 import { UserCircle2, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ArtisanProfile } from '@/types';
+import type { ArtisanProfile, ServiceExperience } from '@/types'; // Ensure ServiceExperience is imported
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 
 function ArtisanOnboardingStep2Content() {
@@ -17,42 +17,54 @@ function ArtisanOnboardingStep2Content() {
   const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
   const [isLoadingPage, setIsLoadingPage] = useState(true);
 
-
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; 
+  const MOCK_USER_ID = "mockArtisanUserIdOnboarding";
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   useEffect(() => {
     if (searchParams) {
       const servicesOfferedString = searchParams.get('servicesOffered');
+      const serviceExperiencesString = searchParams.get('serviceExperiences');
+      
       let servicesOffered: string[] = [];
+      let serviceExperiences: ServiceExperience[] = [];
+
       if (servicesOfferedString) {
         try {
           servicesOffered = JSON.parse(servicesOfferedString);
         } catch (e) {
-          console.error("Failed to parse servicesOffered from URL:", e);
-          toast({ title: "Error", description: "Could not load selected services. Please go back and try again.", variant: "destructive" });
+          console.error("Failed to parse servicesOffered from URL for Step 2:", e);
+          // Handle error, maybe redirect back or show toast
         }
       }
-      // Ensure username is set from firstName if available, otherwise from existing profile username
-      setInitialFormValues(prev => ({ 
-        ...prev, 
-        servicesOffered, 
-        username: firstName || prev.username 
+      
+      if (serviceExperiencesString) {
+        try {
+          serviceExperiences = JSON.parse(serviceExperiencesString);
+        } catch (e) {
+          console.error("Failed to parse serviceExperiences from URL for Step 2:", e);
+          toast({ title: "Error", description: "Could not load service experience details. Please go back to Step 1.", variant: "destructive" });
+        }
+      }
+
+      setInitialFormValues(prev => ({
+        ...prev,
+        username: firstName || prev.username,
+        servicesOffered, // Pass this to pre-fill the form's understanding of services
+        serviceExperiences, // Pass this to pre-fill experience years
       }));
       setIsLoadingPage(false);
     }
   }, [searchParams, toast, firstName]);
 
-
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
-    router.push('/dashboard'); 
+    router.push('/dashboard');
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
-  const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully.";
+  const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully. Your selected services and experience from Step 1 are pre-filled.";
 
-  if (isLoadingPage || !searchParams || initialFormValues.servicesOffered === undefined) {
+  if (isLoadingPage || !searchParams) {
     return (
       <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -78,7 +90,7 @@ function ArtisanOnboardingStep2Content() {
           onSaveSuccess={handleFormSaveSuccess}
           submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
           backButtonHref={backHref}
-          backButtonText="Back to Step 1"
+          backButtonText={<><ArrowLeft className="mr-2 h-4 w-4" /> Back to Step 1</>}
         />
       </div>
     </div>
@@ -97,3 +109,5 @@ export default function ArtisanOnboardingStep2Page() {
     </Suspense>
   );
 }
+
+    

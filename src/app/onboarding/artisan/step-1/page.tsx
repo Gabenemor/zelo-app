@@ -7,23 +7,53 @@ import { Button } from '@/components/ui/button';
 import { ServiceSelectionChips } from '@/components/onboarding/service-selection-chips';
 import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Briefcase, Loader2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveArtisanStep1Services } from '@/actions/onboarding-actions';
+import { saveArtisanStep1Details } from '@/actions/onboarding-actions'; // Updated action name
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface ServiceExperienceItem {
+  serviceName: string;
+  years: string; // Keep as string for input, convert on submit
+}
 
 function ArtisanOnboardingStep1Content() {
   const router = useRouter();
-  const searchParams = useSearchParams(); 
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedPrimaryServices, setSelectedPrimaryServices] = useState<string[]>([]);
+  const [serviceExperiences, setServiceExperiences] = useState<ServiceExperienceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const MAX_SERVICES = 2;
 
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
+  // Sync serviceExperiences state when selectedPrimaryServices changes
+  useEffect(() => {
+    setServiceExperiences(currentExperiences => {
+      const newExperiences: ServiceExperienceItem[] = [];
+      // Add or keep existing selected services
+      for (const serviceName of selectedPrimaryServices) {
+        const existing = currentExperiences.find(exp => exp.serviceName === serviceName);
+        newExperiences.push(existing || { serviceName, years: '' });
+      }
+      return newExperiences;
+    });
+  }, [selectedPrimaryServices]);
+
+  const handleYearsChange = (serviceName: string, years: string) => {
+    setServiceExperiences(prevExperiences =>
+      prevExperiences.map(exp =>
+        exp.serviceName === serviceName ? { ...exp, years } : exp
+      )
+    );
+  };
+
   const handleNext = async () => {
-    if (selectedServices.length === 0) {
+    if (selectedPrimaryServices.length === 0) {
       toast({
         title: "Selection Required",
         description: "Please select at least one service you offer.",
@@ -31,38 +61,66 @@ function ArtisanOnboardingStep1Content() {
       });
       return;
     }
-    if (selectedServices.length > MAX_SERVICES) {
+    if (selectedPrimaryServices.length > MAX_SERVICES) {
+      toast({
+        title: "Too Many Services",
+        description: `Please select a maximum of ${MAX_SERVICES} primary services.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const experiencesToSave: Array<{ serviceName: string; years: number }> = [];
+    for (const exp of serviceExperiences) {
+      if (selectedPrimaryServices.includes(exp.serviceName)) { // Only consider selected services
+        const yearsNum = parseInt(exp.years, 10);
+        if (exp.years.trim() === '' || isNaN(yearsNum) || yearsNum < 0) {
+          toast({
+            title: "Invalid Experience",
+            description: `Please enter valid, non-negative years of experience for ${exp.serviceName}.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        experiencesToSave.push({ serviceName: exp.serviceName, years: yearsNum });
+      }
+    }
+    
+    if (experiencesToSave.length !== selectedPrimaryServices.length) {
         toast({
-            title: "Too Many Services",
-            description: `Please select a maximum of ${MAX_SERVICES} services for now. You can add more later from your profile.`,
+            title: "Missing Experience",
+            description: "Please ensure years of experience are entered for all selected services.",
             variant: "destructive",
         });
         return;
     }
 
+
     setIsLoading(true);
-    const result = await saveArtisanStep1Services(selectedServices);
+    // Use the updated action: saveArtisanStep1Details
+    const result = await saveArtisanStep1Details(experiencesToSave);
     setIsLoading(false);
 
-    if (result.success) {
-      toast({ title: "Services Selected", description: "Your primary services have been noted." });
-      // Pass firstName and selectedServices to the next step
+    if (result.success && result.data) {
+      toast({ title: "Details Saved", description: "Your primary services and experience have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      queryParams.append('servicesOffered', JSON.stringify(selectedServices));
+      // Pass the full serviceExperiences structure to step 2
+      queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
+      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered)); // Keep for ArtisanProfileForm initialData
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
       toast({
         title: "Error",
-        description: result.error?.servicesOffered?.[0] || "Could not save your services. Please try again.",
+        description: result.error?.serviceExperiences?.[0] || "Could not save your details. Please try again.",
         variant: "destructive",
       });
-      console.error("Error saving artisan services:", result.error);
+      console.error("Error saving artisan step 1 details:", result.error);
     }
   };
-  
+
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
-  const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer. You can add more later from your profile.`;
+  const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer and specify your years of experience for each. You can add more services later from your profile.`;
 
   return (
     <div className="container mx-auto max-w-2xl py-8 sm:py-12">
@@ -72,19 +130,57 @@ function ArtisanOnboardingStep1Content() {
         icon={Briefcase}
       />
       <OnboardingProgressIndicator currentStep={1} totalSteps={2} />
-      <div className="space-y-6 p-6 border rounded-lg shadow-sm bg-card">
-        <ServiceSelectionChips
-          availableServices={NIGERIAN_ARTISAN_SERVICES}
-          selectedServices={selectedServices}
-          onSelectedServicesChange={setSelectedServices}
-          selectionType="multiple"
-          maxSelections={MAX_SERVICES}
-        />
-        <div className="flex justify-end">
-          <Button onClick={handleNext} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Next: Complete Your Profile"}
-          </Button>
-        </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Select Your Primary Services</CardTitle>
+          <CardDescription>Choose up to {MAX_SERVICES} services you are most skilled in.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ServiceSelectionChips
+            availableServices={NIGERIAN_ARTISAN_SERVICES}
+            selectedServices={selectedPrimaryServices}
+            onSelectedServicesChange={setSelectedPrimaryServices}
+            selectionType="multiple"
+            maxSelections={MAX_SERVICES}
+          />
+        </CardContent>
+      </Card>
+
+      {selectedPrimaryServices.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Years of Experience</CardTitle>
+            <CardDescription>For each selected service, please enter your years of professional experience.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {serviceExperiences.filter(exp => selectedPrimaryServices.includes(exp.serviceName)).map((exp) => (
+              <div key={exp.serviceName} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between bg-secondary/30">
+                <Label htmlFor={`years-${exp.serviceName}`} className="text-sm font-medium text-foreground sm:w-2/5">
+                  {exp.serviceName}
+                </Label>
+                <div className="relative sm:w-3/5">
+                  <Hash className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id={`years-${exp.serviceName}`}
+                    type="number"
+                    min="0"
+                    placeholder="e.g., 5"
+                    value={exp.years}
+                    onChange={(e) => handleYearsChange(exp.serviceName, e.target.value)}
+                    className="pl-10 text-sm h-9"
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="mt-8 flex justify-end">
+        <Button onClick={handleNext} disabled={isLoading || selectedPrimaryServices.length === 0}>
+          {isLoading ? "Saving..." : "Next: Complete Your Profile"}
+        </Button>
       </div>
     </div>
   );
@@ -102,3 +198,5 @@ export default function ArtisanOnboardingStep1Page() {
     </Suspense>
   );
 }
+
+    

@@ -45,26 +45,41 @@ export async function saveClientStep2Profile(data: { location: string; username?
 
 // --- Artisan Onboarding Actions ---
 
-const ArtisanServicesSchema = z.object({
-  userId: z.string(),
-  servicesOffered: z.array(z.string()).min(1, "Select at least one service.").max(2, "You can select a maximum of 2 services during onboarding."),
+const ArtisanServiceExperienceSchema = z.object({
+  serviceName: z.string(),
+  years: z.coerce.number().int().min(0, "Years of experience must be a non-negative number."),
 });
 
-export async function saveArtisanStep1Services(services: string[]) {
-   const validation = ArtisanServicesSchema.safeParse({ userId: MOCK_USER_ID, servicesOffered: services });
+const ArtisanStep1DetailsSchema = z.object({
+  userId: z.string(),
+  serviceExperiences: z.array(ArtisanServiceExperienceSchema)
+    .min(1, "Select at least one service and provide experience.")
+    .max(2, "You can select a maximum of 2 services during onboarding."),
+  // Extract servicesOffered for convenience, though it's derived from serviceExperiences
+  servicesOffered: z.array(z.string()) 
+});
+
+// Updated action for artisan step 1
+export async function saveArtisanStep1Details(experiences: Array<{ serviceName: string; years: number }>) {
+  const servicesOffered = experiences.map(exp => exp.serviceName);
+  const dataToValidate = {
+    userId: MOCK_USER_ID,
+    serviceExperiences: experiences,
+    servicesOffered: servicesOffered
+  };
+
+  const validation = ArtisanStep1DetailsSchema.safeParse(dataToValidate);
   if (!validation.success) {
+    // Log the detailed error for debugging
+    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Details:", validation.error.flatten());
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
-  console.log('[SERVER ACTION] Saving artisan step 1 services:', validation.data);
+  console.log('[SERVER ACTION] Saving artisan step 1 details (services & experience):', validation.data);
   // TODO: Implement actual database write
-  // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, onboardingStep1Completed: true }, { merge: true });
+  // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, serviceExperiences: validation.data.serviceExperiences, onboardingStep1Completed: true }, { merge: true });
   return { success: true, data: validation.data };
 }
 
-const ServiceExperienceSchema = z.object({
-  serviceName: z.string(),
-  years: z.number().int().min(0, "Years of experience must be a non-negative number."),
-});
 
 const ArtisanOnboardingProfileSchema = z.object({
   userId: z.string(),
@@ -73,20 +88,21 @@ const ArtisanOnboardingProfileSchema = z.object({
   contactEmail: z.string().email(),
   location: z.string().min(1),
   bio: z.string().optional(),
-  serviceExperiences: z.array(ServiceExperienceSchema).optional(),
-  serviceChargeAmount: z.number().positive().optional(),
+  serviceExperiences: z.array(ArtisanServiceExperienceSchema).optional(), // This comes from step 1
+  servicesOffered: z.array(z.string()), // This also effectively comes from step 1
+  serviceChargeAmount: z.coerce.number().positive().optional(),
   serviceChargeDescription: z.string().optional(),
   isLocationPublic: z.boolean().optional(),
-  servicesOffered: z.array(z.string()), // This comes from step 1, not from the step 2 form submission directly
   onboardingCompleted: z.boolean().optional(),
   profileSetupCompleted: z.boolean().optional(),
 });
 
 
-// ProfileData comes from ArtisanProfileForm, which will include serviceExperiences
 export async function saveArtisanOnboardingProfile(
   profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>>
 ) {
+  // servicesOffered and serviceExperiences should be passed in profileData,
+  // originating from Step 1 and carried through to Step 2's form submission.
   const dataToValidate = {
     userId: MOCK_USER_ID, // In a real app, derive from auth context
     username: profileData.username,
@@ -94,11 +110,11 @@ export async function saveArtisanOnboardingProfile(
     location: profileData.location,
     contactPhone: profileData.contactPhone,
     bio: profileData.bio,
-    serviceExperiences: profileData.serviceExperiences,
+    serviceExperiences: profileData.serviceExperiences, // Should be populated from Step 1
+    servicesOffered: profileData.servicesOffered, // Should be populated from Step 1
     serviceChargeAmount: profileData.serviceChargeAmount,
     serviceChargeDescription: profileData.serviceChargeDescription,
     isLocationPublic: profileData.isLocationPublic,
-    servicesOffered: profileData.servicesOffered, // Crucial: ensure this is passed from where it was stored/retrieved after step 1
     onboardingCompleted: true,
     profileSetupCompleted: true,
   };
@@ -134,3 +150,5 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
   // This is a mock, returning false to trigger the UI prompt for demo purposes
   return { complete: false, missingFields: ['location', 'username'] };
 }
+
+    
