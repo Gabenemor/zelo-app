@@ -1,7 +1,8 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { EscrowInfo } from "@/components/payments/escrow-info";
 import { ShieldCheck } from "lucide-react";
-import type { EscrowTransaction } from "@/types";
+import type { EscrowTransaction, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { List } from "lucide-react";
@@ -32,9 +33,17 @@ const mockEscrowTransactions: EscrowTransaction[] = [
   },
 ];
 
+// Simulate fetching current user type (replace with actual auth logic)
+const getCurrentUserRole = async (): Promise<UserRole> => {
+  // Change this to 'client' or 'admin' to test different views
+  return 'artisan'; 
+};
+
+
 export default async function EscrowPage({ searchParams }: { searchParams?: { transactionId?: string }}) {
   const transactionId = searchParams?.transactionId;
   let specificTransaction: EscrowTransaction | undefined = undefined;
+  const currentUserRole = await getCurrentUserRole();
 
   if (transactionId) {
     // In a real app, fetch the specific transaction by ID
@@ -58,7 +67,7 @@ export default async function EscrowPage({ searchParams }: { searchParams?: { tr
             </Button>
         )}
       />
-      <EscrowInfo transaction={specificTransaction} />
+      <EscrowInfo transaction={specificTransaction} currentUserRole={currentUserRole} />
 
       {!specificTransaction && (
         <div className="mt-8 text-center">

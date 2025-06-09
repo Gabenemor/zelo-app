@@ -1,19 +1,21 @@
+
 "use client";
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Info, DollarSign, Users, Clock } from "lucide-react";
+import { ShieldCheck, Info, DollarSign, Users, Clock, Send } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import type { EscrowTransaction } from '@/types';
+import type { EscrowTransaction, UserRole } from '@/types';
 import { format } from 'date-fns';
 
 interface EscrowInfoProps {
   transaction?: EscrowTransaction; // Optional: if displaying a specific transaction
+  currentUserRole?: UserRole;
 }
 
-export function EscrowInfo({ transaction }: EscrowInfoProps) {
+export function EscrowInfo({ transaction, currentUserRole }: EscrowInfoProps) {
   
   const platformFeePercentage = 10;
 
@@ -37,7 +39,7 @@ export function EscrowInfo({ transaction }: EscrowInfoProps) {
           <InfoItem label="Service Request ID" value={<Link href={`/dashboard/services/requests/${transaction.serviceRequestId}`} className="text-primary underline hover:opacity-80">{transaction.serviceRequestId}</Link>} />
           <InfoItem label="Client ID" value={transaction.clientId} />
           <InfoItem label="Artisan ID" value={transaction.artisanId} />
-          <InfoItem label="Status" value={<Badge variant={transaction.status === 'funded' ? 'default' : 'secondary'} className="capitalize">{transaction.status}</Badge>} />
+          <InfoItem label="Status" value={<Badge variant={transaction.status === 'funded' ? 'default' : 'secondary'} className="capitalize">{transaction.status.replace(/_/g, ' ')}</Badge>} />
           <SeparatorLine />
           <InfoItem label="Total Amount Funded by Client" value={`₦${amountPaidByClient.toLocaleString()}`} isCurrency />
           <InfoItem label={`Platform Service Fee (${platformFeePercentage}%)`} value={`- ₦${feeAmount.toLocaleString()}`} isCurrency isMuted />
@@ -48,10 +50,22 @@ export function EscrowInfo({ transaction }: EscrowInfoProps) {
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <p className="text-xs text-muted-foreground">
-            Funds are held securely until the service is marked complete.
+            Funds are held securely until the service is marked complete by the client.
           </p>
           {transaction.status === 'funded' && (
-             <Button variant="outline" size="sm">Release Funds (Admin/Client Action)</Button>
+            <>
+              {currentUserRole === 'client' && (
+                <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                  <Send className="mr-2 h-4 w-4" /> Release Funds to Artisan
+                </Button>
+              )}
+              {currentUserRole === 'artisan' && (
+                <Badge variant="outline" className="border-yellow-500 text-yellow-600">Awaiting Client to Release Funds</Badge>
+              )}
+              {currentUserRole === 'admin' && (
+                 <Button variant="secondary" size="sm">Manage Escrow (Admin)</Button>
+              )}
+            </>
           )}
           {transaction.status === 'disputed' && (
              <Button variant="destructive" size="sm">Resolve Dispute</Button>
@@ -69,7 +83,7 @@ export function EscrowInfo({ transaction }: EscrowInfoProps) {
           <ShieldCheck className="h-8 w-8 text-primary" />
           <CardTitle className="font-headline text-xl">Zelo Secure Escrow System</CardTitle>
         </div>
-        <CardDescription>How our 10% service fee and secure payment works.</CardDescription>
+        <CardDescription>How our {platformFeePercentage}% service fee and secure payment works.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <div className="flex items-start gap-3 p-3 rounded-md border bg-secondary/30">
@@ -130,4 +144,3 @@ const InfoItem = ({ label, value, icon: Icon, isCurrency, isBold, isMuted }: Inf
 );
 
 const SeparatorLine = () => <div className="border-b border-dashed my-2"></div>;
-
