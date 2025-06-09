@@ -29,7 +29,7 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 60 20% 85%; /* Light grey border */
-    --input: 60 30% 94%; /* Lighter input background */
+    --input: 0 0% 88%; /* #e1e1e1 for input borders */
     --ring: 120 95% 37%; /* New primary color for rings */
     --radius: 0.5rem;
 
@@ -70,7 +70,7 @@
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 20%;
-    --input: 0 0% 22%;
+    --input: 0 0% 88%; /* #e1e1e1 for input borders (light border on dark bg) */
     --ring: 120 95% 37%; /* New primary for rings */
 
     /* Dark Sidebar specific theme */
