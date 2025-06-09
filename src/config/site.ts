@@ -25,12 +25,12 @@ export const dashboardNavItems: NavItem[] = [
     icon: "LayoutDashboard",
     roles: commonRoles,
   },
-  {
-    title: "Profile",
-    href: "/dashboard/profile", // No longer has children here
-    icon: "UserCircle",
-    roles: commonRoles,
-  },
+  // { // Removed "Profile" link from main navigation
+  //   title: "Profile",
+  //   href: "/dashboard/profile", 
+  //   icon: "UserCircle",
+  //   roles: commonRoles,
+  // },
   // Client-specific section (will be filtered out for artisans by role check in header)
   {
     title: "Find Services",
