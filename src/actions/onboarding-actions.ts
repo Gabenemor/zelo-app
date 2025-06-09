@@ -46,21 +46,20 @@ export async function saveClientStep2Profile(data: { location: string; username?
 // --- Artisan Onboarding Actions ---
 
 const ArtisanServiceExperienceSchema = z.object({
-  serviceName: z.string(),
+  serviceName: z.string().min(1, "Service name cannot be empty."),
   years: z.coerce.number().int().min(0, "Years of experience must be a non-negative number."),
 });
 
-const ArtisanStep1ServicesSchema = z.object({ // Renamed schema
+const ArtisanStep1ServicesSchema = z.object({
   userId: z.string(),
   serviceExperiences: z.array(ArtisanServiceExperienceSchema)
     .min(1, "Select at least one service and provide experience.")
     .max(2, "You can select a maximum of 2 services during onboarding."),
-  // Extract servicesOffered for convenience, though it's derived from serviceExperiences
-  servicesOffered: z.array(z.string()) 
+  servicesOffered: z.array(z.string().min(1)).min(1, "At least one service offered is required."),
 });
 
-// Updated action for artisan step 1
-export async function saveArtisanStep1Services(experiences: Array<{ serviceName: string; years: number }>) { // Renamed function
+
+export async function saveArtisanStep1Services(experiences: Array<{ serviceName: string; years: number }>) {
   const servicesOffered = experiences.map(exp => exp.serviceName);
   const dataToValidate = {
     userId: MOCK_USER_ID,
@@ -68,11 +67,31 @@ export async function saveArtisanStep1Services(experiences: Array<{ serviceName:
     servicesOffered: servicesOffered
   };
 
-  const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); // Use renamed schema
+  const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
   if (!validation.success) {
-    // Log the detailed error for debugging
-    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", validation.error.flatten());
-    return { success: false, error: validation.error.flatten().fieldErrors };
+    const flattenedErrors = validation.error.flatten();
+    console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", flattenedErrors);
+    
+    const clientErrorObject: Record<string, any> = {};
+    if (flattenedErrors.formErrors.length > 0) {
+      clientErrorObject._form = flattenedErrors.formErrors;
+    }
+    if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+      // Ensure fieldErrors are correctly structured for the client
+      clientErrorObject.fields = {};
+      for (const key in flattenedErrors.fieldErrors) {
+        const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
+        if (flattenedErrors.fieldErrors[fieldKey]) {
+           clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
+        }
+      }
+    }
+    
+    if (Object.keys(clientErrorObject).length === 0) {
+        clientErrorObject._server_error = ["Validation failed with an unknown error on the server."];
+    }
+
+    return { success: false, error: clientErrorObject };
   }
   console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
   // TODO: Implement actual database write
@@ -88,8 +107,8 @@ const ArtisanOnboardingProfileSchema = z.object({
   contactEmail: z.string().email(),
   location: z.string().min(1),
   bio: z.string().optional(),
-  serviceExperiences: z.array(ArtisanServiceExperienceSchema).optional(), // This comes from step 1
-  servicesOffered: z.array(z.string()), // This also effectively comes from step 1
+  serviceExperiences: z.array(ArtisanServiceExperienceSchema).optional(), 
+  servicesOffered: z.array(z.string().min(1)).min(1), 
   serviceChargeAmount: z.coerce.number().positive().optional(),
   serviceChargeDescription: z.string().optional(),
   isLocationPublic: z.boolean().optional(),
@@ -101,17 +120,15 @@ const ArtisanOnboardingProfileSchema = z.object({
 export async function saveArtisanOnboardingProfile(
   profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>>
 ) {
-  // servicesOffered and serviceExperiences should be passed in profileData,
-  // originating from Step 1 and carried through to Step 2's form submission.
   const dataToValidate = {
-    userId: MOCK_USER_ID, // In a real app, derive from auth context
+    userId: MOCK_USER_ID, 
     username: profileData.username,
     contactEmail: profileData.contactEmail,
     location: profileData.location,
     contactPhone: profileData.contactPhone,
     bio: profileData.bio,
-    serviceExperiences: profileData.serviceExperiences, // Should be populated from Step 1
-    servicesOffered: profileData.servicesOffered, // Should be populated from Step 1
+    serviceExperiences: profileData.serviceExperiences, 
+    servicesOffered: profileData.servicesOffered || [], 
     serviceChargeAmount: profileData.serviceChargeAmount,
     serviceChargeDescription: profileData.serviceChargeDescription,
     isLocationPublic: profileData.isLocationPublic,

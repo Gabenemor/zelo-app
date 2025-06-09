@@ -9,7 +9,7 @@ import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Briefcase, Loader2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveArtisanStep1Services } from '@/actions/onboarding-actions'; // Reverted import
+import { saveArtisanStep1Services } from '@/actions/onboarding-actions';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface ServiceExperienceItem {
   serviceName: string;
-  years: string; // Keep as string for input, convert on submit
+  years: string; 
 }
 
 function ArtisanOnboardingStep1Content() {
@@ -31,16 +31,13 @@ function ArtisanOnboardingStep1Content() {
 
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
-  // Sync serviceExperiences state when selectedPrimaryServices changes
   useEffect(() => {
     setServiceExperiences(currentExperiences => {
       const newExperiences: ServiceExperienceItem[] = [];
-      // Add or keep existing selected services
       for (const serviceName of selectedPrimaryServices) {
         const existing = currentExperiences.find(exp => exp.serviceName === serviceName);
         newExperiences.push(existing || { serviceName, years: '' });
       }
-      // Filter out experiences for services no longer selected
       return newExperiences.filter(exp => selectedPrimaryServices.includes(exp.serviceName));
     });
   }, [selectedPrimaryServices]);
@@ -104,24 +101,52 @@ function ArtisanOnboardingStep1Content() {
     }
 
     setIsLoading(true);
-    const result = await saveArtisanStep1Services(experiencesToSave); // Reverted function call
+    const result = await saveArtisanStep1Services(experiencesToSave);
     setIsLoading(false);
 
     if (result.success && result.data) {
       toast({ title: "Details Saved", description: "Your primary services and experience have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      // Pass both serviceExperiences (for the profile form data) and servicesOffered (as a simple array for easier access if needed)
       queryParams.append('serviceExperiences', JSON.stringify(result.data.serviceExperiences));
-      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered)); // servicesOffered is also part of result.data
+      queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
+      let errorMessages: string[] = [];
+      if (result.error) {
+        if (result.error._form && Array.isArray(result.error._form)) {
+          errorMessages = errorMessages.concat(result.error._form);
+        }
+        if (result.error.fields) {
+          Object.values(result.error.fields).forEach(fieldErrorArray => {
+            if (Array.isArray(fieldErrorArray)) {
+              errorMessages = errorMessages.concat(fieldErrorArray as string[]);
+            } else if (typeof fieldErrorArray === 'object' && fieldErrorArray !== null) {
+              // Handle nested field errors if any, e.g., for serviceExperiences array items
+              Object.values(fieldErrorArray).forEach(nestedErrorArray => {
+                if(Array.isArray(nestedErrorArray)) {
+                  errorMessages = errorMessages.concat(nestedErrorArray as string[]);
+                }
+              });
+            }
+          });
+        }
+         if (result.error._server_error && Array.isArray(result.error._server_error)) {
+            errorMessages = errorMessages.concat(result.error._server_error);
+        }
+      }
+
+      const description = errorMessages.length > 0 ? errorMessages.join(' ') : "Could not save your details. Please try again.";
+      
       toast({
         title: "Error",
-        description: result.error?.serviceExperiences?.[0] || result.error?.servicesOffered?.[0] || (typeof result.error === 'string' ? result.error : "Could not save your details. Please try again."),
+        description: description,
         variant: "destructive",
       });
-      console.error("Error saving artisan step 1 details:", result.error);
+      console.error("Error saving artisan services (raw API response):", result);
+      if (result.error) {
+        console.error("Error saving artisan services (parsed error object):", result.error);
+      }
     }
   };
 
