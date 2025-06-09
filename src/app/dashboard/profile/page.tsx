@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export default function ProfilePage() {
               alt={user.name} 
               width={128} 
               height={128} 
-              className="rounded-full border-4 border-primary mb-4"
+              className="rounded-full border-4 border-primary mb-4 object-cover"
               data-ai-hint="profile avatar" 
             />
             <CardTitle className="font-headline text-2xl">{user.name}</CardTitle>
