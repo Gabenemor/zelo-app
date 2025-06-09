@@ -1,5 +1,5 @@
-# Firebase Studio
+# Zelo App
 
-This is a NextJS starter in Firebase Studio.
+Web application for connecting artisans and cleints in Nigeria
 
-To get started, take a look at src/app/page.tsx.
+Work currently in progress
