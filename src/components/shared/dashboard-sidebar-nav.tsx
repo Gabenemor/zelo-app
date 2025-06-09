@@ -1,158 +1,174 @@
+export type UserRole = "client" | "artisan" | "admin";
 
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { NavItem, UserRole, LucideIconName } from "@/types";
-import { cn } from "@/lib/utils";
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import {
-  ChevronDown,
-  LayoutDashboard,
-  UserCircle,
-  Briefcase,
-  MessageSquare,
-  Settings,
-  CreditCard,
-  Users,
-  LogOut,
-  MapPin,
-  PlusCircle,
-  ShieldCheck,
-  FileText,
-  Search, 
-  ClipboardList, 
-} from "lucide-react";
-import React from "react";
-
-interface DashboardSidebarNavProps {
-  items: NavItem[];
-  userRole: UserRole; // Pass current user's role
+export interface User {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+  role: UserRole;
+  avatarUrl?: string;
+  createdAt: Date;
 }
 
-// Map of icon names to actual Lucide components
-const iconComponentsMap: Record<LucideIconName, React.ElementType> = {
-  LayoutDashboard,
-  UserCircle,
-  Briefcase,
-  MessageSquare,
-  Settings,
-  CreditCard,
-  Users,
-  LogOut,
-  MapPin,
-  PlusCircle,
-  ShieldCheck,
-  FileText,
-  Search, 
-  ClipboardList, 
-};
-
-export function DashboardSidebarNav({ items, userRole }: DashboardSidebarNavProps) {
-  const pathname = usePathname();
-  const { open, isMobile, setOpenMobile } = useSidebar();
-
-  // Filter items based on user role
-  const accessibleItems = items.filter(item =>
-    !item.roles || item.roles.includes(userRole)
-  ).map(item => ({
-    ...item,
-    children: item.children?.filter(child => !child.roles || child.roles.includes(userRole))
-  }));
-
-
-  if (!accessibleItems.length) {
-    return null;
-  }
-
-  return (
-    <SidebarMenu>
-      {accessibleItems.map((item, index) => {
-        const IconComponent = item.icon ? iconComponentsMap[item.icon] : null;
-        
-        // Determine if item is active
-        let isActive = item.href === pathname;
-        if (!isActive && item.href && item.href !== "/dashboard" && pathname.startsWith(item.href)) {
-          isActive = true; // Parent active if child route is active
-        }
-        if (item.href === "/dashboard" && pathname === "/dashboard") {
-            isActive = true; // Specific check for main dashboard link
-        }
-        
-        if (item.children && item.children.length > 0) {
-          // Check if any child is active to make parent active
-          const isChildPathActive = item.children.some(child => pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href !== item.href));
-          const isParentGroupActive = isActive || isChildPathActive;
-
-          return (
-            <SidebarMenuItem key={index}>
-              <SidebarMenuButton
-                onClick={(e) => {
-                  const currentTarget = e.currentTarget;
-                  const subMenu = currentTarget.nextElementSibling as HTMLElement | null;
-                  if (subMenu) {
-                    const isCurrentlyOpen = subMenu.style.display !== 'none';
-                    subMenu.style.display = isCurrentlyOpen ? 'none' : 'block';
-                    currentTarget.setAttribute('aria-expanded', String(!isCurrentlyOpen));
-                  }
-                }}
-                isActive={isParentGroupActive}
-                className="justify-between"
-                aria-expanded={isParentGroupActive ? "true" : "false"}
-              >
-                <div className="flex items-center gap-2">
-                  {IconComponent && <IconComponent />}
-                  <span>{item.title}</span>
-                </div>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", isParentGroupActive && "rotate-180")} />
-              </SidebarMenuButton>
-              <SidebarMenuSub style={{ display: isParentGroupActive ? 'block' : 'none' }}>
-                {item.children.map((child, childIndex) => {
-                  const ChildIconComponent = child.icon ? iconComponentsMap[child.icon] : null;
-                  const isChildActive = pathname === child.href || (child.href && pathname.startsWith(child.href) && child.href.length > (item.href?.length || 0) );
-                  return (
-                    <SidebarMenuSubItem key={childIndex}>
-                      <Link href={child.href} asChild>
-                        <SidebarMenuSubButton
-                          isActive={isChildActive}
-                          onClick={() => { if (isMobile) setOpenMobile(false);}}
-                        >
-                          {ChildIconComponent && <ChildIconComponent />}
-                          <span>{child.title}</span>
-                        </SidebarMenuSubButton>
-                      </Link>
-                    </SidebarMenuSubItem>
-                  );
-                })}
-              </SidebarMenuSub>
-            </SidebarMenuItem>
-          );
-        }
-
-        return (
-          <SidebarMenuItem key={index}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                isActive={isActive}
-                tooltip={open ? undefined : item.title}
-                onClick={() => { if (isMobile) setOpenMobile(false);}}
-              >
-                {IconComponent && <IconComponent />}
-                <span>{item.title}</span>
-                {item.label && <span className="ml-auto text-xs">{item.label}</span>}
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        );
-      })}
-    </SidebarMenu>
-  );
+export interface ServiceExperience {
+  serviceName: string;
+  years: number;
+  chargeAmount?: number; 
+  chargeDescription?: string; 
 }
+
+export interface ArtisanProfile {
+  userId: string;
+  username?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  servicesOffered: string[];
+  serviceExperiences?: ServiceExperience[]; 
+  location?: string;
+  locationCoordinates?: { lat: number; lng: number };
+  isLocationPublic?: boolean;
+  bio?: string;
+  portfolioImageUrls?: string[];
+  availability?: string;
+  onboardingCompleted?: boolean;
+  onboardingStep1Completed?: boolean;
+  profileSetupCompleted?: boolean;
+}
+
+export interface ClientProfile {
+  userId: string;
+  username?: string;
+  contactPhone?: string;
+  location?: string;
+  locationCoordinates?: { lat: number; lng: number };
+  isLocationPublic?: boolean;
+  onboardingCompleted?: boolean;
+  servicesLookingFor?: string[];
+  onboardingStep1Completed?: boolean;
+  profileSetupCompleted?: boolean;
+}
+
+export interface WithdrawalAccount {
+  userId: string; // Artisan's user ID
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  isVerified?: boolean;
+}
+
+export interface ServiceRequest {
+  id: string;
+  clientId: string;
+  postedBy?: {
+    name: string;
+    avatarUrl?: string;
+    memberSince?: string;
+    email?: string;
+  };
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  locationCoordinates?: { lat: number; lng: number };
+  budget?: number;
+  postedAt: Date;
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
+  assignedArtisanId?: string;
+  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>;
+}
+
+export interface ArtisanProposal {
+  id: string;
+  serviceRequestId: string;
+  artisanId: string;
+  artisanName: string;
+  artisanAvatarUrl?: string;
+  proposedAmount: number;
+  coverLetter: string;
+  submittedAt: Date;
+  status: "pending" | "accepted" | "rejected";
+}
+
+
+export interface ChatMessage {
+  id: string;
+  chatId: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  timestamp: Date;
+  isRead?: boolean;
+  googleMeetLink?: string;
+}
+
+export interface EscrowTransaction {
+  id: string;
+  serviceRequestId: string;
+  clientId: string;
+  artisanId: string;
+  amount: number;
+  platformFee: number;
+  status: "funded" | "released_to_artisan" | "refunded_to_client" | "disputed";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ActivityType = 
+  | 'new_message' 
+  | 'request_update' 
+  | 'new_proposal' 
+  | 'payment_processed' 
+  | 'profile_update'
+  | 'job_awarded'
+  | 'job_completed';
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  icon: LucideIconName; // Re-use LucideIconName for consistency
+  title: string;
+  description?: string; // Optional brief description or snippet
+  timestamp: Date;
+  link?: string; // Optional link to the relevant item (e.g., message, request)
+  userId: string; // The user this activity pertains to
+}
+
+export type LucideIconName =
+  | "LayoutDashboard"
+  | "UserCircle"
+  | "Briefcase"
+  | "MessageSquare"
+  | "Settings"
+  | "CreditCard"
+  | "Users"
+  | "LogOut"
+  | "MapPin"
+  | "PlusCircle"
+  | "ShieldCheck"
+  | "FileText"
+  | "Search"
+  | "ClipboardList"
+  | "UserCog"
+  | "UserCircle2"
+  | "Award" 
+  | "CheckCircle2"
+  | "Menu"; // Added Menu icon
+
+
+export interface NavItem {
+  title: string;
+  href: string;
+  icon?: LucideIconName; // Icon is now optional for nav items
+  disabled?: boolean;
+  external?: boolean;
+  label?: string;
+  children?: NavItem[];
+  roles?: UserRole[];
+}
+
+export const NIGERIAN_ARTISAN_SERVICES = [
+  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry",
+  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning",
+  "Photography/Videography", "Graphic Design", "Web Development", "Appliance Repair",
+  "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
+  "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
+] as const;

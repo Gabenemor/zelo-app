@@ -150,14 +150,15 @@ export type LucideIconName =
   | "ClipboardList"
   | "UserCog"
   | "UserCircle2"
-  | "Award" // Added for 'job_awarded'
-  | "CheckCircle2"; // Added for 'job_completed'
+  | "Award" 
+  | "CheckCircle2"
+  | "Menu"; // Added Menu icon
 
 
 export interface NavItem {
   title: string;
   href: string;
-  icon?: LucideIconName;
+  icon?: LucideIconName; // Icon is now optional for nav items
   disabled?: boolean;
   external?: boolean;
   label?: string;
@@ -172,3 +173,4 @@ export const NIGERIAN_ARTISAN_SERVICES = [
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
 ] as const;
+
