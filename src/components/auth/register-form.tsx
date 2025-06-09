@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, User, UserPlus } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Mail, Lock, User, UserPlus, Briefcase, Users } from "lucide-react"; // Added Briefcase, Users
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Imported Select components
 // import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"; // Placeholder
 // import { auth } from "@/lib/firebase"; // Placeholder
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +28,7 @@ const registerSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
-  userType: z.enum(["client", "artisan"], { required_error: "Please select a user type." }),
+  userType: z.enum(["client", "artisan"], { required_error: "Please select your account type." }), // Updated error message
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
@@ -150,32 +151,29 @@ export function RegisterForm() {
           control={form.control}
           name="userType"
           render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>I am a...</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-4"
-                >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="client" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Client (Looking for services)
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="artisan" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Artisan (Offering services)
-                    </FormLabel>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
+            <FormItem>
+              <FormLabel>I am registering as a...</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="client">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" /> 
+                      <span>Client (Looking for services)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="artisan">
+                     <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <span>Artisan (Offering services)</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
