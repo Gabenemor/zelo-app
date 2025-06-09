@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2 } from "lucide-react";
+import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import type { ServiceRequest, ArtisanProposal } from "@/types";
+import type { ServiceRequest, ArtisanProposal, UserRole } from "@/types";
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -42,82 +42,96 @@ const mockServiceRequest: ServiceRequest = {
   location: "Eko Hotel & Suites, Victoria Island, Lagos",
   budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), // 7 days ago
-  status: "awarded", 
-  assignedArtisanId: "artisan_john_bull", 
+  status: "awarded", // Client awarded to artisan_john_bull
+  assignedArtisanId: "artisan_john_bull", // This artisan has been awarded the job
   attachments: [
     { name: "Event_Layout.pdf", url: "#", type: 'document' },
     { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }
   ]
 };
 
+// Simulate another request that is in_progress for client to mark complete
+const mockServiceRequestInProgress: ServiceRequest = {
+  id: "req_in_progress_456",
+  clientId: "client_jane_doe",
+  postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD", memberSince: "March 2023", email: "jane.doe@example.com" },
+  title: "Garden Landscaping Project",
+  description: "Full garden redesign and landscaping for a residential property. Includes new lawn, flower beds, and a small patio.",
+  category: "Gardening/Landscaping",
+  location: "Banana Island, Lagos",
+  budget: 1200000,
+  postedAt: new Date(Date.now() - 86400000 * 15), // 15 days ago
+  status: "in_progress",
+  assignedArtisanId: "artisan_musa_ali",
+};
+
+
 const mockProposalsReceived: ArtisanProposal[] = [
     { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" }, 
     { id: "prop2", serviceRequestId: "req_detail_123", artisanId: "artisan_ada_eze", artisanName: "Ada's Kitchen Deluxe", artisanAvatarUrl: "https://placehold.co/40x40.png?text=AKD", proposedAmount: 700000, coverLetter: "With 10 years of experience in high-end catering, we are confident we can exceed your expectations. Our package includes everything you need.", submittedAt: new Date(Date.now() - 86400000 * 1), status: "pending" },
+    // Proposal for the in_progress job
+    { id: "prop3", serviceRequestId: "req_in_progress_456", artisanId: "artisan_musa_ali", artisanName: "Musa Landscaping", artisanAvatarUrl: "https://placehold.co/40x40.png?text=ML", proposedAmount: 1150000, coverLetter: "Expert landscaping services, ready to transform your garden.", submittedAt: new Date(Date.now() - 86400000 * 10), status: "accepted" },
 ];
-
-
-// Simulate fetching current user type (replace with actual auth logic)
-const getCurrentUserRole = async (): Promise<'client' | 'artisan'> => {
-  return 'artisan'; 
-};
-
-// Simulate fetching current user ID (replace with actual auth logic)
-const getCurrentUserId = async (): Promise<string> => {
-    return 'artisan_john_bull'; 
-}
-
-
-async function initiatePaystackPayment(requestId: string, amount: number, email: string) {
-  console.log("Initiating Paystack payment for request:", requestId, "Amount:", amount, "Email:", email);
-  if (amount > 0) {
-    return { success: true, message: "Redirecting to Paystack...", authorization_url: `https://checkout.paystack.com/mock_payment_url_for_${requestId}` };
-  } else {
-    return { success: false, message: "Invalid amount for payment." };
-  }
-}
 
 async function handleCancelRequest(requestId: string) {
     'use server';
     console.log("Cancelling request:", requestId);
     // Add logic to update request status to 'cancelled' in the database
-    // For demo:
-    // revalidatePath(`/dashboard/services/requests/${requestId}`);
-    // redirect('/dashboard/services/my-requests');
     return { success: true, message: "Request cancelled (mock)." };
 }
 
-async function handleMarkJobAsComplete(requestId: string, artisanId: string) {
+async function handleMarkJobAsCompleteArtisan(requestId: string, artisanId: string) {
     'use server';
     console.log(`Artisan ${artisanId} is marking job ${requestId} as complete.`);
+    // Logic to: Update serviceRequest status to 'pending_client_approval' or similar & Notify client
+    return { success: true, message: "Job marked as complete by artisan. Client will be notified. (Mock)" };
+}
+
+async function handleClientMarkCompleteAndReleaseFunds(requestId: string, clientId: string) {
+    'use server';
+    console.log(`Client ${clientId} is marking job ${requestId} as complete and releasing funds.`);
     // Logic to:
-    // 1. Update serviceRequest status to 'pending_client_approval' or similar
-    // 2. Notify the client to review and release funds
-    return { success: true, message: "Job marked as complete. Client will be notified. (Mock)" };
+    // 1. Update serviceRequest status to 'completed'
+    // 2. Initiate fund release from escrow to artisan (e.g., via Paystack payout API)
+    // 3. Notify artisan
+    return { success: true, message: "Job marked complete by client. Funds released to artisan. (Mock)" };
 }
 
 async function handleFundEscrowServerAction(requestId: string, amount: number, clientEmail: string | undefined) {
   'use server';
   if (!clientEmail || amount <= 0) {
     console.error("Server Action: Cannot initiate payment: Missing proposal or client email.");
-    // In a real app, return an error object or throw
     return { success: false, message: "Error: Missing proposal or client email for payment." };
   }
   console.log(`Server Action: Mock initiating payment of NGN ${amount.toLocaleString()} for request '${requestId}' via Paystack for email ${clientEmail}.`);
-  // Perform Paystack initiation logic here on the server
-  // This would typically involve revalidatePath or redirect in a real scenario
-  // For mock:
-  // redirect(`/dashboard/payments/escrow?transactionId=mock_txn_for_${requestId}`);
-  return { success: true, message: `Mock server action: Payment initiated for ${requestId}. Awaiting Paystack redirect.` };
+  // Actual redirect would happen here, or return URL for client-side redirect
+  // For mock, just log and simulate success. A real app would redirect to payment page or Paystack.
+  // redirect(`/dashboard/payments/escrow?transactionId=mock_txn_for_${requestId}&status=funded`);
+  return { success: true, message: `Mock server action: Payment initiation for ${requestId} successful. Redirecting to escrow... (mock)`, redirectUrl: `/dashboard/payments/escrow?transactionId=mock_txn_for_${requestId}&status=funded` };
 }
 
 
-export default async function ServiceRequestDetailPage({ params }: { params: { id: string } }) {
-  const request = mockServiceRequest; 
-  const currentUserRole = await getCurrentUserRole();
-  const currentUserId = await getCurrentUserId();
+export default async function ServiceRequestDetailPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  // Simulate fetching request based on ID
+  const requestToDisplay = params.id === "req_in_progress_456" ? mockServiceRequestInProgress : mockServiceRequest;
+  const request = requestToDisplay;
+
+  const roleFromParams = searchParams?.role as UserRole | undefined || 'client';
+  // Simulate getting user ID based on role. In real app, this comes from auth.
+  const simulatedUserId = roleFromParams === 'client' ? request.clientId : (request.assignedArtisanId || "artisan_some_id");
+
+  const currentUserRole = roleFromParams;
+  const currentUserId = simulatedUserId;
+  
   const isOwner = currentUserRole === 'client' && request.clientId === currentUserId;
   
-  const currentArtisanProposal = currentUserRole === 'artisan' 
+  const currentArtisanProposalForThisRequest = currentUserRole === 'artisan' 
     ? mockProposalsReceived.find(p => p.artisanId === currentUserId && p.serviceRequestId === request.id)
     : undefined;
 
@@ -127,7 +141,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
     return <div className="p-8 text-center">Service request not found.</div>;
   }
 
-  const acceptedClientProposal = isOwner ? mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId) : undefined;
+  const acceptedClientProposal = isOwner ? mockProposalsReceived.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId && p.serviceRequestId === request.id) : undefined;
 
   return (
     <div className="space-y-6">
@@ -138,7 +152,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
         action={isOwner && request.status === 'open' && (
           <div className="flex gap-2">
             <Button variant="outline" asChild>
-                <Link href={`/dashboard/services/request/edit/${request.id}`}>
+                <Link href={`/dashboard/services/request/edit/${request.id}?role=client`}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Request
                 </Link>
             </Button>
@@ -157,7 +171,10 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Keep Request</AlertDialogCancel>
-                  <form action={handleCancelRequest.bind(null, request.id)}>
+                  <form action={async () => {
+                    const result = await handleCancelRequest(request.id);
+                    // Handle revalidation/redirect if needed based on result
+                  }}>
                     <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">Yes, Cancel Request</AlertDialogAction>
                   </form>
                 </AlertDialogFooter>
@@ -178,7 +195,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-foreground leading-relaxed">{request.description}</p>
+              <p className="text-foreground leading-relaxed whitespace-pre-line">{request.description}</p>
               
               {request.attachments && request.attachments.length > 0 && (
                 <div>
@@ -196,6 +213,52 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                   </ul>
                 </div>
               )}
+
+              {/* Client Actions: Fund Escrow or Mark Complete */}
+              {isOwner && request.status === 'awarded' && acceptedClientProposal && (
+                <Card className="mt-4 bg-primary/5 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action Required: Fund Escrow</CardTitle>
+                    <CardDescription>Your proposal from {acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} has been accepted. Please fund the escrow to start the service.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form action={async () => {
+                        const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy?.email );
+                        if(result.success && result.redirectUrl) {
+                           // In a real app, this redirect would be handled, possibly on client-side after server action response
+                           console.log("Redirecting to:", result.redirectUrl);
+                           // For server components, typically use redirect from next/navigation if within a server action
+                           // redirect(result.redirectUrl);
+                        }
+                        // Handle errors or display messages based on result
+                      }}>
+                      <Button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                        <ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow Securely (₦{acceptedClientProposal.proposedAmount.toLocaleString()})
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isOwner && request.status === 'in_progress' && (
+                <Card className="mt-4 bg-green-500/10 border-green-500/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2"><CheckSquare className="h-5 w-5 text-green-600" /> Action: Confirm Completion</CardTitle>
+                    <CardDescription>If the artisan has completed the service to your satisfaction, please mark it as complete to release payment.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <form action={async () => {
+                        const result = await handleClientMarkCompleteAndReleaseFunds(request.id, currentUserId);
+                        // Handle result - e.g., show toast, revalidate path
+                     }}>
+                        <Button type="submit" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Complete & Release Funds
+                        </Button>
+                     </form>
+                  </CardContent>
+                </Card>
+              )}
+
             </CardContent>
             <CardFooter className="text-xs text-muted-foreground">
               Posted {formatDistanceToNow(new Date(request.postedAt), { addSuffix: true })}
@@ -205,7 +268,7 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
           {/* Artisan's View: Proposal Submission or Status */}
           {currentUserRole === 'artisan' && (
             <>
-              {!currentArtisanProposal && request.status === 'open' && (
+              {!currentArtisanProposalForThisRequest && request.status === 'open' && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle>
@@ -239,29 +302,32 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                 </Card>
               )}
 
-              {currentArtisanProposal && (
+              {currentArtisanProposalForThisRequest && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="font-headline">Your Proposal Status</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <p>You proposed: <span className="font-semibold font-mono">₦{currentArtisanProposal.proposedAmount.toLocaleString()}</span></p>
+                    <p>You proposed: <span className="font-semibold font-mono">₦{currentArtisanProposalForThisRequest.proposedAmount.toLocaleString()}</span></p>
                     <p>Status: 
                       <Badge 
                         variant={
-                          currentArtisanProposal.status === 'accepted' ? 'default' : 
-                          currentArtisanProposal.status === 'rejected' ? 'destructive' : 
+                          currentArtisanProposalForThisRequest.status === 'accepted' ? 'default' : 
+                          currentArtisanProposalForThisRequest.status === 'rejected' ? 'destructive' : 
                           'outline'
                         } 
                         className="ml-2 capitalize"
                       >
-                        {currentArtisanProposal.status}
+                        {currentArtisanProposalForThisRequest.status}
                       </Badge>
                     </p>
-                    {currentArtisanProposal.status === 'accepted' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress') && (
-                        <form action={handleMarkJobAsComplete.bind(null, request.id, currentUserId)}>
+                    {currentArtisanProposalForThisRequest.status === 'accepted' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress') && (
+                        <form action={async () => {
+                             const result = await handleMarkJobAsCompleteArtisan(request.id, currentUserId);
+                             // Handle result
+                        }}>
                             <Button type="submit" className="w-full mt-2 bg-green-600 hover:bg-green-700">
-                                <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete
+                                <CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete (Artisan)
                             </Button>
                         </form>
                     )}
@@ -273,20 +339,20 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
 
 
           {/* Client's View: Proposals Received (if owner and job is not completed/cancelled) */}
-          {isOwner && request.status !== 'completed' && request.status !== 'cancelled' && mockProposalsReceived.length > 0 && (
+          {isOwner && request.status === 'open' && mockProposalsReceived.filter(p => p.serviceRequestId === request.id).length > 0 && (
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Proposals Received ({mockProposalsReceived.length})</CardTitle>
-                    <CardDescription>Review offers from interested artisans.</CardDescription>
+                    <CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Proposals Received ({mockProposalsReceived.filter(p => p.serviceRequestId === request.id).length})</CardTitle>
+                    <CardDescription>Review offers from interested artisans. Only one proposal can be accepted.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {mockProposalsReceived.map(proposal => (
+                    {mockProposalsReceived.filter(p => p.serviceRequestId === request.id).map(proposal => (
                         <Card key={proposal.id} className="bg-secondary/30">
                             <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
                                 <Image src={proposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={proposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
-                                        <Link href={`/dashboard/artisans/${proposal.artisanId}`} className="font-semibold text-primary hover:underline">{proposal.artisanName}</Link>
+                                        <Link href={`/dashboard/artisans/${proposal.artisanId}?role=client`} className="font-semibold text-primary hover:underline">{proposal.artisanName}</Link>
                                         <div className="text-right">
                                             <Badge variant="outline" className="font-mono">₦{proposal.proposedAmount.toLocaleString()}</Badge>
                                             {proposal.status === 'accepted' && <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>}
@@ -300,23 +366,52 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                             <CardContent className="p-4 pt-0">
                                 <p className="text-sm text-foreground line-clamp-3 mb-2">{proposal.coverLetter}</p>
                                 <div className="flex gap-2 flex-wrap">
-                                    <Button size="sm" variant="outline"><MessageCircle className="mr-2 h-4 w-4"/> Message Artisan</Button>
+                                    <Button asChild size="sm" variant="outline">
+                                        <Link href={`/dashboard/messages?role=client&chatWith=${proposal.artisanId}`}>
+                                            <MessageCircle className="mr-2 h-4 w-4"/> Message Artisan
+                                        </Link>
+                                    </Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
-                                        <Button size="sm" onClick={() => console.log(`Mock: Accepting proposal from ${proposal.artisanName}`)} // Replace console.log with server action
+                                        <Button size="sm" onClick={() => console.log(`Mock: Accepting proposal from ${proposal.artisanName}`)} 
                                         >Accept Proposal
                                         </Button>
-                                    )}
-                                    {isOwner && request.status === 'awarded' && proposal.status === 'accepted' && request.assignedArtisanId === proposal.artisanId && acceptedClientProposal && (
-                                       <form action={handleFundEscrowServerAction.bind(null, request.id, acceptedClientProposal.proposedAmount, request.postedBy?.email )}>
-                                            <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                                                <CreditCard className="mr-2 h-4 w-4" /> Fund Escrow via Paystack (₦{proposal.proposedAmount.toLocaleString()})
-                                            </Button>
-                                       </form>
                                     )}
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
+                </CardContent>
+            </Card>
+          )}
+          {isOwner && (request.status === 'awarded' || request.status === 'in_progress') && acceptedClientProposal && (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Accepted Proposal</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Card className="bg-secondary/30">
+                        <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
+                            <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                    <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=client`} className="font-semibold text-primary hover:underline">{acceptedClientProposal.artisanName}</Link>
+                                    <div className="text-right">
+                                        <Badge variant="outline" className="font-mono">₦{acceptedClientProposal.proposedAmount.toLocaleString()}</Badge>
+                                        <Badge className="mt-1 bg-green-500 text-white">Accepted</Badge>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Submitted: {formatDistanceToNow(new Date(acceptedClientProposal.submittedAt), { addSuffix: true })}</p>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                            <p className="text-sm text-foreground line-clamp-3 mb-2">{acceptedClientProposal.coverLetter}</p>
+                            <Button asChild size="sm" variant="outline">
+                                <Link href={`/dashboard/messages?role=client&chatWith=${acceptedClientProposal.artisanId}`}>
+                                    <MessageCircle className="mr-2 h-4 w-4"/> Message {acceptedClientProposal.artisanName}
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </CardContent>
             </Card>
           )}
@@ -348,16 +443,26 @@ export default async function ServiceRequestDetailPage({ params }: { params: { i
                     {request.postedBy.memberSince && <p className="text-xs text-muted-foreground">Member since {request.postedBy.memberSince}</p>}
                   </div>
                 </div>
-                {(isOwner || (isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress'))) && (
+                {/* Message button conditional logic */}
+                {(isOwner && request.assignedArtisanId && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed')) && (
                     <Button asChild variant="outline" className="w-full">
-                      <Link href={`/dashboard/messages?chatWith=${request.clientId}`}>
+                      <Link href={`/dashboard/messages?role=client&chatWith=${request.assignedArtisanId}`}>
                         <MessageCircle className="mr-2 h-4 w-4" /> 
-                        {isOwner ? "View Messages (Concept)" : "Message Client"}
+                        Message Assigned Artisan
                       </Link>
                     </Button>
                 )}
-                 {currentUserRole === 'artisan' && !isAssignedArtisan && (
-                    <Button variant="outline" className="w-full" disabled><MessageCircle className="mr-2 h-4 w-4" /> Contact Client (Proposal must be accepted)</Button>
+                {currentUserRole === 'artisan' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed') && (
+                     <Button asChild variant="outline" className="w-full">
+                      <Link href={`/dashboard/messages?role=artisan&chatWith=${request.clientId}`}>
+                        <MessageCircle className="mr-2 h-4 w-4" /> Message Client
+                      </Link>
+                    </Button>
+                )}
+                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status === 'open' && (
+                    <Button variant="outline" className="w-full" disabled>
+                        <MessageCircle className="mr-2 h-4 w-4" /> Contact Client (After proposal acceptance)
+                    </Button>
                  )}
               </CardContent>
             </Card>
@@ -384,4 +489,3 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
-

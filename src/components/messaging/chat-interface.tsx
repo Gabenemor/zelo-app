@@ -11,84 +11,127 @@ import { Paperclip, Send, Video, Smile, Search, MessageSquare, Loader2 } from "l
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import type { UserRole } from '@/types';
 
 // Mock data
 interface User { id: string; name: string; avatarUrl?: string; online?: boolean; }
 interface Message { id: string; senderId: string; text: string; timestamp: Date; isOwn: boolean; }
 interface Conversation { id: string; otherUser: User; lastMessage: string; lastMessageTime: string; unreadCount?: number; }
 
-// Adjusted to match IDs from service request page mock data
-const mockCurrentUser: User = { id: "artisan_john_bull", name: "You (John Bull)", avatarUrl: "https://placehold.co/40x40.png?text=JB" };
+const MOCK_CLIENT_USER_ID = "client_jane_doe"; // Matches service request mock
+const MOCK_ARTISAN_USER_ID = "artisan_john_bull"; // Matches service request mock
 
-const mockUsers: User[] = [
-  { id: "client_jane_doe", name: "Jane Doe (Client)", avatarUrl: "https://placehold.co/40x40.png?text=JD", online: true },
-  { id: "user2", name: "Adewale Plumbing", avatarUrl: "https://placehold.co/40x40.png?text=AP", online: true },
-  { id: "user3", name: "Chioma's Catering", avatarUrl: "https://placehold.co/40x40.png?text=CC", online: false },
+const mockClientUser: User = { id: MOCK_CLIENT_USER_ID, name: "You (Jane Client)", avatarUrl: "https://placehold.co/40x40.png?text=JC" };
+const mockArtisanUser: User = { id: MOCK_ARTISAN_USER_ID, name: "You (John Artisan)", avatarUrl: "https://placehold.co/40x40.png?text=JA" };
+
+const mockArtisanProfilesForChat: User[] = [
+  { id: MOCK_ARTISAN_USER_ID, name: "John Bull Catering", avatarUrl: "https://placehold.co/40x40.png?text=JB", online: true },
+  { id: "artisan_ada_eze", name: "Ada's Kitchen Deluxe", avatarUrl: "https://placehold.co/40x40.png?text=AKD", online: false },
+  { id: "artisan_musa_ali", name: "Musa Electrics", avatarUrl: "https://placehold.co/40x40.png?text=ME", online: true },
 ];
 
-const mockConversations: Conversation[] = [
-    { id: "conv_client_jane_doe", otherUser: mockUsers[0], lastMessage: "Great, thank you for the update!", lastMessageTime: "11:30 AM", unreadCount: 0},
-    { id: "conv1", otherUser: mockUsers[1], lastMessage: "Okay, I'll be there by 2 PM.", lastMessageTime: "10:30 AM", unreadCount: 2},
-    { id: "conv2", otherUser: mockUsers[2], lastMessage: "Thanks for the quick service!", lastMessageTime: "Yesterday"},
+const mockClientProfilesForChat: User[] = [
+ { id: MOCK_CLIENT_USER_ID, name: "Jane Doe (Event Client)", avatarUrl: "https://placehold.co/40x40.png?text=JD", online: true },
+ { id: "client_adewale", name: "Adewale Plumbing Client", avatarUrl: "https://placehold.co/40x40.png?text=AP", online: false },
+];
+
+
+const generateClientConversations = (): Conversation[] => [
+  { id: `conv_client_${MOCK_ARTISAN_USER_ID}`, otherUser: mockArtisanProfilesForChat[0], lastMessage: "Great, thank you for the update!", lastMessageTime: "11:30 AM", unreadCount: 0},
+  { id: `conv_client_artisan_ada_eze`, otherUser: mockArtisanProfilesForChat[1], lastMessage: "Yes, that sounds good.", lastMessageTime: "Tue"},
+  { id: `conv_client_artisan_musa_ali`, otherUser: mockArtisanProfilesForChat[2], lastMessage: "Can you check this for me?", lastMessageTime: "Mon", unreadCount: 1},
+];
+
+const generateArtisanConversations = (): Conversation[] => [
+  { id: `conv_artisan_${MOCK_CLIENT_USER_ID}`, otherUser: mockClientProfilesForChat[0], lastMessage: "Great, thank you for the update!", lastMessageTime: "11:30 AM", unreadCount: 0},
+  { id: `conv_artisan_client_adewale`, otherUser: mockClientProfilesForChat[1], lastMessage: "I have a quick question.", lastMessageTime: "Yesterday"},
 ];
 
 const mockMessages: { [conversationId: string]: Message[] } = {
-  "conv_client_jane_doe": [
-    { id: "msg_jd1", senderId: "client_jane_doe", text: "Hi John, just wanted to confirm the details for the corporate event catering.", timestamp: new Date(Date.now() - 3600000 * 2), isOwn: false },
-    { id: "msg_jb1", senderId: "artisan_john_bull", text: "Hi Jane! Yes, everything is on track. We're preparing the 'Modern Elegance' menu.", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
-    { id: "msg_jd2", senderId: "client_jane_doe", text: "Excellent! Do you need any more information from my side?", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: false },
-    { id: "msg_jb2", senderId: "artisan_john_bull", text: "Not at the moment, thank you. We'll deliver and set up by 5 PM on the event day.", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
-    { id: "msg_jd3", senderId: "client_jane_doe", text: "Great, thank you for the update!", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: false },
+  [`conv_client_${MOCK_ARTISAN_USER_ID}`]: [ // Client Jane chatting with Artisan John
+    { id: "msg_jd1", senderId: MOCK_ARTISAN_USER_ID, text: "Hi Jane! Yes, everything is on track. We're preparing the 'Modern Elegance' menu.", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: false },
+    { id: "msg_jb1", senderId: MOCK_CLIENT_USER_ID, text: "Excellent! Do you need any more information from my side?", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: true },
+    { id: "msg_jd2", senderId: MOCK_ARTISAN_USER_ID, text: "Not at the moment, thank you. We'll deliver and set up by 5 PM on the event day.", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: false },
+    { id: "msg_jb2", senderId: MOCK_CLIENT_USER_ID, text: "Great, thank you for the update!", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: true },
   ],
-   "conv1": [
-    { id: "msg1", senderId: "user2", text: "Hello! I'm interested in your plumbing service.", timestamp: new Date(Date.now() - 3600000 * 2), isOwn: false },
-    { id: "msg2", senderId: "artisan_john_bull", text: "Hi Adewale, sure. What do you need help with?", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
-    { id: "msg3", senderId: "user2", text: "My kitchen sink is leaking badly.", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: false },
-    { id: "msg4", senderId: "artisan_john_bull", text: "Okay, I can come take a look. When are you available?", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
-    { id: "msg5", senderId: "user2", text: "Okay, I'll be there by 2 PM.", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: false },
+  [`conv_artisan_${MOCK_CLIENT_USER_ID}`]: [ // Artisan John chatting with Client Jane
+    { id: "msg_aj1", senderId: MOCK_CLIENT_USER_ID, text: "Hi John, just wanted to confirm the details for the corporate event catering.", timestamp: new Date(Date.now() - 3600000 * 2), isOwn: false },
+    { id: "msg_ja1", senderId: MOCK_ARTISAN_USER_ID, text: "Hi Jane! Yes, everything is on track. We're preparing the 'Modern Elegance' menu.", timestamp: new Date(Date.now() - 3600000 * 1.9), isOwn: true },
+    { id: "msg_aj2", senderId: MOCK_CLIENT_USER_ID, text: "Excellent! Do you need any more information from my side?", timestamp: new Date(Date.now() - 3600000 * 1.8), isOwn: false },
+    { id: "msg_ja2", senderId: MOCK_ARTISAN_USER_ID, text: "Not at the moment, thank you. We'll deliver and set up by 5 PM on the event day.", timestamp: new Date(Date.now() - 3600000 * 1.7), isOwn: true },
+    { id: "msg_aj3", senderId: MOCK_CLIENT_USER_ID, text: "Great, thank you for the update!", timestamp: new Date(Date.now() - 3600000 * 1.5), isOwn: false },
   ],
-   "conv2": [
-    { id: "msg6", senderId: "user3", text: "The food was amazing!", timestamp: new Date(Date.now() - 86400000 * 1), isOwn: false },
-    { id: "msg7", senderId: "artisan_john_bull", text: "Glad you enjoyed it, Chioma!", timestamp: new Date(Date.now() - 86400000 * 0.9), isOwn: true },
-    { id: "msg8", senderId: "user3", text: "Thanks for the quick service!", timestamp: new Date(Date.now() - 86400000 * 0.8), isOwn: false },
+   // Add more mock messages for other conversations if needed
+   [`conv_client_artisan_ada_eze`]: [
+    { id: "msg_ada1", senderId: "artisan_ada_eze", text: "Hello, regarding your event...", timestamp: new Date(Date.now() - 86400000 * 2), isOwn: false },
+    { id: "msg_ada2", senderId: MOCK_CLIENT_USER_ID, text: "Yes, that sounds good.", timestamp: new Date(Date.now() - 86400000 * 1.9), isOwn: true },
+  ],
+  [`conv_artisan_client_adewale`]: [
+    { id: "msg_adew1", senderId: "client_adewale", text: "Good day, I need a quote for plumbing.", timestamp: new Date(Date.now() - 86400000 * 1), isOwn: false },
+    { id: "msg_adew2", senderId: MOCK_ARTISAN_USER_ID, text: "Sure, what exactly do you need?", timestamp: new Date(Date.now() - 86400000 * 0.9), isOwn: true },
   ],
 };
 
+
 function ChatInterfaceContent() {
   const searchParams = useSearchParams();
+  const [currentUser, setCurrentUser] = useState<User>(mockClientUser); // Default to client
+  const [conversations, setConversations] = useState<Conversation[]>(generateClientConversations());
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  const userRole = searchParams.get("role") as UserRole | null;
+
   useEffect(() => {
     setIsInitializing(true);
-    const chatWithUserId = searchParams.get('chatWith');
-    if (chatWithUserId) {
-      const conversationToSelect = mockConversations.find(conv => conv.otherUser.id === chatWithUserId);
-      if (conversationToSelect) {
-        setSelectedConversation(conversationToSelect);
-        setMessages(mockMessages[conversationToSelect.id] || []);
-      } else {
-        // Optionally handle case where conversation is not found, e.g., select first or none
-        setSelectedConversation(mockConversations.length > 0 ? mockConversations[0] : null);
-      }
-    } else if (mockConversations.length > 0) {
-      // Default to first conversation if no query param
-      setSelectedConversation(mockConversations[0]);
-      setMessages(mockMessages[mockConversations[0].id] || []);
+    const roleToSet = userRole || 'client'; // Default to client if no role
+    
+    if (roleToSet === 'client') {
+      setCurrentUser(mockClientUser);
+      setConversations(generateClientConversations());
+    } else { // artisan
+      setCurrentUser(mockArtisanUser);
+      setConversations(generateArtisanConversations());
     }
-    setIsInitializing(false);
-  }, [searchParams]);
+    setIsInitializing(false); // Done with role-based setup
+  }, [userRole]);
+
+
+  useEffect(() => {
+    // This effect runs after initial role setup AND when conversations list changes
+    if (isInitializing) return; // Don't run if still setting up role
+
+    const chatWithUserId = searchParams.get('chatWith');
+    let conversationToSelect: Conversation | undefined = undefined;
+
+    if (chatWithUserId) {
+      conversationToSelect = conversations.find(conv => conv.otherUser.id === chatWithUserId);
+    }
+    
+    if (conversationToSelect) {
+      setSelectedConversation(conversationToSelect);
+    } else if (conversations.length > 0) {
+      setSelectedConversation(conversations[0]); // Default to first conversation in the list
+    } else {
+      setSelectedConversation(null); // No conversations available
+    }
+  }, [searchParams, conversations, isInitializing]);
+
 
   useEffect(() => {
     if (selectedConversation && !isInitializing) {
-      setMessages(mockMessages[selectedConversation.id] || []);
+      // Key for messages should incorporate current user's role context if necessary
+      // For this mock, conversation ID is enough if it's unique across roles or pre-generated
+      const convMessages = mockMessages[selectedConversation.id] || [];
+      // Adjust 'isOwn' based on the actual currentUser.id
+      setMessages(convMessages.map(m => ({...m, isOwn: m.senderId === currentUser.id })));
     } else if (!selectedConversation && !isInitializing) {
       setMessages([]);
     }
-  }, [selectedConversation, isInitializing]);
+  }, [selectedConversation, isInitializing, currentUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -98,35 +141,47 @@ function ChatInterfaceContent() {
     if (newMessage.trim() === "" || !selectedConversation) return;
     const newMsg: Message = {
       id: `msg${Date.now()}`,
-      senderId: mockCurrentUser.id,
+      senderId: currentUser.id,
       text: newMessage,
       timestamp: new Date(),
-      isOwn: true,
+      isOwn: true, // Always true when sending
     };
     setMessages(prev => [...prev, newMsg]);
-    mockMessages[selectedConversation.id] = [...(mockMessages[selectedConversation.id] || []), newMsg];
+    
+    // Update mockMessages for persistence in this session
+    if (!mockMessages[selectedConversation.id]) {
+        mockMessages[selectedConversation.id] = [];
+    }
+    mockMessages[selectedConversation.id].push({...newMsg, isOwn: false}); // Store as if received by other party for their view
+    
     setNewMessage("");
   };
   
   const createGoogleMeetLink = () => {
     const meetLink = `https://meet.google.com/new?uid=${Math.random().toString(36).substring(2)}&utm_medium=web&utm_source=zelo`;
     if (!selectedConversation) return;
+    const textMsgContent = `I've created a Google Meet link for our video chat. Click to join:`;
     const newMsg: Message = {
       id: `msg${Date.now()}`,
-      senderId: mockCurrentUser.id,
-      text: `I've created a Google Meet link for our video chat: `,
+      senderId: currentUser.id,
+      text: textMsgContent,
       timestamp: new Date(),
       isOwn: true,
     };
     const linkMsg: Message = {
-      id: `msg${Date.now() + 1}`,
-      senderId: mockCurrentUser.id,
+      id: `msg${Date.now() + 1}`, // Ensure unique ID
+      senderId: currentUser.id,
       text: meetLink,
-      timestamp: new Date(),
+      timestamp: new Date(Date.now() + 1000), // Slightly later timestamp for ordering
       isOwn: true,
-    }
+    };
     setMessages(prev => [...prev, newMsg, linkMsg]);
-    mockMessages[selectedConversation.id] = [...(mockMessages[selectedConversation.id] || []), newMsg, linkMsg];
+
+    if (!mockMessages[selectedConversation.id]) {
+        mockMessages[selectedConversation.id] = [];
+    }
+    mockMessages[selectedConversation.id].push({...newMsg, isOwn: false});
+    mockMessages[selectedConversation.id].push({...linkMsg, isOwn: false});
   };
 
   if (isInitializing) {
@@ -150,7 +205,7 @@ function ChatInterfaceContent() {
         </div>
         <Separator />
         <ScrollArea className="h-[calc(100%-65px)]">
-          {mockConversations.map(conv => (
+          {conversations.map(conv => (
             <div
               key={conv.id}
               className={cn(
@@ -278,8 +333,14 @@ function ChatInterfaceContent() {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <MessageSquare className="h-16 w-16 text-muted-foreground/50" />
-            <p className="mt-4 text-lg font-medium text-muted-foreground">Select a conversation to start chatting</p>
-            <p className="text-sm text-muted-foreground">Or find artisans and clients to connect with.</p>
+            <p className="mt-4 text-lg font-medium text-muted-foreground">
+              {conversations.length > 0 ? "Select a conversation to start chatting" : "No conversations yet"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+                {conversations.length > 0 
+                    ? "Or find artisans and clients to connect with."
+                    : "Start by browsing services or posting a request to connect with others."}
+            </p>
           </div>
         )}
       </div>
