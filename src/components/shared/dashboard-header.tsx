@@ -35,7 +35,6 @@ function DashboardHeaderContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const roleFromQuery = searchParams.get("role") as UserRole | null;
-  // Determine userRole: if admin page, role is admin. Otherwise, check query param, default to artisan.
   const isAdminPage = pathname.startsWith('/dashboard/admin');
   const userRole: UserRole = isAdminPage ? 'admin' : (roleFromQuery && ["client", "artisan"].includes(roleFromQuery) ? roleFromQuery : "artisan");
   
@@ -52,7 +51,23 @@ function DashboardHeaderContent() {
 
   const NavLink = ({ item, onClick }: { item: NavItem; onClick?: () => void }) => {
     const isActive = pathname === item.href || (item.href && item.href !== "/dashboard" && pathname.startsWith(item.href));
-    const linkHref = item.href === "/dashboard" && userRole !== "admin" ? `/dashboard?role=${userRole}` : item.href;
+    
+    let finalLinkHref = item.href; // Default to item.href
+    if (item.href) { // Ensure item.href is defined
+        if (item.href === "/dashboard" && userRole !== "admin") {
+            // Specifically handle the main dashboard link
+            finalLinkHref = `/dashboard?role=${userRole}`;
+        } else if (item.href.startsWith('/dashboard') && userRole !== 'admin' && !item.href.includes('/admin')) {
+            // For other dashboard links that are not admin paths
+            if (!item.href.includes('?')) {
+                // Add role if no query parameters exist
+                finalLinkHref = `${item.href}?role=${userRole}`;
+            }
+            // If item.href already contains '?', we assume 'role' is handled if needed,
+            // or should be part of the item.href in dashboardNavItems for more complex cases.
+        }
+    }
+    const linkHref = finalLinkHref;
     
     if (item.children && item.children.length > 0) {
       return (
@@ -72,7 +87,7 @@ function DashboardHeaderContent() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
               {item.children.map((child) => {
-                const childHrefWithRole = child.href.startsWith("/dashboard") && !child.href.includes("admin") && !child.href.includes("?")
+                const childHrefWithRole = (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin") && !child.href.includes("?"))
                                         ? `${child.href}?role=${userRole}`
                                         : child.href;
                 return (
@@ -96,7 +111,7 @@ function DashboardHeaderContent() {
 
     return (
       <Link
-        href={linkHref}
+        href={linkHref || '#'} // Fallback to '#' if linkHref is undefined
         onClick={onClick}
         className={cn(
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -123,7 +138,7 @@ function DashboardHeaderContent() {
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
               {item.children.map((child) => {
-                 const childHrefWithRole = child.href.startsWith("/dashboard") && !child.href.includes("admin") && !child.href.includes("?")
+                 const childHrefWithRole = (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin") && !child.href.includes("?"))
                                         ? `${child.href}?role=${userRole}`
                                         : child.href;
                 return <NavLink key={child.href} item={{...child, href: childHrefWithRole}} onClick={() => setMobileMenuOpen(false)} />
