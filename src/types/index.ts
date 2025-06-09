@@ -1,4 +1,5 @@
 
+
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -20,8 +21,8 @@ export interface ServiceExperience {
 export interface ArtisanProfile {
   userId: string;
   username?: string;
-  profilePhotoUrl?: string; // Added for dedicated profile photo
-  headline?: string; // Added for artisan headline
+  profilePhotoUrl?: string; 
+  headline?: string; 
   contactPhone?: string;
   contactEmail?: string;
   servicesOffered: string[];
@@ -31,7 +32,7 @@ export interface ArtisanProfile {
   isLocationPublic?: boolean;
   bio?: string;
   portfolioImageUrls?: string[];
-  availabilityStatus?: 'available' | 'busy' | 'unavailable'; // Added for availability
+  availabilityStatus?: 'available' | 'busy' | 'unavailable'; 
   onboardingCompleted?: boolean;
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
@@ -51,7 +52,7 @@ export interface ClientProfile {
 }
 
 export interface WithdrawalAccount {
-  userId: string; // Artisan's user ID
+  userId: string; 
   bankName: string;
   accountNumber: string;
   accountName: string;
@@ -76,7 +77,7 @@ export interface ServiceRequest {
   postedAt: Date;
   status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
   assignedArtisanId?: string;
-  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>;
+  attachments?: Array<{ name: string; url: string; type: 'image' | 'document'; "data-ai-hint"?: string }>;
 }
 
 export interface ArtisanProposal {
@@ -127,13 +128,38 @@ export type ActivityType =
 export interface ActivityItem {
   id: string;
   type: ActivityType;
-  icon: LucideIconName; // Re-use LucideIconName for consistency
+  icon: LucideIconName; 
   title: string;
-  description?: string; // Optional brief description or snippet
+  description?: string; 
   timestamp: Date;
-  link?: string; // Optional link to the relevant item (e.g., message, request)
-  userId: string; // The user this activity pertains to
+  link?: string; 
+  userId: string; 
 }
+
+
+export type NotificationType =
+  | 'new_message'
+  | 'job_awarded'
+  | 'proposal_accepted'
+  | 'proposal_rejected'
+  | 'payment_received'
+  | 'job_completed_by_artisan'
+  | 'job_confirmed_by_client'
+  | 'new_review'
+  | 'system_update';
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  icon: LucideIconName;
+  title: string;
+  description?: string;
+  timestamp: Date;
+  read: boolean;
+  link?: string;
+}
+
 
 export type LucideIconName =
   | "LayoutDashboard"
@@ -157,14 +183,19 @@ export type LucideIconName =
   | "Menu"
   | "Camera"
   | "UploadCloud"
-  | "CalendarDays" // Added
-  | "Edit"; // Added
+  | "CalendarDays" 
+  | "Edit"
+  | "Bell" // Added Bell
+  | "Check" // Added Check
+  | "Trash2" // Added Trash2
+  | "DollarSign" // Added DollarSign
+  | "Info"; // Added Info (if system_update icon becomes Info)
 
 
 export interface NavItem {
   title: string;
   href: string;
-  icon?: LucideIconName; // Icon is now optional for nav items
+  icon?: LucideIconName; 
   disabled?: boolean;
   external?: boolean;
   label?: string;
@@ -179,4 +210,3 @@ export const NIGERIAN_ARTISAN_SERVICES = [
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
 ] as const;
-

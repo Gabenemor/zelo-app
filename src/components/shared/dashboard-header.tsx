@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
 import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -15,10 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuGroup,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   Sheet,
@@ -36,9 +32,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export function DashboardHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Placeholder for fetching user role. In a real app, this would come from auth context or session.
-  const userRole: UserRole = "artisan"; // Example: 'client', 'artisan', 'admin'
-  const user = { name: "Zelo User", email: "user@zelo.app", avatar: "" }; // Placeholder user
+  const userRole: UserRole = "artisan"; 
+  const user = { name: "Zelo User", email: "user@zelo.app", avatar: "" }; 
 
   const accessibleItems = dashboardNavItems
     .filter((item) => !item.roles || item.roles.includes(userRole))
@@ -68,8 +63,7 @@ export function DashboardHeader() {
               <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuContent align="start" className="w-56">
               {item.children.map((child) => (
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
@@ -85,7 +79,6 @@ export function DashboardHeader() {
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
-          </DropdownMenuPortal>
         </DropdownMenu>
       );
     }
@@ -130,10 +123,9 @@ export function DashboardHeader() {
     </nav>
   );
 
-
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 shadow-sm sm:px-6">
-      <div className="flex items-center">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm sm:px-6">
+      <div className="flex items-center gap-4"> {/* Group for logo and nav */}
         {/* Mobile Menu Trigger */}
         <Button
           variant="ghost"
@@ -145,16 +137,15 @@ export function DashboardHeader() {
           <Menu className="h-5 w-5" />
         </Button>
         <Logo size="md" />
+        {/* Desktop Navigation */}
+        <nav className="hidden flex-shrink-0 items-center gap-1 md:flex lg:gap-2">
+          {accessibleItems.map((item) => (
+            <NavLink key={item.href || item.title} item={item} />
+          ))}
+        </nav>
       </div>
 
-      {/* Desktop Navigation */}
-      <nav className="hidden flex-1 items-center justify-center gap-1 md:flex lg:gap-2">
-        {accessibleItems.map((item) => (
-          <NavLink key={item.href || item.title} item={item} />
-        ))}
-      </nav>
-
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-4"> {/* Group for search, bell, profile */}
         <form className="hidden sm:block">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -165,10 +156,14 @@ export function DashboardHeader() {
             />
           </div>
         </form>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
+        <Link href="/dashboard/notifications" passHref legacyBehavior>
+          <Button variant="ghost" size="icon" className="rounded-full" asChild>
+            <a>
+              <Bell className="h-5 w-5" />
+              <span className="sr-only">View notifications</span>
+            </a>
+          </Button>
+        </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
@@ -177,6 +172,7 @@ export function DashboardHeader() {
                   src={user.avatar}
                   alt={user.name}
                   className="h-8 w-8 rounded-full"
+                  data-ai-hint="profile avatar"
                 />
               ) : (
                 <UserCircle className="h-6 w-6" />
@@ -256,4 +252,3 @@ export function DashboardHeader() {
     </header>
   );
 }
-
