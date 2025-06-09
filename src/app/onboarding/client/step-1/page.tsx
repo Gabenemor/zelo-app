@@ -14,12 +14,12 @@ import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-
 
 function ClientOnboardingStep1Content() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // Guaranteed to be non-null here by Suspense
   const { toast } = useToast();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const firstName = searchParams ? searchParams.get('firstName') : null;
+  const firstName = searchParams.get('firstName');
 
   const handleNext = async () => {
     if (selectedServices.length === 0) {
@@ -49,15 +49,6 @@ function ClientOnboardingStep1Content() {
 
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
   const pageDescription = "Let's get you started. What services are you looking for?";
-
-  if (!searchParams) { // Still waiting for searchParams
-    return (
-      <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">Loading details...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto max-w-2xl py-8 sm:py-12">
@@ -89,7 +80,7 @@ export default function ClientOnboardingStep1Page() {
     <Suspense fallback={
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">Loading...</p>
+        <p className="mt-2 text-muted-foreground">Loading details...</p>
       </div>
     }>
       <ClientOnboardingStep1Content />

@@ -14,13 +14,13 @@ import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-
 
 function ArtisanOnboardingStep1Content() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // Guaranteed to be non-null here by Suspense
   const { toast } = useToast();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const MAX_SERVICES = 2;
 
-  const firstName = searchParams ? searchParams.get('firstName') : null;
+  const firstName = searchParams.get('firstName');
 
   const handleNext = async () => {
     if (selectedServices.length === 0) {
@@ -61,15 +61,6 @@ function ArtisanOnboardingStep1Content() {
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
   const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer. You can add more later from your profile.`;
 
-  if (!searchParams) { 
-    return (
-      <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">Loading details...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto max-w-2xl py-8 sm:py-12">
       <PageHeader
@@ -96,12 +87,12 @@ function ArtisanOnboardingStep1Content() {
   );
 }
 
-export default function ArtisanOnboardingStep1() {
+export default function ArtisanOnboardingStep1Page() {
   return (
     <Suspense fallback={
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">Loading...</p>
+        <p className="mt-2 text-muted-foreground">Loading details...</p>
       </div>
     }>
       <ArtisanOnboardingStep1Content />
