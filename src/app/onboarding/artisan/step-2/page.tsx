@@ -1,14 +1,13 @@
 
 "use client";
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { ArtisanProfileForm } from '@/components/profile/artisan-profile-form';
 import { UserCircle2, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveArtisanOnboardingProfile } from '@/actions/onboarding-actions';
-import type { ArtisanProfile } from '@/types'; 
+import type { ArtisanProfile } from '@/types';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 import { Button } from '@/components/ui/button';
 
@@ -16,24 +15,40 @@ function ArtisanOnboardingStep2Content() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; 
+  const [isLoading, setIsLoading] = useState(false); // This page's loading state, separate from form
+  const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
+
+  const MOCK_USER_ID = "mockArtisanUserIdOnboarding";
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
-  // This component will now rely on the ArtisanProfileForm's internal submit.
-  // The "Go to Dashboard" button will only navigate after the form's own save is (conceptually) successful.
-  const handleGoToDashboard = () => {
-    // In a real app, you'd check if the profile form actually saved successfully.
-    // For this mock, we assume the ArtisanProfileForm's save was triggered and then this button is clicked.
-    toast({ title: "Profile Setup Complete (Mock)", description: "Your artisan profile is set up!" });
+  useEffect(() => {
+    if (searchParams) {
+      const servicesOfferedString = searchParams.get('servicesOffered');
+      let servicesOffered: string[] = [];
+      if (servicesOfferedString) {
+        try {
+          servicesOffered = JSON.parse(servicesOfferedString);
+        } catch (e) {
+          console.error("Failed to parse servicesOffered from URL:", e);
+          toast({ title: "Error", description: "Could not load selected services. Please go back and try again.", variant: "destructive" });
+          // Potentially redirect back or handle error
+        }
+      }
+      setInitialFormValues(prev => ({ ...prev, servicesOffered }));
+    }
+  }, [searchParams, toast]);
+
+
+  // This function will be called by ArtisanProfileForm on successful submission
+  const handleFormSaveSuccess = () => {
+    toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
     router.push('/dashboard');
   };
-  
+
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
   const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully.";
 
-  if (!searchParams) { // Still waiting for searchParams
+  if (!searchParams || !initialFormValues.servicesOffered) { // Wait for searchParams and servicesOffered to be processed
     return (
       <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -51,27 +66,16 @@ function ArtisanOnboardingStep2Content() {
       />
       <OnboardingProgressIndicator currentStep={2} totalSteps={2} />
       <div className="p-0 sm:p-6 border-0 sm:border rounded-lg sm:shadow-sm sm:bg-card">
-        <ArtisanProfileForm 
-          userId={MOCK_USER_ID} 
-          // Note: ArtisanProfileForm uses its own mock save and doesn't currently take an onSave prop
-          // that integrates with server actions from this parent.
-          // A more robust solution would refactor ArtisanProfileForm to use the server action
-          // or provide an onSave callback that this page can use with `saveArtisanOnboardingProfile`.
+        <ArtisanProfileForm
+          userId={MOCK_USER_ID}
+          initialData={initialFormValues} // Pass selected services and potentially other defaults
+          onSaveSuccess={handleFormSaveSuccess} // Callback for successful save
+          submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
         />
-         <div className="mt-8 flex justify-end p-6 sm:p-0">
-            <Button 
-                onClick={handleGoToDashboard}
-                // disabled={isLoading} // isLoading would be tied to ArtisanProfileForm's submission
-                className="font-semibold"
-            >
-                {isLoading ? "Finalizing..." : <><Save className="mr-2 h-4 w-4" /> Go to Dashboard</>}
-            </Button>
-        </div>
       </div>
     </div>
   );
 }
-
 
 export default function ArtisanOnboardingStep2Page() {
   return (

@@ -14,13 +14,13 @@ import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-
 
 function ArtisanOnboardingStep1Content() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // Guaranteed to be non-null here by Suspense
+  const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const MAX_SERVICES = 2;
 
-  const firstName = searchParams.get('firstName');
+  const firstName = searchParams ? searchParams.get('firstName') : null;
 
   const handleNext = async () => {
     if (selectedServices.length === 0) {
@@ -45,9 +45,12 @@ function ArtisanOnboardingStep1Content() {
     setIsLoading(false);
 
     if (result.success) {
-      toast({ title: "Services Selected (Mock)", description: "Your primary services have been noted." });
-      // Pass firstName to the next step
-      router.push(`/onboarding/artisan/step-2${firstName ? `?firstName=${encodeURIComponent(firstName)}` : ''}`);
+      toast({ title: "Services Selected", description: "Your primary services have been noted." });
+      // Pass firstName and selectedServices to the next step
+      const queryParams = new URLSearchParams();
+      if (firstName) queryParams.append('firstName', firstName);
+      queryParams.append('servicesOffered', JSON.stringify(selectedServices));
+      router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
       toast({
         title: "Error",
@@ -57,7 +60,7 @@ function ArtisanOnboardingStep1Content() {
       console.error("Error saving artisan services:", result.error);
     }
   };
-
+  
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
   const pageDescription = `Showcase your skills. Select up to ${MAX_SERVICES} primary services you offer. You can add more later from your profile.`;
 

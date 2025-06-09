@@ -1,5 +1,4 @@
 
-
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -11,12 +10,18 @@ export interface User {
   createdAt: Date;
 }
 
+export interface ServiceExperience {
+  serviceName: string;
+  years: number;
+}
+
 export interface ArtisanProfile {
   userId: string;
   username?: string;
   contactPhone?: string;
   contactEmail?: string;
-  servicesOffered: string[]; // Array of service names or IDs
+  servicesOffered: string[]; // Array of service names selected in step 1
+  serviceExperiences?: ServiceExperience[]; // Experience per service
   serviceChargeDescription?: string; // e.g., "per hour", "per project"
   serviceChargeAmount?: number; // in Naira
   location?: string; // General location, e.g., "Lagos, Nigeria"
@@ -24,9 +29,11 @@ export interface ArtisanProfile {
   isLocationPublic?: boolean; // User's preference to share exact location
   bio?: string;
   portfolioImageUrls?: string[];
-  yearsOfExperience?: number;
+  // yearsOfExperience?: number; // Replaced by serviceExperiences
   availability?: string; // e.g., "Weekdays", "Weekends", "Full-time"
   onboardingCompleted?: boolean;
+  onboardingStep1Completed?: boolean; // Added to track step 1
+  profileSetupCompleted?: boolean; // Added to track step 2
 }
 
 export interface ClientProfile {
@@ -38,6 +45,8 @@ export interface ClientProfile {
   isLocationPublic?: boolean; // User's preference to share exact location
   onboardingCompleted?: boolean;
   servicesLookingFor?: string[];
+  onboardingStep1Completed?: boolean;
+  profileSetupCompleted?: boolean;
 }
 
 export interface WithdrawalAccount {
@@ -51,11 +60,11 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  postedBy?: { 
+  postedBy?: {
     name: string;
     avatarUrl?: string;
     memberSince?: string;
-    email?: string; 
+    email?: string;
   };
   title: string;
   description: string;
@@ -66,7 +75,7 @@ export interface ServiceRequest {
   postedAt: Date;
   status: "open" | "in_progress" | "completed" | "cancelled" | "awarded";
   assignedArtisanId?: string;
-  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>; 
+  attachments?: Array<{ name: string; url: string; type: 'image' | 'document' }>;
 }
 
 export interface ArtisanProposal {
@@ -118,12 +127,10 @@ export type LucideIconName =
   | "PlusCircle"
   | "ShieldCheck"
   | "FileText"
-  | "Search" 
+  | "Search"
   | "ClipboardList"
-  | "HeartHandshake" // For client onboarding step 1
-  | "UserCog" // For client onboarding step 2
-  | "Wrench" // For artisan onboarding step 1
-  | "UserCircle2"; // For artisan onboarding step 2
+  | "UserCog" 
+  | "UserCircle2";
 
 
 export interface NavItem {
@@ -132,16 +139,16 @@ export interface NavItem {
   icon?: LucideIconName;
   disabled?: boolean;
   external?: boolean;
-  label?: string; 
-  children?: NavItem[]; 
-  roles?: UserRole[]; 
+  label?: string;
+  children?: NavItem[];
+  roles?: UserRole[];
 }
 
 // Centralized list of services
 export const NIGERIAN_ARTISAN_SERVICES = [
-  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry", 
-  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning", 
+  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry",
+  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning",
   "Photography/Videography", "Graphic Design", "Web Development", "Appliance Repair",
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
-];
+] as const;
