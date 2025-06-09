@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ArtisanProfileForm } from '@/components/profile/artisan-profile-form';
 import { UserCircle2, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ArtisanProfile, ServiceExperience } from '@/types'; // Ensure ServiceExperience is imported
+import type { ArtisanProfile } from '@/types';
 import { OnboardingProgressIndicator } from '@/components/onboarding/onboarding-progress-indicator';
 
 function ArtisanOnboardingStep2Content() {
@@ -23,34 +23,25 @@ function ArtisanOnboardingStep2Content() {
   useEffect(() => {
     if (searchParams) {
       const servicesOfferedString = searchParams.get('servicesOffered');
-      const serviceExperiencesString = searchParams.get('serviceExperiences');
+      // serviceExperiencesString is no longer expected from step 1
       
       let servicesOffered: string[] = [];
-      let serviceExperiences: ServiceExperience[] = [];
 
       if (servicesOfferedString) {
         try {
           servicesOffered = JSON.parse(servicesOfferedString);
         } catch (e) {
           console.error("Failed to parse servicesOffered from URL for Step 2:", e);
-          // Handle error, maybe redirect back or show toast
+          toast({ title: "Error", description: "Could not load service details. Please go back to Step 1.", variant: "destructive" });
+          // Potentially redirect or handle error state
         }
       }
       
-      if (serviceExperiencesString) {
-        try {
-          serviceExperiences = JSON.parse(serviceExperiencesString);
-        } catch (e) {
-          console.error("Failed to parse serviceExperiences from URL for Step 2:", e);
-          toast({ title: "Error", description: "Could not load service experience details. Please go back to Step 1.", variant: "destructive" });
-        }
-      }
-
       setInitialFormValues(prev => ({
         ...prev,
         username: firstName || prev.username,
         servicesOffered, // Pass this to pre-fill the form's understanding of services
-        serviceExperiences, // Pass this to pre-fill experience years
+        serviceExperiences: [], // Initialize as empty or undefined, as it's not collected in step 1
       }));
       setIsLoadingPage(false);
     }
@@ -62,7 +53,7 @@ function ArtisanOnboardingStep2Content() {
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
-  const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully. Your selected services and experience from Step 1 are pre-filled.";
+  const pageDescription = "This information is vital for clients to find and trust your services. Your selected services from Step 1 are pre-filled. You can add years of experience for each service here or later from your main profile page.";
 
   if (isLoadingPage || !searchParams) {
     return (
@@ -109,5 +100,3 @@ export default function ArtisanOnboardingStep2Page() {
     </Suspense>
   );
 }
-
-    

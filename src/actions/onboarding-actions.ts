@@ -45,26 +45,20 @@ export async function saveClientStep2Profile(data: { location: string; username?
 
 // --- Artisan Onboarding Actions ---
 
-const ArtisanServiceExperienceSchema = z.object({
-  serviceName: z.string().min(1, "Service name cannot be empty."),
-  years: z.coerce.number().int().min(0, "Years of experience must be a non-negative number."),
-});
-
+// Updated schema: No longer includes serviceExperiences
 const ArtisanStep1ServicesSchema = z.object({
   userId: z.string(),
-  serviceExperiences: z.array(ArtisanServiceExperienceSchema)
-    .min(1, "Select at least one service and provide experience.")
+  servicesOffered: z.array(z.string().min(1))
+    .min(1, "Select at least one service.")
     .max(2, "You can select a maximum of 2 services during onboarding."),
-  servicesOffered: z.array(z.string().min(1)).min(1, "At least one service offered is required."),
 });
 
 
-export async function saveArtisanStep1Services(experiences: Array<{ serviceName: string; years: number }>) {
+// Updated action: No longer accepts serviceExperiences
+export async function saveArtisanStep1Services(servicesOffered: string[]) {
   try {
-    const servicesOffered = experiences.map(exp => exp.serviceName);
     const dataToValidate = {
       userId: MOCK_USER_ID,
-      serviceExperiences: experiences,
       servicesOffered: servicesOffered
     };
 
@@ -99,10 +93,11 @@ export async function saveArtisanStep1Services(experiences: Array<{ serviceName:
       console.log('[SERVER ACTION saveArtisanStep1Services] Client error object before return:', JSON.stringify(clientErrorObject, null, 2));
       return { success: false, error: clientErrorObject };
     }
-    console.log('[SERVER ACTION] Saving artisan step 1 services & experience:', validation.data);
+    console.log('[SERVER ACTION] Saving artisan step 1 services:', validation.data);
     // TODO: Implement actual database write
-    // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, serviceExperiences: validation.data.serviceExperiences, onboardingStep1Completed: true }, { merge: true });
-    return { success: true, data: validation.data };
+    // e.g., await db.collection('artisanProfiles').doc(validation.data.userId).set({ servicesOffered: validation.data.servicesOffered, onboardingStep1Completed: true }, { merge: true });
+    // Return only servicesOffered as serviceExperiences are no longer part of step 1
+    return { success: true, data: { userId: validation.data.userId, servicesOffered: validation.data.servicesOffered } };
 
   } catch (e: any) {
     console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanStep1Services:", e);
@@ -133,7 +128,10 @@ const ArtisanOnboardingProfileSchema = z.object({
   contactEmail: z.string().email(),
   location: z.string().min(1),
   bio: z.string().optional(),
-  serviceExperiences: z.array(ArtisanServiceExperienceSchema).optional(), 
+  serviceExperiences: z.array(z.object({
+    serviceName: z.string(),
+    years: z.coerce.number().int().min(0),
+  })).optional(), // Keep this optional as it's not collected in onboarding step 1 anymore
   servicesOffered: z.array(z.string().min(1)).min(1), 
   serviceChargeAmount: z.coerce.number().positive().optional(),
   serviceChargeDescription: z.string().optional(),
@@ -153,7 +151,7 @@ export async function saveArtisanOnboardingProfile(
     location: profileData.location,
     contactPhone: profileData.contactPhone,
     bio: profileData.bio,
-    serviceExperiences: profileData.serviceExperiences, 
+    serviceExperiences: profileData.serviceExperiences, // This will be undefined/empty from onboarding step 2 initially
     servicesOffered: profileData.servicesOffered || [], 
     serviceChargeAmount: profileData.serviceChargeAmount,
     serviceChargeDescription: profileData.serviceChargeDescription,
@@ -193,5 +191,3 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
   // This is a mock, returning false to trigger the UI prompt for demo purposes
   return { complete: false, missingFields: ['location', 'username'] };
 }
-
-    
