@@ -63,8 +63,6 @@ export function DashboardHeader() {
                 isActive ? "text-primary" : "text-foreground/70",
                 "justify-start px-3 py-2 md:px-2 md:py-1"
               )}
-              // onClick prop for DropdownMenuTrigger's Button is typically handled by DropdownMenu itself for opening/closing.
-              // If onClick is specifically for mobile sheet closing, it should be handled by the individual DropdownMenuItems.
             >
               {item.title}
               <ChevronDown className="ml-1 h-4 w-4" />
@@ -76,7 +74,7 @@ export function DashboardHeader() {
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
                     href={child.href}
-                    onClick={onClick} // This onClick is for closing the mobile sheet
+                    onClick={onClick} 
                     className={cn(
                       "text-sm",
                       pathname === child.href ? "font-semibold text-primary" : ""
@@ -95,14 +93,12 @@ export function DashboardHeader() {
     return (
       <Link
         href={item.href}
-        onClick={onClick} // This onClick is for closing the mobile sheet
+        onClick={onClick}
         className={cn(
-          // Base structural and accessibility styles similar to buttonVariants
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          // Custom layout and specific styling for NavLink
-          "justify-start", // Align text to the start
-          "px-3 py-2 md:px-2 md:py-1", // Specific padding from original Button
-          isActive ? "text-primary" : "text-foreground/70 hover:text-primary" // Active/inactive/hover states
+          "justify-start", 
+          "px-3 py-2 md:px-2 md:py-1", 
+          isActive ? "text-primary" : "text-foreground/70 hover:text-primary"
         )}
       >
         {item.title}
@@ -118,7 +114,7 @@ export function DashboardHeader() {
   const MobileNavContent = () => (
     <nav className="flex flex-col gap-2 p-4">
       {accessibleItems.map((item) => (
-        <div key={item.href || item.title}> {/* Use item.title as key if href is undefined (for parent items) */}
+        <div key={item.href || item.title}> 
           {item.children && item.children.length > 0 ? (
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
@@ -154,7 +150,7 @@ export function DashboardHeader() {
       {/* Desktop Navigation */}
       <nav className="hidden flex-1 items-center justify-center gap-1 md:flex lg:gap-2">
         {accessibleItems.map((item) => (
-          <NavLink key={item.href || item.title} item={item} /> // Use item.title as key if href is undefined
+          <NavLink key={item.href || item.title} item={item} />
         ))}
       </nav>
 
@@ -175,7 +171,7 @@ export function DashboardHeader() {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
               {user.avatar ? (
                 <img
                   src={user.avatar}
@@ -224,7 +220,7 @@ export function DashboardHeader() {
                 </div>
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-4rem)]"> {/* Adjust height considering header */}
+          <ScrollArea className="h-[calc(100vh-4rem)]"> 
             <MobileNavContent />
           </ScrollArea>
         </SheetContent>
