@@ -114,12 +114,12 @@ export function ArtisanProfileForm({
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
-      servicesOffered: initialData?.servicesOffered || [], // Keep original services offered
+      servicesOffered: initialData?.servicesOffered || [], 
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
 
-    console.log("Artisan profile submission for user:", userId, submissionData);
+    console.log("Artisan profile submission for user:", userId, JSON.stringify(submissionData, null, 2));
 
     const result = await saveArtisanOnboardingProfile(submissionData as Omit<ArtisanProfile, 'onboardingStep1Completed'>);
 
@@ -131,13 +131,27 @@ export function ArtisanProfileForm({
         onSaveSuccess();
       }
     } else {
-      let errorMsg = "Could not save profile. Please check your input.";
+      let errorMessages: string[] = [];
       if (result.error) {
-        const fieldErrors = Object.values(result.error).flat().join(' ');
-        if (fieldErrors) errorMsg = fieldErrors;
+        if (result.error._form && Array.isArray(result.error._form)) {
+          errorMessages = errorMessages.concat(result.error._form);
+        }
+        if (result.error.fields) {
+          Object.values(result.error.fields).forEach(fieldErrorArray => {
+            if (Array.isArray(fieldErrorArray)) {
+              errorMessages = errorMessages.concat(fieldErrorArray as string[]);
+            }
+          });
+        }
+         if (result.error._server_error && Array.isArray(result.error._server_error)) {
+            errorMessages = errorMessages.concat(result.error._server_error);
+        }
       }
-      toast({ title: "Update Failed", description: errorMsg, variant: "destructive" });
-      console.error("Artisan profile save error:", result.error);
+      const description = errorMessages.length > 0 ? errorMessages.join(' ') : "Could not save profile. Please check input or try again.";
+      
+      toast({ title: "Update Failed", description, variant: "destructive" });
+      console.error("Artisan profile save error. Full result:", JSON.stringify(result, null, 2));
+      if(result.error) console.error("Artisan profile save error (parsed error object):", JSON.stringify(result.error, null, 2));
     }
   }
 
@@ -384,3 +398,5 @@ export function ArtisanProfileForm({
     </Form>
   );
 }
+
+    

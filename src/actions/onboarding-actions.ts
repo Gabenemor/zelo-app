@@ -127,32 +127,86 @@ const ArtisanOnboardingProfileSchema = z.object({
 export async function saveArtisanOnboardingProfile(
   profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>>
 ) {
-  const dataToValidate = {
-    userId: MOCK_USER_ID,
-    username: profileData.username,
-    contactEmail: profileData.contactEmail,
-    location: profileData.location,
-    contactPhone: profileData.contactPhone,
-    bio: profileData.bio,
-    serviceExperiences: profileData.serviceExperiences,
-    servicesOffered: profileData.servicesOffered || [],
-    isLocationPublic: profileData.isLocationPublic,
-    onboardingCompleted: true,
-    profileSetupCompleted: true,
-  };
+  try {
+    const dataToValidate = {
+      userId: MOCK_USER_ID,
+      username: profileData.username,
+      contactEmail: profileData.contactEmail,
+      location: profileData.location,
+      contactPhone: profileData.contactPhone,
+      bio: profileData.bio,
+      serviceExperiences: profileData.serviceExperiences,
+      servicesOffered: profileData.servicesOffered || [],
+      isLocationPublic: profileData.isLocationPublic,
+      onboardingCompleted: true,
+      profileSetupCompleted: true,
+    };
+    console.log('[SERVER ACTION saveArtisanOnboardingProfile] Data to validate:', JSON.stringify(dataToValidate, null, 2));
 
-  const validation = ArtisanOnboardingProfileSchema.safeParse(dataToValidate);
+    const validation = ArtisanOnboardingProfileSchema.safeParse(dataToValidate);
 
-  if (!validation.success) {
-    console.error("Artisan onboarding profile validation error:", validation.error.flatten());
-    return { success: false, error: validation.error.flatten().fieldErrors };
+    if (!validation.success) {
+      const flattenedErrors = validation.error.flatten();
+      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", JSON.stringify(flattenedErrors, null, 2));
+      
+      const clientErrorObject: Record<string, any> = {};
+      if (flattenedErrors.formErrors.length > 0) {
+        clientErrorObject._form = flattenedErrors.formErrors;
+      }
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = {};
+        for (const key in flattenedErrors.fieldErrors) {
+          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
+          if (flattenedErrors.fieldErrors[fieldKey]) {
+             clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
+          }
+        }
+      }
+      
+      if (Object.keys(clientErrorObject).length === 0) {
+          if (validation.error) { 
+              clientErrorObject._server_error = ["Validation failed with a non-specific Zod error on the server for profile."];
+          } else { 
+              clientErrorObject._server_error = ["Validation failed with an unknown error on the server for profile."];
+          }
+      }
+      console.log('[SERVER ACTION saveArtisanOnboardingProfile] Client error object before return:', JSON.stringify(clientErrorObject, null, 2));
+      return { success: false, error: clientErrorObject };
+    }
+
+    console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2):', validation.data);
+    // Mock database save
+    return { success: true, data: validation.data };
+
+  } catch (e: any) {
+    console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanOnboardingProfile:", e);
+    const errorPayload: Record<string, any> = { 
+      _server_error: ["An unexpected error occurred on the server while saving the profile. Please try again later."] 
+    };
+    if (e instanceof Error && e.message) {
+        (errorPayload._server_error as string[]).push(e.message);
+    } else if (typeof e === 'string') {
+        (errorPayload._server_error as string[]).push(e);
+    } else {
+        (errorPayload._server_error as string[]).push("No specific error message available.");
+    }
+    console.log('[SERVER ACTION saveArtisanOnboardingProfile] Catch block error payload before return:', JSON.stringify(errorPayload, null, 2));
+    return { 
+      success: false, 
+      error: errorPayload 
+    };
   }
-
-  console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2):', validation.data);
-  return { success: true, data: validation.data };
 }
 
 export async function checkClientProfileCompleteness(userId: string): Promise<{ complete: boolean; missingFields?: string[] }> {
   console.log('[SERVER ACTION] Checking client profile completeness for userId (mock):', userId);
-  return { complete: false, missingFields: ['location', 'username'] };
+  // Mock: Assume profile is incomplete if certain fields are missing in a hypothetical DB record
+  // For this demo, let's always return incomplete if not specifically 'completed'
+  // const userProfile = await db.collection('clientProfiles').doc(userId).get();
+  // if (!userProfile.exists || !userProfile.data()?.location || !userProfile.data()?.username) {
+  //    return { complete: false, missingFields: ['location', 'username'] };
+  // }
+  return { complete: false, missingFields: ['location', 'username'] }; // Default to incomplete for demo
 }
+
+    
