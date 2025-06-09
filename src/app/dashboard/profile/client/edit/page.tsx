@@ -1,18 +1,20 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientProfileForm } from "@/components/profile/client-profile-form";
 import { UserCog } from "lucide-react";
 import type { ClientProfile } from "@/types";
 
 export default async function EditClientProfilePage() {
-  // Placeholder: In a real app, fetch existing profile data for the logged-in user
-  // const userId = await getCurrentUserId(); // Placeholder
   const userId = "mockClientUserId456"; 
   
-  const existingProfileData: Partial<ClientProfile & { fullName?: string, contactEmail?: string, avatarUrl?: string }> | undefined = {
+  const existingProfileData: Partial<ClientProfile> | undefined = {
+    userId: userId,
     fullName: "Ada Chukwuma",
-    contactEmail: "client@example.com", // Usually pre-filled from auth
+    contactEmail: "client@example.com", 
     location: "Victoria Island, Lagos",
     avatarUrl: "https://placehold.co/128x128.png?text=Ada",
+    servicesLookingFor: ["Plumbing", "Catering", "Electrical Services"], // Mock interested services
+    isLocationPublic: true,
   };
 
   return (

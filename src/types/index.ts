@@ -1,6 +1,4 @@
 
-
-
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User {
@@ -41,10 +39,10 @@ export interface ArtisanProfile {
 
 export interface ClientProfile {
   userId: string;
-  username?: string; // Corresponds to username in ClientProfileSetupForm
-  avatarUrl?: string; // Added for consistency with ClientProfileForm
-  fullName?: string; // Added for consistency with ClientProfileForm
-  contactEmail?: string; // Added for consistency
+  username?: string; 
+  avatarUrl?: string; 
+  fullName?: string; 
+  contactEmail?: string; 
   contactPhone?: string;
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
@@ -194,9 +192,9 @@ export type LucideIconName =
   | "Trash2" 
   | "DollarSign" 
   | "Info"
-  | "ListChecks" // Added for Client Dashboard "My Service Requests"
-  | "ShoppingCart" // Added for Client Payments "Total Spent"
-  | "Edit3"; // Added Edit3 from artisan dashboard
+  | "ListChecks"
+  | "ShoppingCart" 
+  | "Edit3";
 
 
 export interface NavItem {
@@ -217,3 +215,6 @@ export const NIGERIAN_ARTISAN_SERVICES = [
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
 ] as const;
+
+type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
+export type NigerianArtisanService = ServiceName;

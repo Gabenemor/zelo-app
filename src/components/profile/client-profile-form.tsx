@@ -18,9 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Phone, Home, Save, User, Mail, Edit3, Camera } from "lucide-react"; // Added Camera
-import type { ClientProfile } from "@/types";
+import { Phone, Home, Save, User, Mail, Edit3, Camera, Search } from "lucide-react";
+import type { ClientProfile, NigerianArtisanService } from "@/types";
+import { NIGERIAN_ARTISAN_SERVICES } from "@/types";
 import Image from "next/image";
+import { ServiceSelectionChips } from "@/components/onboarding/service-selection-chips";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
 
 const clientProfileSchema = z.object({
   fullName: z.string().min(2, { message: "Full name is required." }),
@@ -30,13 +34,13 @@ const clientProfileSchema = z.object({
   }),
   location: z.string().min(3, { message: "Location is required." }).optional(),
   isLocationPublic: z.boolean().default(false).optional(),
-  // avatarUrl: z.string().url().optional(), // For actual file uploads, this would be different
+  servicesLookingFor: z.array(z.string()).min(1, "Please select at least one service you're interested in.").optional(),
 });
 
 type ClientProfileFormValues = z.infer<typeof clientProfileSchema>;
 
 interface ClientProfileFormProps {
-  initialData?: Partial<ClientProfile & { fullName?: string, contactEmail?: string, avatarUrl?: string }>;
+  initialData?: Partial<ClientProfile>;
   userId: string;
 }
 
@@ -53,6 +57,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
       contactPhone: initialData?.contactPhone || "",
       location: initialData?.location || "",
       isLocationPublic: initialData?.isLocationPublic || false,
+      servicesLookingFor: initialData?.servicesLookingFor || [],
     },
   });
 
@@ -69,8 +74,13 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
 
   async function onSubmit(values: ClientProfileFormValues) {
     setIsLoading(true);
-    // In a real app, derive locationCoordinates from 'location' string using a geocoding service
-    const submissionData = { ...values, avatarUrl: avatarPreview, locationCoordinates: initialData?.locationCoordinates /* or derived */ };
+    const submissionData = { 
+        ...values, 
+        userId, // Add userId to submission
+        avatarUrl: avatarPreview, // Include current avatar preview
+        locationCoordinates: initialData?.locationCoordinates, // Preserve existing or derived coords
+        servicesLookingFor: values.servicesLookingFor || [] // Ensure it's an array
+    };
     console.log("Client profile submission for user:", userId, submissionData);
     
     setTimeout(() => {
@@ -83,17 +93,17 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
-            <div className="relative w-32 h-32 rounded-full border-2 border-muted overflow-hidden"> {/* Container is square, rounded, overflow hidden */}
+            <div className="relative w-32 h-32 rounded-full border-2 border-muted overflow-hidden">
                 <Image 
                     src={avatarPreview || "https://placehold.co/128x128.png?text=Avatar"} 
                     alt="Profile Avatar" 
-                    width={128} // Width and height for next/image optimization
+                    width={128}
                     height={128}
-                    className="object-cover w-full h-full" // Image fills container, covers, maintains aspect ratio
+                    className="object-cover w-full h-full"
                     data-ai-hint="profile avatar"
                 />
                 <label htmlFor="avatarUpload" className="absolute bottom-1 right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                    <Camera className="h-4 w-4" /> {/* Changed from Edit3 to Camera for clarity */}
+                    <Camera className="h-4 w-4" />
                     <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} />
                 </label>
             </div>
@@ -193,6 +203,32 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
             </FormItem>
           )}
         />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /> Services You're Interested In</CardTitle>
+            <CardDescription>Select the types of services you typically look for. This helps us recommend relevant artisans.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="servicesLookingFor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ServiceSelectionChips
+                      availableServices={NIGERIAN_ARTISAN_SERVICES.filter(s => s !== "Other") as NigerianArtisanService[]}
+                      selectedServices={field.value || []}
+                      onSelectedServicesChange={field.onChange}
+                      selectionType="multiple"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
         
         <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
           {isLoading ? "Saving..." : <> <Save className="mr-2 h-4 w-4" /> Save Profile </>}

@@ -1,42 +1,54 @@
 
 "use client"; 
 
-import { useEffect, Suspense } from 'react'; // Added Suspense
+import { useEffect, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from '@/components/ui/page-header';
-import { Loader2, UserCog } from 'lucide-react'; // Added UserCog for PageHeader icon
+import { Loader2, UserCog } from 'lucide-react';
 import type { UserRole } from '@/types';
 
 function EditProfileRedirectContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const role = searchParams.get('role') as UserRole | null;
-  const isLoading = !searchParams || !role; // Loading if searchParams or role not yet available
+  const searchParams = useSearchParams(); // Guaranteed by Suspense
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   useEffect(() => {
+    // This effect runs once when searchParams becomes available.
+    const role = searchParams.get('role') as UserRole | null;
+    let targetPath = '/dashboard?role=client'; // Default fallback to client dashboard
+
     if (role) {
       if (role === 'artisan') {
-        router.replace(`/dashboard/profile/artisan/edit?role=artisan`);
+        targetPath = `/dashboard/profile/artisan/edit?role=artisan`;
       } else if (role === 'client') {
-        router.replace(`/dashboard/profile/client/edit?role=client`);
+        targetPath = `/dashboard/profile/client/edit?role=client`;
       } else if (role === 'admin') {
-        // Admin might have a different profile edit page or use a generic one
-        router.replace('/dashboard/admin/profile/edit'); // Admin keeps its own path
-      } else {
-        // Fallback if role is unknown, though ideally this shouldn't happen
-        router.replace('/dashboard');
+        targetPath = '/dashboard/admin/profile/edit'; // Or appropriate admin profile edit
       }
+    } else {
+      console.warn("Role missing in /dashboard/profile/edit, falling back to client dashboard.");
     }
-  }, [role, router]);
+    
+    setRedirectPath(targetPath);
 
-  if (isLoading) {
+  }, [searchParams]); // Only depends on searchParams object itself
+
+  useEffect(() => {
+    // This effect runs when redirectPath is set.
+    if (redirectPath) {
+      router.replace(redirectPath);
+    }
+  }, [redirectPath, router]);
+
+  // Show loading skeleton UNTIL redirectPath is set and router.replace has been called or is about to be called.
+  if (!redirectPath) {
     return (
         <div className="space-y-6">
             <PageHeader 
               title="Edit Profile" 
               description="Loading your profile editor..." 
-              icon={UserCog} // Use UserCog or a generic icon
+              icon={UserCog}
             />
             <div className="space-y-4 p-4 border rounded-lg bg-card animate-pulse">
                 <div className="flex items-center space-x-4">
@@ -73,7 +85,7 @@ function EditProfileRedirectContent() {
 
 export default function EditProfilePage() {
   return (
-    <Suspense fallback={ // Root level Suspense for useSearchParams
+    <Suspense fallback={
       <div className="space-y-6">
         <PageHeader title="Edit Profile" description="Loading..." icon={Loader2} className="animate-pulse"/>
         <Skeleton className="h-64 w-full rounded-lg bg-muted"/>
