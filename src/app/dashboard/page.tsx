@@ -23,14 +23,18 @@ import {
   ClipboardList, 
   UserCog,
   UserCircle2,
-  DollarSign, // For Total Earned
-  Edit3, // For Bids Made
-  TrendingUp // For Completion Rate (example)
+  DollarSign,
+  Edit3,
+  TrendingUp,
+  CalendarDays, // Added for service experience
+  Edit // Added for edit profile button
 } from "lucide-react";
-import type { ActivityItem, LucideIconName, ServiceRequest } from "@/types";
+import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ServiceExperience } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const mockUserId = "currentArtisanId123"; // Simulate a logged-in artisan user
 const userType: 'client' | 'artisan' = 'artisan'; // Hardcode for artisan view
@@ -41,6 +45,11 @@ const mockArtisanStats = {
   totalEarned: 175000, // Naira
   completionRate: 95, // Percentage
 };
+
+const mockArtisanServiceExperiences: ServiceExperience[] = [
+  { serviceName: "Tailoring/Fashion Design", years: 10, chargeAmount: 20000, chargeDescription: "per outfit" },
+  { serviceName: "Plumbing", years: 5, chargeAmount: 5000, chargeDescription: "call-out fee" }
+];
 
 const mockRecentActivitiesArtisan: ActivityItem[] = [
   {
@@ -68,7 +77,7 @@ const mockNewJobsForArtisan: ServiceRequest[] = [
 ];
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera: UserCircle, UploadCloud: UserCircle, Menu: LayoutDashboard, // Add Menu if used
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera: UserCircle, UploadCloud: UserCircle, Menu: LayoutDashboard,
 };
 
 export default function DashboardHomePage() {
@@ -122,56 +131,90 @@ export default function DashboardHomePage() {
           )}
         </div>
         
-        {/* Recent Activity Feed - Common or Artisan-specific */}
+        {/* Right Column: Services & Recent Activity */}
         <div className="lg:col-span-1 space-y-6">
+           {/* Your Services Section - Artisan */}
+           {userType === 'artisan' && mockArtisanServiceExperiences.length > 0 && (
             <Card>
-                <CardHeader>
-                <CardTitle className="font-headline">Recent Activity</CardTitle>
-                <CardDescription>Your latest interactions on Zelo.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                {userActivities.length > 0 ? (
-                    <ul className="space-y-4">
-                    {userActivities.map((activity) => {
-                        const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard; // Fallback icon
-                        const activityContent = (
-                        <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
-                            <IconComponent className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">{activity.title}</p>
-                            {activity.description && <p className="text-xs text-muted-foreground">{activity.description}</p>}
-                            <p className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                            </p>
-                            </div>
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Briefcase className="text-primary h-5 w-5"/> Your Services</CardTitle>
+                <CardDescription>Overview of your offered services and pricing.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mockArtisanServiceExperiences.map((exp, index) => (
+                  <div key={index}>
+                    <h4 className="font-semibold text-md text-foreground">{exp.serviceName}</h4>
+                    <div className="text-sm text-muted-foreground space-y-1 mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        <span>{exp.years} years experience</span>
+                      </div>
+                      {exp.chargeAmount && (
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign className="h-3.5 w-3.5" />
+                          <span>₦{exp.chargeAmount.toLocaleString()} {exp.chargeDescription || ''}</span>
                         </div>
-                        );
-
-                        return (
-                        <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
-                            {activity.link ? (
-                            <Link href={activity.link} className="block">
-                                {activityContent}
-                            </Link>
-                            ) : (
-                            activityContent
-                            )}
-                        </li>
-                        );
-                    })}
-                    </ul>
-                ) : (
-                    <div className="py-8 text-center">
-                    <LayoutDashboard className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        No recent activity to display yet.
-                    </p>
+                      )}
                     </div>
-                )}
-                </CardContent>
+                    {index < mockArtisanServiceExperiences.length - 1 && <Separator className="my-3"/>}
+                  </div>
+                ))}
+                 <Button variant="outline" size="sm" className="w-full mt-4" asChild>
+                    <Link href="/dashboard/profile/artisan/edit"><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
+                </Button>
+              </CardContent>
             </Card>
+          )}
+
+          {/* Recent Activity Feed - Common or Artisan-specific */}
+          <Card>
+              <CardHeader>
+              <CardTitle className="font-headline">Recent Activity</CardTitle>
+              <CardDescription>Your latest interactions on Zelo.</CardDescription>
+              </CardHeader>
+              <CardContent>
+              {userActivities.length > 0 ? (
+                  <ul className="space-y-4">
+                  {userActivities.map((activity) => {
+                      const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard; // Fallback icon
+                      const activityContent = (
+                      <div className="flex items-start gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
+                          <IconComponent className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">{activity.title}</p>
+                          {activity.description && <p className="text-xs text-muted-foreground">{activity.description}</p>}
+                          <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                          </p>
+                          </div>
+                      </div>
+                      );
+
+                      return (
+                      <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
+                          {activity.link ? (
+                          <Link href={activity.link} className="block">
+                              {activityContent}
+                          </Link>
+                          ) : (
+                          activityContent
+                          )}
+                      </li>
+                      );
+                  })}
+                  </ul>
+              ) : (
+                  <div className="py-8 text-center">
+                  <LayoutDashboard className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                      No recent activity to display yet.
+                  </p>
+                  </div>
+              )}
+              </CardContent>
+          </Card>
         </div>
       </div>
 
