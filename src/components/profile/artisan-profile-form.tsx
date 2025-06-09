@@ -114,7 +114,6 @@ export function ArtisanProfileForm({
   const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      form.setValue('portfolioFiles', files); // Update RHF state
       const newPreviews: string[] = [];
       Array.from(files).forEach(file => {
         if (newPreviews.length < 5) { // Max 5 previews
@@ -129,14 +128,9 @@ export function ArtisanProfileForm({
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
 
-    // TODO: Actual file upload logic for values.portfolioFiles will go here.
-    // For now, we'll just log and use existing URLs or previews.
-    let uploadedImageUrls = initialData?.portfolioImageUrls || []; // Fallback to existing if no new files
+    let uploadedImageUrls = initialData?.portfolioImageUrls || []; 
     if (values.portfolioFiles && values.portfolioFiles.length > 0) {
         console.log("Simulating upload for:", values.portfolioFiles);
-        // In a real app, you'd upload files here and get back URLs
-        // For demo, we can use the local preview URLs if needed, or just keep existing
-        // uploadedImageUrls = portfolioPreviews; // Or new URLs from server
     }
 
     const submissionData: Partial<ArtisanProfile> = {
@@ -431,8 +425,8 @@ export function ArtisanProfileForm({
                               className="sr-only" 
                               accept="image/*" 
                               onChange={(e) => {
-                                field.onChange(e.target.files); // RHF way to handle FileList
-                                handlePortfolioChange(e); // For previews
+                                field.onChange(e.target.files); 
+                                handlePortfolioChange(e); 
                               }} 
                               disabled={isLoading} 
                             />
@@ -447,25 +441,20 @@ export function ArtisanProfileForm({
               )}
             />
             
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {portfolioPreviews.slice(0,5).map((url, index) => (
-                <div key={index} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border shadow-sm">
-                  <img
-                    src={url}
-                    alt={`Portfolio image ${index + 1}`}
-                    className="object-cover w-full h-full"
-                    data-ai-hint={url.includes("placehold") ? "portfolio work" : undefined}
-                  />
-                </div>
-              ))}
-              {/* Fill remaining slots with placeholders if less than 5 previews and no initial portfolio */}
-              {portfolioPreviews.length === 0 && (!initialData?.portfolioImageUrls || initialData.portfolioImageUrls.length === 0) &&
-                Array.from({ length: 5 - portfolioPreviews.length }).map((_, index) => (
-                  <div key={`placeholder-${index}`} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border bg-muted shadow-sm flex items-center justify-center">
-                     <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+            {portfolioPreviews.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {portfolioPreviews.slice(0,5).map((url, index) => (
+                  <div key={index} className="relative aspect-[3/2] w-full overflow-hidden rounded-md border shadow-sm">
+                    <img
+                      src={url}
+                      alt={`Portfolio image ${index + 1}`}
+                      className="object-cover w-full h-full"
+                      data-ai-hint={url.includes("placehold.co") ? "portfolio work" : undefined}
+                    />
                   </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -486,4 +475,6 @@ export function ArtisanProfileForm({
     </Form>
   );
 }
+    
+
     
