@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   createdAt: Date;
+  status?: 'active' | 'suspended' | 'deactivated'; // Added status
 }
 
 export interface ServiceExperience {
@@ -218,3 +219,4 @@ export const NIGERIAN_ARTISAN_SERVICES = [
 
 type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
 export type NigerianArtisanService = ServiceName;
+
