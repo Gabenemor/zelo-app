@@ -10,7 +10,7 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader />
-      <main className="flex-1 p-4 sm:p-6 bg-background max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 sm:p-6 bg-background w-full lg:w-[65%] mx-auto">
         {children}
       </main>
       <Toaster /> {/* Ensure Toaster is available if sub-components use toasts */}
