@@ -15,8 +15,10 @@ function ArtisanOnboardingStep2Content() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
+  const [isLoadingPage, setIsLoadingPage] = useState(true);
 
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; // Replace with actual user ID from auth
+
+  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; 
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   useEffect(() => {
@@ -29,24 +31,28 @@ function ArtisanOnboardingStep2Content() {
         } catch (e) {
           console.error("Failed to parse servicesOffered from URL:", e);
           toast({ title: "Error", description: "Could not load selected services. Please go back and try again.", variant: "destructive" });
-          // Consider redirecting back if services are crucial and missing
-          // router.push('/onboarding/artisan/step-1'); 
         }
       }
-      setInitialFormValues(prev => ({ ...prev, servicesOffered, username: firstName || prev.username }));
+      // Ensure username is set from firstName if available, otherwise from existing profile username
+      setInitialFormValues(prev => ({ 
+        ...prev, 
+        servicesOffered, 
+        username: firstName || prev.username 
+      }));
+      setIsLoadingPage(false);
     }
   }, [searchParams, toast, firstName]);
 
 
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
-    router.push('/dashboard'); // Navigate to dashboard after successful save
+    router.push('/dashboard'); 
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
   const pageDescription = "This information is vital for clients to find and trust your services. Please fill it out carefully.";
 
-  if (!searchParams || initialFormValues.servicesOffered === undefined) { 
+  if (isLoadingPage || !searchParams || initialFormValues.servicesOffered === undefined) {
     return (
       <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

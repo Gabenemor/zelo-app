@@ -19,9 +19,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft } from "lucide-react"; // Added ArrowLeft
 import type { ArtisanProfile, ServiceExperience } from "@/types";
-import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions"; 
+import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
 
 const serviceExperienceSchema = z.object({
@@ -48,7 +48,7 @@ type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
 interface ArtisanProfileFormProps {
   initialData?: Partial<ArtisanProfile>;
   userId: string;
-  onSaveSuccess?: () => void; 
+  onSaveSuccess?: () => void;
   submitButtonText?: React.ReactNode;
   backButtonHref?: string;
   backButtonText?: string;
@@ -76,7 +76,7 @@ export function ArtisanProfileForm({
       location: initialData?.location || "",
       isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
-      serviceExperiences: initialData?.servicesOffered 
+      serviceExperiences: initialData?.servicesOffered
         ?.map(serviceName => {
           const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
           return {
@@ -93,8 +93,7 @@ export function ArtisanProfileForm({
   });
 
   useEffect(() => {
-    // Initialize serviceExperiences if servicesOffered exists and serviceExperiences is empty
-    if (initialData?.servicesOffered && initialData.servicesOffered.length > 0 && form.getValues('serviceExperiences')?.length === 0) {
+    if (initialData?.servicesOffered && initialData.servicesOffered.length > 0 && (form.getValues('serviceExperiences') === undefined || form.getValues('serviceExperiences')?.length === 0) ) {
       const experiencesToSet = initialData.servicesOffered.map(serviceName => {
         const existing = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
         return { serviceName, years: existing?.years ?? 0 };
@@ -110,8 +109,8 @@ export function ArtisanProfileForm({
       ...values,
       username: values.username,
       userId,
-      servicesOffered: initialData?.servicesOffered || [], 
-      onboardingCompleted: true, 
+      servicesOffered: initialData?.servicesOffered || [],
+      onboardingCompleted: true,
       profileSetupCompleted: true,
     };
 
@@ -207,7 +206,7 @@ export function ArtisanProfileForm({
                   render={({ field: serviceNameField }) => (
                     <FormItem className="flex-1 sm:flex-auto">
                       <FormLabel className="text-sm font-semibold text-foreground">
-                        {serviceNameField.value} 
+                        {serviceNameField.value}
                       </FormLabel>
                     </FormItem>
                   )}
@@ -353,11 +352,11 @@ export function ArtisanProfileForm({
 
         <div className="flex flex-wrap justify-end gap-3 pt-4">
           {backButtonHref && (
-            <Link href={backButtonHref} passHref legacyBehavior>
-              <Button type="button" variant="outline" disabled={isLoading}>
+            <Button asChild variant="outline" disabled={isLoading}>
+              <Link href={backButtonHref}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> {backButtonText}
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
           <Button type="submit" className="font-semibold" disabled={isLoading}>
             {isLoading ? "Saving..." : submitButtonText}
