@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { PageHeader } from "@/components/ui/page-header";
-import { MapView } from "@/components/location/map-view";
+// import { MapView } from "@/components/location/map-view"; // Removed MapView import
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,10 @@ import Link from "next/link";
 
 // Mock data
 const mockServices = [
-  { id: "1", artisanName: "Adewale Plumbing", service: "Plumbing", location: "Ikeja, Lagos", rating: 4.5, priceRange: "₦5,000 - ₦20,000", avatar: "https://placehold.co/80x80.png?text=AP" },
-  { id: "2", artisanName: "Chioma's Catering", service: "Catering", location: "Lekki, Lagos", rating: 4.8, priceRange: "₦10,000 per head", avatar: "https://placehold.co/80x80.png?text=CC" },
-  { id: "3", artisanName: "Musa Electrics", service: "Electrical Repair", location: "Wuse, Abuja", rating: 4.2, priceRange: "By quote", avatar: "https://placehold.co/80x80.png?text=ME" },
-  { id: "4", artisanName: "Bola Fashion House", service: "Tailoring", location: "Surulere, Lagos", rating: 4.9, priceRange: "From ₦15,000", avatar: "https://placehold.co/80x80.png?text=BFH" },
+  { id: "1", artisanName: "Adewale Plumbing", service: "Plumbing", location: "Ikeja, Lagos", rating: 4.5, priceRange: "₦5,000 - ₦20,000", avatar: "https://placehold.co/80x80.png?text=AP" , "data-ai-hint": "profile avatar"},
+  { id: "2", artisanName: "Chioma's Catering", service: "Catering", location: "Lekki, Lagos", rating: 4.8, priceRange: "₦10,000 per head", avatar: "https://placehold.co/80x80.png?text=CC", "data-ai-hint": "profile avatar" },
+  { id: "3", artisanName: "Musa Electrics", service: "Electrical Repair", location: "Wuse, Abuja", rating: 4.2, priceRange: "By quote", avatar: "https://placehold.co/80x80.png?text=ME", "data-ai-hint": "profile avatar" },
+  { id: "4", artisanName: "Bola Fashion House", service: "Tailoring", location: "Surulere, Lagos", rating: 4.9, priceRange: "From ₦15,000", avatar: "https://placehold.co/80x80.png?text=BFH", "data-ai-hint": "profile avatar" },
 ];
 
 const serviceCategories = ["Plumbing", "Catering", "Electrical Repair", "Tailoring", "Carpentry", "Hairdressing"];
@@ -115,9 +115,10 @@ export default function BrowseServicesPage() {
           </Card>
         </div>
 
-        {/* Map and Results Column */}
+        {/* Results Column - Now takes full width on lg screens if no map */}
         <div className="lg:col-span-2 space-y-6">
-          <MapView className="h-[300px] md:h-[400px]" />
+          {/* MapView component was here, now removed */}
+          {/* <MapView className="h-[300px] md:h-[400px]" /> */}
 
           <h2 className="font-headline text-2xl font-semibold">Available Artisans ({filteredServices.length})</h2>
           {filteredServices.length > 0 ? (
@@ -125,7 +126,7 @@ export default function BrowseServicesPage() {
               {filteredServices.map(service => (
                 <Card key={service.id} className="overflow-hidden transition-all hover:shadow-lg">
                   <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
-                     <Image src={service.avatar} alt={service.artisanName} width={60} height={60} className="rounded-full border" data-ai-hint="profile avatar" />
+                     <Image src={service.avatar} alt={service.artisanName} width={60} height={60} className="rounded-full border" data-ai-hint={service["data-ai-hint"] || "profile avatar"} />
                     <div className="grid gap-1">
                       <CardTitle className="font-headline text-lg group-hover:underline">{service.artisanName}</CardTitle>
                       <CardDescription className="text-primary font-semibold">{service.service}</CardDescription>
