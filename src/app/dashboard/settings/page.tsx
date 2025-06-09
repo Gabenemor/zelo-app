@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Bell, Shield, Palette, Trash2 } from "lucide-react";
+import { Settings, Bell, Shield, Palette, Trash2, UserCog, AlertTriangle } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -80,17 +81,30 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Delete Account Card */}
-        <Card className="md:col-span-2 lg:col-span-3 border-destructive">
+        {/* Manage Account Card */}
+        <Card className="md:col-span-2 lg:col-span-3">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Delete Account</CardTitle>
-                <CardDescription className="text-destructive/80">Permanently delete your Zelo account and all associated data.</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2"><UserCog className="h-5 w-5 text-primary" /> Manage Account</CardTitle>
+                <CardDescription>Manage your account status, including suspension or permanent deletion.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                    This action is irreversible. Please be sure you want to proceed. All your profile information, job history, messages, and payment details will be permanently removed.
-                </p>
-                <Button variant="destructive">Delete My Account</Button>
+            <CardContent className="space-y-6">
+                <div>
+                    <h4 className="font-semibold text-foreground mb-1">Suspend Account</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        Suspending your account will temporarily deactivate it. Your profile and listings will not be visible,
+                        but your data will be retained. You can reactivate your account at any time by logging back in.
+                    </p>
+                    <Button variant="outline">Suspend My Account</Button>
+                </div>
+                <Separator />
+                <div>
+                    <h4 className="font-semibold text-destructive mb-1 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4"/> Delete Account</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        Permanently deleting your account is irreversible. All your profile information, job history, messages,
+                        and payment details will be permanently removed. This action cannot be undone.
+                    </p>
+                    <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete My Account Permanently</Button>
+                </div>
             </CardContent>
         </Card>
 
