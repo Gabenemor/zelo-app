@@ -152,3 +152,4 @@ export const NIGERIAN_ARTISAN_SERVICES = [
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
 ] as const;
+
