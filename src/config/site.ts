@@ -31,15 +31,17 @@ export const dashboardNavItems: NavItem[] = [
     icon: "UserCircle",
     roles: commonRoles,
     children: [
+       { title: "View My Profile", href: "/dashboard/profile", roles: commonRoles },
        { title: "Edit My Profile", href: "/dashboard/profile/edit", roles: commonRoles },
+       { title: "Edit Primary Services", href: "/dashboard/profile/artisan/services/edit", icon: "Briefcase", roles: artisanOnly },
        { title: "Withdrawal Settings", href: "/dashboard/profile/withdrawal-settings", icon: "CreditCard", roles: artisanOnly },
     ]
   },
   // Client-specific section (will be filtered out for artisans by role check in header)
   {
     title: "Find Services",
-    href: "/dashboard/services",
-    icon: "Briefcase",
+    href: "/dashboard/services/browse", // Main entry point for clients
+    icon: "Search", // Changed icon to reflect searching
     roles: clientOnly,
     children: [
       { title: "Browse Artisans", href: "/dashboard/services/browse", roles: clientOnly },
@@ -51,7 +53,7 @@ export const dashboardNavItems: NavItem[] = [
   {
     title: "Artisan Hub",
     href: "/dashboard/jobs", // Main entry point for artisans to find jobs
-    icon: "Search",
+    icon: "Briefcase", // Changed icon for artisan hub
     roles: artisanOnly,
     children: [
         { title: "Find New Jobs", href: "/dashboard/jobs", roles: artisanOnly },
@@ -67,11 +69,11 @@ export const dashboardNavItems: NavItem[] = [
   },
   {
     title: "Payments",
-    href: "/dashboard/payments", // New top-level payments page
-    icon: "CreditCard", // Changed icon for payments
+    href: "/dashboard/payments", 
+    icon: "CreditCard",
     roles: commonRoles,
     children: [
-        { title: "Payments Overview", href: "/dashboard/payments", roles: commonRoles }, // Link to the new overview
+        { title: "Payments Overview", href: "/dashboard/payments", roles: commonRoles }, 
         { title: "Escrow Details", href: "/dashboard/payments/escrow", roles: commonRoles },
         { title: "Transaction History", href: "/dashboard/payments/history", roles: commonRoles },
     ]
@@ -79,11 +81,11 @@ export const dashboardNavItems: NavItem[] = [
   {
     title: "Admin Panel",
     href: "/dashboard/admin",
-    icon: "Users",
+    icon: "Users", // Or Shield for admin
     roles: adminOnly,
     children: [
-        { title: "Manage Users", href: "/dashboard/admin/users", roles: adminOnly },
-        { title: "Manage Services", href: "/dashboard/admin/services", roles: adminOnly },
+        { title: "User Management", href: "/dashboard/admin/users", roles: adminOnly },
+        { title: "Service Categories", href: "/dashboard/admin/services", roles: adminOnly }, // Example
         { title: "Platform Settings", href: "/dashboard/admin/settings", roles: adminOnly },
     ]
   },

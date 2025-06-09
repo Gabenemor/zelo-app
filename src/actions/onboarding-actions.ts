@@ -38,7 +38,7 @@ export async function saveClientStep2Profile(data: { location: string; username?
 const ArtisanStep1ServicesSchema = z.object({
   userId: z.string(),
   servicesOffered: z.array(z.string().min(1))
-    .length(2, "You must select exactly 2 primary services."), // Updated for exactly 2 services
+    .length(2, "You must select exactly 2 primary services."),
 });
 
 export async function saveArtisanStep1Services(servicesOffered: string[]) {
@@ -103,10 +103,58 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
   }
 }
 
+export async function updateArtisanPrimaryServices(userId: string, servicesOffered: string[]) {
+  try {
+    const dataToValidate = { userId, servicesOffered };
+    console.log('[SERVER ACTION updateArtisanPrimaryServices] Data to validate:', JSON.stringify(dataToValidate, null, 2));
+
+    const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); // Re-use the same schema
+    if (!validation.success) {
+      const flattenedErrors = validation.error.flatten();
+      console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", JSON.stringify(flattenedErrors, null, 2));
+      
+      // Construct error object similar to saveArtisanStep1Services for consistency
+      const clientErrorObject: Record<string, any> = {};
+      if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = {};
+        for (const key in flattenedErrors.fieldErrors) {
+          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
+          if (flattenedErrors.fieldErrors[fieldKey]) {
+             clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
+          }
+        }
+      }
+       if (Object.keys(clientErrorObject).length === 0 && validation.error) {
+           clientErrorObject._server_error = ["Validation failed for primary services update."];
+       }
+      return { success: false, error: clientErrorObject };
+    }
+
+    console.log(`[SERVER ACTION MOCK] Updating primary services for user ${userId}:`, validation.data.servicesOffered);
+    // In a real app, you would update the database here.
+    // For mock purposes, we assume success.
+    // You might also need to adjust serviceExperiences if services change.
+    return { success: true, data: { userId: validation.data.userId, servicesOffered: validation.data.servicesOffered } };
+
+  } catch (e: any) {
+    console.error("[SERVER ACTION UNEXPECTED ERROR] updateArtisanPrimaryServices:", e);
+    const errorPayload: Record<string, any> = { 
+      _server_error: ["An unexpected error occurred while updating primary services. Please try again later."] 
+    };
+    if (e instanceof Error && e.message) (errorPayload._server_error as string[]).push(e.message);
+    else if (typeof e === 'string') (errorPayload._server_error as string[]).push(e);
+    else (errorPayload._server_error as string[]).push("No specific error message available.");
+    
+    return { success: false, error: errorPayload };
+  }
+}
+
+
 const ArtisanOnboardingProfileSchema = z.object({
   userId: z.string(),
-  username: z.string().min(3, "Username must be at least 3 characters.").optional(),
-  profilePhotoUrl: z.string().url("Invalid URL for profile photo").optional().or(z.literal('')), // For mock, could be actual file later
+  username: z.string().min(3, "Username must be at least 3 characters.").optional().or(z.literal('')),
+  profilePhotoUrl: z.string().url("Invalid URL for profile photo").optional().or(z.literal('')),
   headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
   contactPhone: z.string().optional().or(z.literal('')),
   contactEmail: z.string().email(),
@@ -131,7 +179,7 @@ export async function saveArtisanOnboardingProfile(
 ) {
   try {
     const dataToValidate = {
-      userId: MOCK_USER_ID, // This should be dynamic in a real app
+      userId: MOCK_USER_ID, 
       username: profileData.username,
       profilePhotoUrl: profileData.profilePhotoUrl,
       headline: profileData.headline,
@@ -213,5 +261,4 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
   // }
   return { complete: false, missingFields: ['location', 'username'] }; // Default to incomplete for demo
 }
-
     

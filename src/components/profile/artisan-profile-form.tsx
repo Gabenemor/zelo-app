@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity, Edit } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
@@ -346,7 +346,10 @@ export function ArtisanProfileForm({
               ))}
             </div>
             <FormDescription>
-              To change your primary services (max 2), please visit the dedicated service management section. (This is a placeholder for future functionality).
+              To change your primary services (max 2), please {' '}
+              <Link href="/dashboard/profile/artisan/services/edit" className="text-primary underline hover:text-primary/80">
+                visit the service management section
+              </Link>.
             </FormDescription>
           </FormItem>
         )}
@@ -616,8 +619,3 @@ export function ArtisanProfileForm({
   );
 }
     
-
-    
-
-    
-
