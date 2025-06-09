@@ -19,24 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Phone, Mail, Briefcase, Home, Save, DollarSign, Tag, Image as ImageIcon, EyeOff, Eye } from "lucide-react";
+import { Phone, Mail, Briefcase, Home, Save, DollarSign, Tag, Image as ImageIcon } from "lucide-react";
 import type { ArtisanProfile } from "@/types"; 
-
-// Mock available services
-const NIGERIAN_ARTISAN_SERVICES = [
-  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry", 
-  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning", 
-  "Photography/Videography", "Graphic Design", "Web Development", "Appliance Repair",
-  "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
-  "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning"
-];
 
 const artisanProfileSchema = z.object({
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), {
     message: "Invalid phone number format."
   }),
   contactEmail: z.string().email({ message: "Invalid email address." }),
-  servicesOffered: z.array(z.string()).min(1, "Please select at least one service."),
   serviceChargeDescription: z.string().optional(),
   serviceChargeAmount: z.coerce.number().positive({ message: "Service charge must be positive."}).optional(),
   location: z.string().min(3, { message: "Location is required." }),
@@ -55,14 +45,12 @@ interface ArtisanProfileFormProps {
 export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [selectedServices, setSelectedServices] = React.useState<string[]>(initialData?.servicesOffered || []);
 
   const form = useForm<ArtisanProfileFormValues>({
     resolver: zodResolver(artisanProfileSchema),
     defaultValues: {
       contactPhone: initialData?.contactPhone || "",
       contactEmail: initialData?.contactEmail || "", 
-      servicesOffered: initialData?.servicesOffered || [],
       serviceChargeDescription: initialData?.serviceChargeDescription || "",
       serviceChargeAmount: initialData?.serviceChargeAmount || undefined,
       location: initialData?.location || "",
@@ -72,22 +60,22 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
     },
   });
 
-  React.useEffect(() => {
-    form.setValue("servicesOffered", selectedServices);
-  }, [selectedServices, form]);
-
-  const handleServiceToggle = (service: string) => {
-    setSelectedServices(prev => 
-      prev.includes(service) ? prev.filter(s => s !== service) : [...prev, service]
-    );
-  };
-
   async function onSubmit(values: ArtisanProfileFormValues) {
     setIsLoading(true);
     // In a real app, derive locationCoordinates from 'location' string using a geocoding service
     const submissionData = { ...values, locationCoordinates: initialData?.locationCoordinates /* or derived */ };
     console.log("Artisan profile submission for user:", userId, submissionData);
     
+    // This is where you would call your actual server action to save the profile.
+    // For example:
+    // const result = await saveArtisanOnboardingProfile(submissionData);
+    // if (result.success) {
+    //   toast({ title: "Profile Updated", description: "Your artisan profile has been saved." });
+    //   // Potentially redirect or perform other actions
+    // } else {
+    //   toast({ title: "Update Failed", description: result.error || "Could not save profile."});
+    // }
+
     setTimeout(() => {
       toast({ title: "Profile Updated (Mock)", description: "Your artisan profile has been saved." });
       setIsLoading(false);
@@ -131,31 +119,6 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="servicesOffered"
-          render={() => ( 
-            <FormItem>
-              <FormLabel>Services Offered</FormLabel>
-              <FormDescription>Select all services you provide. Choose at least one.</FormDescription>
-              <div className="grid grid-cols-2 gap-4 rounded-md border p-4 sm:grid-cols-3 lg:grid-cols-4">
-                {NIGERIAN_ARTISAN_SERVICES.map(service => (
-                  <Button
-                    key={service}
-                    type="button"
-                    variant={selectedServices.includes(service) ? "default" : "outline"}
-                    onClick={() => handleServiceToggle(service)}
-                    className="justify-start text-left h-auto py-2"
-                  >
-                    {service}
-                  </Button>
-                ))}
-              </div>
-              <FormMessage>{form.formState.errors.servicesOffered?.message}</FormMessage>
-            </FormItem>
-          )}
-        />
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
            <FormField
@@ -294,3 +257,5 @@ export function ArtisanProfileForm({ initialData, userId }: ArtisanProfileFormPr
     </Form>
   );
 }
+
+    
