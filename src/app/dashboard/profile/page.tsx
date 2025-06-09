@@ -9,10 +9,10 @@ import Image from "next/image";
 export default function ProfilePage() {
   // Placeholder: In a real app, fetch user data and role
   const user = {
-    id: "1", // Added ID, corresponds to Adewale Plumbing in mock artisan profiles
-    name: "Zelo User (Adewale Plumbing)", // Clarified mock user name
+    id: "1", // Corresponds to Adewale Plumbing id in browse page
+    name: "Zelo User (Adewale Plumbing)", 
     email: "user@zelo.app",
-    role: "artisan", // or 'client' or 'admin'
+    role: "artisan" as "client" | "artisan" | "admin", // Explicitly type role
     avatarUrl: "https://placehold.co/128x128.png",
     memberSince: "January 2024",
     location: "Lagos, Nigeria",
@@ -25,7 +25,6 @@ export default function ProfilePage() {
         title="My Profile"
         description="Manage your personal information, settings, and Zelo activities."
         icon={UserCircle}
-        // Removed action button from here
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -59,7 +58,7 @@ export default function ProfilePage() {
             <ActionItem
               title="Edit Profile Details"
               description="Update your name, contact, and other personal info."
-              href="/dashboard/profile/edit"
+              href={`/dashboard/profile/edit?role=${user.role}`}
               icon={Edit3}
             />
             {user.role === 'artisan' && (
@@ -67,13 +66,13 @@ export default function ProfilePage() {
                 <ActionItem
                   title="Withdrawal Settings"
                   description="Manage your bank account for receiving payments."
-                  href="/dashboard/profile/withdrawal-settings"
+                  href={`/dashboard/profile/withdrawal-settings?role=${user.role}`}
                   icon={CreditCard}
                 />
                 <ActionItem
                   title="View Public Profile"
                   description="See how your profile appears to others."
-                  href={`/dashboard/artisans/${user.id}`} // Corrected link
+                  href={`/dashboard/artisans/${user.id}?role=${user.role}`} 
                   icon={UserCircle}
                 />
               </>
@@ -81,13 +80,12 @@ export default function ProfilePage() {
             <ActionItem
               title="Account Security"
               description="Change password and manage security settings."
-              href="/dashboard/settings" // Updated link
+              href={`/dashboard/settings?role=${user.role}`} 
               icon={ShieldCheck}
             />
           </CardContent>
         </Card>
       </div>
-       {/* Placeholder for other profile sections like activity, reviews etc. */}
     </div>
   );
 }
