@@ -14,6 +14,15 @@ import {
   Award,
   CheckCircle2,
   LucideIcon,
+  Settings, // Added Settings here
+  Users, 
+  LogOut, 
+  MapPin, 
+  ShieldCheck, 
+  Search, 
+  ClipboardList, 
+  UserCog,
+  UserCircle2
 } from "lucide-react";
 import type { ActivityItem, ActivityType, LucideIconName } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
@@ -77,7 +86,7 @@ const mockRecentActivities: ActivityItem[] = [
 
 // Map of icon names to actual Lucide components
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users: Users, LogOut: CreditCard, MapPin: CreditCard, PlusCircle, ShieldCheck, FileText, Search: CreditCard, ClipboardList: CreditCard, UserCog: CreditCard, UserCircle2: CreditCard, Award, CheckCircle2
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2
   // Add other icons used in nav items if not covered by the list above
 };
 
