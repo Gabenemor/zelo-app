@@ -15,11 +15,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, User, UserPlus, Briefcase, Users } from "lucide-react";
+import { Mail, Lock, User, UserPlus, Briefcase, Users, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { registerUser } from "@/lib/auth"; // Import the actual registration function
+import type { UserRole } from "@/types";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required." }),
@@ -119,30 +121,42 @@ export function RegisterForm() {
 
   async function onSubmit(values: RegisterFormValues) {
     setIsLoading(true);
-    console.log("Registration attempt with:", values);
-    // Placeholder for actual Firebase or backend registration
-    // try {
-    //   const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-    //   await updateProfile(userCredential.user, { displayName: `${values.firstName} ${values.lastName}` });
-    //   // Add user type to Firestore or Realtime DB
-    //   toast({ title: "Registration Successful", description: "Welcome to Zelo!" });
-    //   router.push(values.userType === 'artisan' ? '/dashboard/profile/artisan/edit' : '/dashboard/profile/client/edit');
-    // } catch (error: any) {
-    //   toast({
-    //     title: "Registration Failed",
-    //     description: error.message || "An error occurred. Please try again.",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    try {
+      const result = await registerUser(
+        values.email,
+        values.password,
+        `${values.firstName} ${values.lastName}`,
+        values.userType as UserRole
+      );
 
-    // Mock success
-    setTimeout(() => {
-      toast({ title: "Registration Successful", description: "Welcome to Zelo! (Mock)" });
-      router.push(`/auth/verify-email?userType=${values.userType}&firstName=${encodeURIComponent(values.firstName)}`);
+      if (result.error) {
+        toast({
+          title: "Registration Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.user) {
+        toast({ title: "Registration Successful", description: "Please check your email to verify your account." });
+        // Firebase Auth handles sending the verification email automatically on user creation if configured.
+        // Redirect to a page informing the user to check their email.
+        const queryParams = new URLSearchParams({
+          userType: values.userType,
+          firstName: values.firstName,
+          email: values.email, // Pass email for display or resend purposes
+          uid: result.user.uid, // Pass UID for linking profile later
+        });
+        router.push(`/auth/verify-email?${queryParams.toString()}`);
+      }
+    } catch (error: any) {
+      // Catch any unexpected errors from registerUser or network issues
+      toast({
+        title: "Registration Error",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -284,7 +298,8 @@ export function RegisterForm() {
           )}
         />
         <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
-          {isLoading ? "Creating account..." : <> <UserPlus className="mr-2 h-4 w-4" /> Create Account </>}
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+          {isLoading ? "Creating account..." : "Create Account"}
         </Button>
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
@@ -310,4 +325,3 @@ export function RegisterForm() {
     </Form>
   );
 }
-

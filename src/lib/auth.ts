@@ -1,5 +1,6 @@
-import { 
-  createUserWithEmailAndPassword, 
+
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -19,19 +20,17 @@ export interface AuthUser {
 }
 
 export async function registerUser(
-  email: string, 
-  password: string, 
-  fullName: string, 
+  email: string,
+  password: string,
+  fullName: string,
   role: UserRole
 ): Promise<{ user: AuthUser; error?: string }> {
   try {
     const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Update the user's display name
     await updateProfile(user, { displayName: fullName });
 
-    // Create user document in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       email: user.email,
@@ -43,24 +42,23 @@ export async function registerUser(
       updatedAt: serverTimestamp(),
     });
 
-    // Create role-specific profile document
+    const commonProfileData = {
+      userId: user.uid,
+      onboardingCompleted: false,
+      profileSetupCompleted: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
     if (role === 'artisan') {
       await setDoc(doc(db, 'artisanProfiles', user.uid), {
-        userId: user.uid,
-        servicesOffered: [],
-        onboardingCompleted: false,
-        profileSetupCompleted: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        ...commonProfileData,
+        servicesOffered: [], // Initialize with empty array
       });
     } else if (role === 'client') {
       await setDoc(doc(db, 'clientProfiles', user.uid), {
-        userId: user.uid,
-        servicesLookingFor: [],
-        onboardingCompleted: false,
-        profileSetupCompleted: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        ...commonProfileData,
+        servicesLookingFor: [], // Initialize with empty array
       });
     }
 
@@ -74,9 +72,10 @@ export async function registerUser(
       }
     };
   } catch (error: any) {
+    console.error("Registration error in @/lib/auth.ts:", error);
     return {
-      user: {} as AuthUser,
-      error: error.message
+      user: {} as AuthUser, // Return empty user object on error
+      error: error.message || "An unknown error occurred during registration."
     };
   }
 }
@@ -86,12 +85,13 @@ export async function loginUser(email: string, password: string): Promise<{ user
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Get user role from Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     const userData = userDoc.data();
 
     if (!userData) {
-      throw new Error('User data not found');
+      // This case should ideally not happen if registration ensures user doc creation
+      await signOut(auth); // Sign out the user as their profile is incomplete
+      throw new Error('User data not found in Firestore. Please contact support.');
     }
 
     return {
@@ -99,14 +99,15 @@ export async function loginUser(email: string, password: string): Promise<{ user
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
-        role: userData.role,
+        role: userData.role as UserRole,
         emailVerified: user.emailVerified,
       }
     };
   } catch (error: any) {
+    console.error("Login error in @/lib/auth.ts:", error);
     return {
       user: {} as AuthUser,
-      error: error.message
+      error: error.message || "An unknown error occurred during login."
     };
   }
 }
@@ -119,16 +120,23 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const user = auth.currentUser;
   if (!user) return null;
 
-  const userDoc = await getDoc(doc(db, 'users', user.uid));
-  const userData = userDoc.data();
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (!userDoc.exists()) {
+      console.warn(`User document not found for UID: ${user.uid} in getCurrentUser.`);
+      return null; // Or handle as an error / incomplete profile
+    }
+    const userData = userDoc.data();
 
-  if (!userData) return null;
-
-  return {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName,
-    role: userData.role,
-    emailVerified: user.emailVerified,
-  };
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      role: userData.role as UserRole,
+      emailVerified: user.emailVerified,
+    };
+  } catch (error) {
+    console.error("Error fetching current user data from Firestore:", error);
+    return null;
+  }
 }
