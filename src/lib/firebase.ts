@@ -15,7 +15,6 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Check if essential config values are present.
-// This helps to give a more specific error if environment variables are not set up correctly.
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   const errorMessage =
     'Firebase client-side configuration error: NEXT_PUBLIC_FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing. ' +
@@ -23,7 +22,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     'and add your Firebase web app configuration values prefixed with NEXT_PUBLIC_ (e.g., NEXT_PUBLIC_FIREBASE_API_KEY="your-key"). ' +
     'For deployed environments, configure these environment variables in your hosting provider settings.';
   console.error(errorMessage);
-  // Throwing an error here makes the problem immediately obvious during development.
   throw new Error(errorMessage);
 }
 
@@ -38,29 +36,33 @@ export const functions = getFunctions(app);
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development') {
+  console.log('[Firebase SDK] Development mode detected. Attempting to connect to emulators...');
   try {
-    // Connect to Auth emulator
-    if (!auth.config.emulator) {
-      connectAuthEmulator(auth, 'http://localhost:9099');
-    }
-    
-    // Connect to Firestore emulator
-    // Check if db is already connected or if _delegate exists and has _databaseId
-    if (db && db._delegate && db._delegate._databaseId && !db._delegate._databaseId.projectId.includes('localhost')) {
-      connectFirestoreEmulator(db, 'localhost', 8080);
-    }
-    
-    // Connect to Storage emulator
-    if (storage && storage._location && !storage._location.bucket.includes('localhost')) {
-      connectStorageEmulator(storage, 'localhost', 9199);
-    }
-    
-    // Connect to Functions emulator
-    if (functions && !functions.customDomain) {
-      connectFunctionsEmulator(functions, 'localhost', 5001);
-    }
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    console.log('[Firebase SDK] Connected to Auth Emulator on port 9099.');
   } catch (error) {
-    console.warn('Error connecting to Firebase emulators (they might already be connected or not running):', error);
+    console.warn('[Firebase SDK] Error connecting to Auth Emulator (is it running?):', error);
+  }
+
+  try {
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('[Firebase SDK] Connected to Firestore Emulator on port 8080.');
+  } catch (error) {
+    console.warn('[Firebase SDK] Error connecting to Firestore Emulator (is it running?):', error);
+  }
+
+  try {
+    connectStorageEmulator(storage, 'localhost', 9199);
+    console.log('[Firebase SDK] Connected to Storage Emulator on port 9199.');
+  } catch (error) {
+    console.warn('[Firebase SDK] Error connecting to Storage Emulator (is it running?):', error);
+  }
+
+  try {
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('[Firebase SDK] Connected to Functions Emulator on port 5001.');
+  } catch (error) {
+    console.warn('[Firebase SDK] Error connecting to Functions Emulator (is it running?):', error);
   }
 }
 
