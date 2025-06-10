@@ -15,13 +15,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, LogIn } from "lucide-react";
-// import { signInWithEmailAndPassword } from "firebase/auth"; // Placeholder
-// import { auth } from "@/lib/firebase"; // Placeholder
+import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React from "react";
 import type { UserRole } from "@/types";
+import { loginUser } from "@/lib/auth"; // Import the actual login function
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -30,9 +29,10 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const ADMIN_EMAIL = "admin@zelo.app";
-const ARTISAN_EMAIL = "artisan@zelo.app";
-const CLIENT_EMAIL = "client@zelo.app";
+// Examples for testing (can be removed or commented out later)
+// const ADMIN_EMAIL_EXAMPLE = "admin@zelo.app";
+// const ARTISAN_EMAIL_EXAMPLE = "artisan@zelo.app";
+// const CLIENT_EMAIL_EXAMPLE = "client@zelo.app";
 
 export function LoginForm() {
   const { toast } = useToast();
@@ -49,31 +49,53 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
-    console.log("Login attempt with:", values);
+    try {
+      const result = await loginUser(values.email, values.password);
 
-    // Mock success
-    setTimeout(() => {
-      toast({ title: "Login Successful", description: "Welcome back! (Mock)" });
-      let redirectPath = "/dashboard";
-      let role: UserRole = "artisan"; // Default role
+      if (result.error) {
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.user) {
+        if (!result.user.emailVerified) {
+          toast({
+            title: "Email Not Verified",
+            description: "Please verify your email address before logging in. Check your inbox for the verification link.",
+            variant: "destructive",
+            duration: 7000,
+          });
+           // Optionally, redirect to a page that allows resending verification or explains the issue.
+           // For now, we'll prevent login and stay on the page.
+           // router.push(`/auth/verify-email?email=${encodeURIComponent(values.email)}&resend=true`);
+           setIsLoading(false);
+           return;
+        }
 
-      if (values.email === ADMIN_EMAIL) {
-        redirectPath = "/dashboard/admin";
-        // Admin role is handled by the admin layout, no query param needed for main dashboard
-      } else if (values.email === ARTISAN_EMAIL) {
-        role = "artisan";
-        redirectPath = `/dashboard?role=${role}`;
-      } else if (values.email === CLIENT_EMAIL) {
-        role = "client";
-        redirectPath = `/dashboard?role=${role}`;
-      } else {
-        // Default for any other email
-        redirectPath = `/dashboard?role=artisan`; // Or 'client' as default
+        toast({ title: "Login Successful", description: `Welcome back, ${result.user.displayName || 'User'}!` });
+        
+        let redirectPath = "/dashboard";
+        const userRole: UserRole = result.user.role;
+
+        if (userRole === "admin") {
+          redirectPath = "/dashboard/admin";
+        } else {
+          redirectPath = `/dashboard?role=${userRole}`;
+        }
+        
+        router.push(redirectPath);
       }
-      
-      router.push(redirectPath);
+    } catch (error: any) {
+      // Catch any unexpected errors
+      toast({
+        title: "Login Error",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -88,7 +110,7 @@ export function LoginForm() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="email" placeholder="admin@, artisan@, or client@zelo.app" {...field} className="pl-10" />
+                  <Input type="email" placeholder="your@email.com" {...field} className="pl-10" />
                 </FormControl>
               </div>
               <FormMessage />
@@ -104,7 +126,7 @@ export function LoginForm() {
                <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="password" placeholder="•••••••• (min 6 chars)" {...field} className="pl-10" />
+                  <Input type="password" placeholder="••••••••" {...field} className="pl-10" />
                 </FormControl>
               </div>
               <FormMessage />
@@ -112,7 +134,8 @@ export function LoginForm() {
           )}
         />
         <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
-          {isLoading ? "Logging in..." : <> <LogIn className="mr-2 h-4 w-4" /> Login </>}
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+          {isLoading ? "Logging in..." : "Login"}
         </Button>
         <div className="text-center text-sm">
           <Link href="#" className="font-medium text-primary hover:underline">
