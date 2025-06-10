@@ -5,3 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Add environment variables here
+# For sensitive values, it's recommended to use secret management
+# (e.g., by integrating with Google Cloud Secret Manager) and reference them here,
+# or set them directly in the Firebase console if the feature is available.
+# For non-sensitive values, you can define them directly.
+environmentVariables:
+  API_KEY: 'your_api_key_here'
+  DATABASE_URL: 'your_database_url_here'
+  NODE_ENV: 'production' # Example of a common non-secret variable
