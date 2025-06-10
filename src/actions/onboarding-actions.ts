@@ -3,8 +3,10 @@
 
 import { z } from 'zod';
 import type { ArtisanProfile, ClientProfile, ServiceExperience } from '@/types';
+import { db } from '@/lib/firebase-server-init'; // Import Firestore instance
+import { collection, doc, setDoc } from 'firebase/firestore';
 
-const MOCK_USER_ID = 'mockUserId123';
+const MOCK_USER_ID = 'mockUserId123'; // This will be the document ID in Firestore for now
 
 const ClientPreferencesSchema = z.object({
   userId: z.string(),
@@ -16,7 +18,8 @@ export async function saveClientStep1Preferences(services: string[]) {
   if (!validation.success) {
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
-  console.log('[SERVER ACTION] Saving client step 1 preferences:', validation.data);
+  console.log('[SERVER ACTION] Saving client step 1 preferences (mock for now):', validation.data);
+  // TODO: Persist this to Firestore, likely as part of the client's profile document or a subcollection
   return { success: true, data: validation.data };
 }
 
@@ -31,8 +34,29 @@ export async function saveClientStep2Profile(data: { location: string; username?
   if (!validation.success) {
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
-  console.log('[SERVER ACTION] Saving client step 2 profile:', validation.data);
-  return { success: true, data: validation.data };
+
+  try {
+    if (!db || Object.keys(db).length === 0) {
+      console.error("Firestore not initialized. Cannot save client profile.");
+      return { success: false, error: { _form: ["Server error: Database not configured."] } };
+    }
+    const clientProfileRef = doc(collection(db, 'clientProfiles'), MOCK_USER_ID);
+    await setDoc(clientProfileRef, {
+      userId: MOCK_USER_ID,
+      location: validation.data.location,
+      username: validation.data.username || null, // Store null if optional and not provided
+      onboardingCompleted: true,
+      profileSetupCompleted: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }, { merge: true }); // Use merge: true to update if doc exists, or create if not
+
+    console.log('[SERVER ACTION] Client step 2 profile saved to Firestore:', validation.data);
+    return { success: true, data: validation.data };
+  } catch (error: any) {
+    console.error('[SERVER ACTION ERROR] Failed to save client step 2 profile to Firestore:', error);
+    return { success: false, error: { _form: ["Failed to save profile to database.", error.message] } };
+  }
 }
 
 const ArtisanStep1ServicesSchema = z.object({
@@ -79,7 +103,8 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
       console.log('[SERVER ACTION saveArtisanStep1Services] Client error object before return:', JSON.stringify(clientErrorObject, null, 2));
       return { success: false, error: clientErrorObject };
     }
-    console.log('[SERVER ACTION] Saving artisan step 1 services:', validation.data);
+    console.log('[SERVER ACTION] Saving artisan step 1 services (mock for now):', validation.data);
+     // TODO: Persist this to Firestore, e.g., update a temporary onboarding doc or the artisan's profile
     return { success: true, data: { userId: validation.data.userId, servicesOffered: validation.data.servicesOffered } };
 
   } catch (e: any) {
@@ -108,12 +133,11 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
     const dataToValidate = { userId, servicesOffered };
     console.log('[SERVER ACTION updateArtisanPrimaryServices] Data to validate:', JSON.stringify(dataToValidate, null, 2));
 
-    const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); // Re-use the same schema
+    const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); 
     if (!validation.success) {
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", JSON.stringify(flattenedErrors, null, 2));
       
-      // Construct error object similar to saveArtisanStep1Services for consistency
       const clientErrorObject: Record<string, any> = {};
       if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
       if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
@@ -131,10 +155,8 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
       return { success: false, error: clientErrorObject };
     }
 
+    // TODO: In a real app, update the artisan's profile in Firestore here.
     console.log(`[SERVER ACTION MOCK] Updating primary services for user ${userId}:`, validation.data.servicesOffered);
-    // In a real app, you would update the database here.
-    // For mock purposes, we assume success.
-    // You might also need to adjust serviceExperiences if services change.
     return { success: true, data: { userId: validation.data.userId, servicesOffered: validation.data.servicesOffered } };
 
   } catch (e: any) {
@@ -227,8 +249,8 @@ export async function saveArtisanOnboardingProfile(
       return { success: false, error: clientErrorObject };
     }
 
-    console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2):', validation.data);
-    // Mock database save
+    // TODO: Persist this to Firestore. This is a more complex save than the client one.
+    console.log('[SERVER ACTION] Saving artisan onboarding profile (step 2) - mock:', validation.data);
     return { success: true, data: validation.data as ArtisanProfile };
 
   } catch (e: any) {
@@ -253,12 +275,18 @@ export async function saveArtisanOnboardingProfile(
 
 export async function checkClientProfileCompleteness(userId: string): Promise<{ complete: boolean; missingFields?: string[] }> {
   console.log('[SERVER ACTION] Checking client profile completeness for userId (mock):', userId);
-  // Mock: Assume profile is incomplete if certain fields are missing in a hypothetical DB record
-  // For this demo, let's always return incomplete if not specifically 'completed'
-  // const userProfile = await db.collection('clientProfiles').doc(userId).get();
-  // if (!userProfile.exists || !userProfile.data()?.location || !userProfile.data()?.username) {
-  //    return { complete: false, missingFields: ['location', 'username'] };
+  // Mock: In a real app, you'd fetch from Firestore
+  // const clientProfileRef = doc(db, 'clientProfiles', userId);
+  // const profileSnap = await getDoc(clientProfileRef);
+  // if (profileSnap.exists()) {
+  //   const data = profileSnap.data();
+  //   if (data.location && (data.username || data.fullName)) { // Adjust based on actual required fields
+  //     return { complete: true };
+  //   }
+  //   const missing: string[] = [];
+  //   if (!data.location) missing.push('location');
+  //   if (!(data.username || data.fullName)) missing.push('name/username');
+  //   return { complete: false, missingFields: missing };
   // }
   return { complete: false, missingFields: ['location', 'username'] }; // Default to incomplete for demo
 }
-    

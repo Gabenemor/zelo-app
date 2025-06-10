@@ -12,6 +12,10 @@ runConfig:
 # or set them directly in the Firebase console if the feature is available.
 # For non-sensitive values, you can define them directly.
 environmentVariables:
-  API_KEY: 'your_api_key_here'
-  DATABASE_URL: 'your_database_url_here'
+  API_KEY: 'your_api_key_here' # Example, replace or remove if not used
+  DATABASE_URL: 'your_database_url_here' # Example, replace or remove if not used specifically by your app for a non-Firebase DB
   NODE_ENV: 'production' # Example of a common non-secret variable
+  # This configuration is typically found in your Firebase project settings (Project settings > General > Your apps > Web app > SDK setup and configuration)
+  # It's a JSON string. Example format:
+  # '{"apiKey":"AIza...","authDomain":"your-project-id.firebaseapp.com","projectId":"your-project-id",...}'
+  FIREBASE_WEBAPP_CONFIG: 'YOUR_FIREBASE_WEBAPP_CONFIG_JSON_STRING_HERE'
