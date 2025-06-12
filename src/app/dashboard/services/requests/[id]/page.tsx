@@ -1,5 +1,5 @@
 
-'use server'; 
+'use server';
 
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, DollarSign, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck } from "lucide-react";
+import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck } from "lucide-react"; // Changed DollarSign to Coins
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,7 @@ import {
 // Mock data for a single service request
 const mockServiceRequest: ServiceRequest = {
   id: "req_detail_123",
-  clientId: "client_jane_doe", 
+  clientId: "client_jane_doe",
   postedBy: {
     name: "Jane Doe",
     avatarUrl: "https://placehold.co/80x80.png?text=JD",
@@ -67,7 +67,7 @@ const mockServiceRequestInProgress: ServiceRequest = {
 
 
 const mockProposalsReceived: ArtisanProposal[] = [
-    { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" }, 
+    { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" },
     { id: "prop2", serviceRequestId: "req_detail_123", artisanId: "artisan_ada_eze", artisanName: "Ada's Kitchen Deluxe", artisanAvatarUrl: "https://placehold.co/40x40.png?text=AKD", proposedAmount: 700000, coverLetter: "With 10 years of experience in high-end catering, we are confident we can exceed your expectations. Our package includes everything you need.", submittedAt: new Date(Date.now() - 86400000 * 1), status: "pending" },
     // Proposal for the in_progress job
     { id: "prop3", serviceRequestId: "req_in_progress_456", artisanId: "artisan_musa_ali", artisanName: "Musa Landscaping", artisanAvatarUrl: "https://placehold.co/40x40.png?text=ML", proposedAmount: 1150000, coverLetter: "Expert landscaping services, ready to transform your garden.", submittedAt: new Date(Date.now() - 86400000 * 10), status: "accepted" },
@@ -111,10 +111,10 @@ async function handleFundEscrowServerAction(requestId: string, amount: number, c
 }
 
 
-export default async function ServiceRequestDetailPage({ 
-  params, 
-  searchParams 
-}: { 
+export default async function ServiceRequestDetailPage({
+  params,
+  searchParams
+}: {
   params: { id: string };
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
@@ -128,10 +128,10 @@ export default async function ServiceRequestDetailPage({
 
   const currentUserRole = roleFromParams;
   const currentUserId = simulatedUserId;
-  
+
   const isOwner = currentUserRole === 'client' && request.clientId === currentUserId;
-  
-  const currentArtisanProposalForThisRequest = currentUserRole === 'artisan' 
+
+  const currentArtisanProposalForThisRequest = currentUserRole === 'artisan'
     ? mockProposalsReceived.find(p => p.artisanId === currentUserId && p.serviceRequestId === request.id)
     : undefined;
 
@@ -193,14 +193,14 @@ export default async function ServiceRequestDetailPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-foreground leading-relaxed whitespace-pre-line">{request.description}</p>
-              
+
               {request.attachments && request.attachments.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2 text-md">Attachments:</h3>
                   <ul className="space-y-2">
                     {request.attachments.map((file, index) => (
                       <li key={index} className="flex items-center gap-2">
-                        {file.type === 'image' ? 
+                        {file.type === 'image' ?
                            <Image src={file.url} alt={file.name} width={60} height={60} className="rounded-md object-cover" data-ai-hint={file['data-ai-hint'] || 'attachment image'} /> :
                            <FileText className="h-6 w-6 text-primary" />
                         }
@@ -264,7 +264,7 @@ export default async function ServiceRequestDetailPage({
                       <div>
                         <Label htmlFor="proposedAmount">Your Proposed Amount (₦)</Label>
                         <div className="relative mt-1">
-                          <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Coins className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input id="proposedAmount" type="number" placeholder="e.g. 700000" className="pl-10" />
                         </div>
                       </div>
@@ -294,13 +294,13 @@ export default async function ServiceRequestDetailPage({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p>You proposed: <span className="font-semibold font-mono">₦{currentArtisanProposalForThisRequest.proposedAmount.toLocaleString()}</span></p>
-                    <p>Status: 
-                      <Badge 
+                    <p>Status:
+                      <Badge
                         variant={
-                          currentArtisanProposalForThisRequest.status === 'accepted' ? 'default' : 
-                          currentArtisanProposalForThisRequest.status === 'rejected' ? 'destructive' : 
+                          currentArtisanProposalForThisRequest.status === 'accepted' ? 'default' :
+                          currentArtisanProposalForThisRequest.status === 'rejected' ? 'destructive' :
                           'outline'
-                        } 
+                        }
                         className="ml-2 capitalize"
                       >
                         {currentArtisanProposalForThisRequest.status}
@@ -354,7 +354,7 @@ export default async function ServiceRequestDetailPage({
                                         </Link>
                                     </Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
-                                        <Button size="sm" onClick={() => console.log(`Mock: Accepting proposal from ${proposal.artisanName}`)} 
+                                        <Button size="sm" onClick={() => console.log(`Mock: Accepting proposal from ${proposal.artisanName}`)}
                                         >Accept Proposal
                                         </Button>
                                     )}
@@ -407,7 +407,7 @@ export default async function ServiceRequestDetailPage({
             <CardContent className="space-y-2 text-sm">
               <InfoItem icon={MapPin} label="Location" value={request.location} />
               <InfoItem icon={Briefcase} label="Category" value={request.category} />
-              {request.budget && <InfoItem icon={DollarSign} label="Client's Budget" value={`₦${request.budget.toLocaleString()}`} />}
+              {request.budget && <InfoItem icon={Coins} label="Client's Budget" value={`₦${request.budget.toLocaleString()}`} />}
               <InfoItem icon={CalendarDays} label="Posted" value={format(new Date(request.postedAt), "PPP")} />
             </CardContent>
           </Card>
@@ -429,7 +429,7 @@ export default async function ServiceRequestDetailPage({
                 {(isOwner && request.assignedArtisanId && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed')) && (
                     <Button asChild variant="outline" className="w-full">
                       <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.assignedArtisanId}`}>
-                        <MessageCircle className="mr-2 h-4 w-4" /> 
+                        <MessageCircle className="mr-2 h-4 w-4" />
                         Message Assigned Artisan
                       </Link>
                     </Button>
@@ -472,4 +472,4 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
     )
 }
 
-    
+

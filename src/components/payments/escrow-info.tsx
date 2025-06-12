@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Info, DollarSign, Users, Clock, Send } from "lucide-react";
+import { ShieldCheck, Info, Coins, Users, Clock, Send } from "lucide-react"; // Changed DollarSign to Coins
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { EscrowTransaction, UserRole } from '@/types';
@@ -16,7 +16,7 @@ interface EscrowInfoProps {
 }
 
 export function EscrowInfo({ transaction, currentUserRole }: EscrowInfoProps) {
-  
+
   const platformFeePercentage = 10;
 
   if (transaction) {
@@ -87,7 +87,7 @@ export function EscrowInfo({ transaction, currentUserRole }: EscrowInfoProps) {
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <div className="flex items-start gap-3 p-3 rounded-md border bg-secondary/30">
-          <DollarSign className="h-6 w-6 text-primary mt-1 shrink-0" />
+          <Coins className="h-6 w-6 text-primary mt-1 shrink-0" /> {/* Changed from DollarSign */}
           <div>
             <h4 className="font-semibold">Client Payment</h4>
             <p className="text-muted-foreground">When a client hires an artisan, the agreed service amount is paid into Zelo's secure escrow account. This ensures the artisan that funds are available.</p>
@@ -134,7 +134,7 @@ const InfoItem = ({ label, value, icon: Icon, isCurrency, isBold, isMuted }: Inf
       {label}:
     </p>
     <p className={`
-      ${isCurrency ? 'font-mono' : ''} 
+      ${isCurrency ? 'font-mono' : ''}
       ${isBold ? 'font-semibold text-foreground' : ''}
       ${isMuted ? 'text-muted-foreground' : 'text-foreground'}
     `}>

@@ -19,15 +19,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Briefcase, Edit, DollarSign, CalendarDays, MapPin, Send, UploadCloud } from "lucide-react";
+import { Briefcase, Edit, Coins, CalendarDays, MapPin, Send, UploadCloud } from "lucide-react"; // Changed DollarSign to Coins
 import type { ServiceRequest } from "@/types";
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
 import { useRouter } from "next/navigation"; // For redirecting after edit
 
 // Mock service categories - align with artisan services
 const SERVICE_CATEGORIES = [
-  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry", 
-  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning", 
+  "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry",
+  "Hairdressing/Barbing", "Makeup Artistry", "Catering", "Event Planning",
   "Photography/Videography", "Graphic Design", "Web Development", "Appliance Repair",
   "AC Repair & Installation", "Generator Repair", "Welding/Fabrication", "Painting",
   "Tiling", "POP Ceiling Installation", "Car Mechanic", "Home Cleaning", "Other"
@@ -85,16 +85,16 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
     setIsLoading(true);
     // In a real app, handle file uploads for 'attachments' first, get URLs, then include in submissionData.
     // For mock, we're not processing actual files.
-    const submissionData = { 
-      ...values, 
-      clientId, 
-      postedAt: initialData?.postedAt ? new Date(initialData.postedAt) : new Date(), 
+    const submissionData = {
+      ...values,
+      clientId,
+      postedAt: initialData?.postedAt ? new Date(initialData.postedAt) : new Date(),
       status: initialData?.status || ("open" as const),
       id: initialData?.id, // Include ID if editing
       // attachmentUrls: [] // Placeholder for uploaded file URLs
     };
     console.log("Service request submission (isEditing:", isEditing, "):", submissionData);
-    
+
     // Placeholder for actual backend submission logic
     // if (isEditing && initialData?.id) {
     //   // Call update action: await updateServiceRequest(initialData.id, submissionData);
@@ -190,7 +190,7 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
               <FormItem>
                 <FormLabel>Budget (Optional, in Naira ₦)</FormLabel>
                  <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Coins className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <FormControl>
                     <Input type="number" placeholder="e.g., 10000" {...field} className="pl-10" />
                   </FormControl>
@@ -201,16 +201,16 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="location"
-          render={({ field }) => ( 
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Service Location</FormLabel>
               <FormControl>
-                 <LocationAutocomplete 
-                    onLocationSelect={handleLocationSelect} 
+                 <LocationAutocomplete
+                    onLocationSelect={handleLocationSelect}
                     initialValue={field.value}
                     placeholder="Enter the specific address or area for the service"
                  />
@@ -220,7 +220,7 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="preferredDate"
@@ -238,7 +238,7 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
             </FormItem>
           )}
         />
-        
+
         {/* <FormField
             control={form.control}
             name="attachments"
@@ -258,17 +258,17 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
                                 </p>
                                 <p className="text-xs text-muted-foreground">Images or Documents (PDF, DOCX)</p>
                             </div>
-                            <Input 
-                              id="attachments-upload" 
-                              type="file" 
-                              multiple 
-                              className="sr-only" 
-                              accept="image/*,application/pdf,.doc,.docx" 
+                            <Input
+                              id="attachments-upload"
+                              type="file"
+                              multiple
+                              className="sr-only"
+                              accept="image/*,application/pdf,.doc,.docx"
                               onChange={(e) => {
-                                field.onChange(e.target.files); 
+                                field.onChange(e.target.files);
                                 // handleAttachmentChange(e); // You might need a separate handler for previews
-                              }} 
-                              disabled={isLoading} 
+                              }}
+                              disabled={isLoading}
                             />
                         </label>
                     </div>
@@ -281,11 +281,11 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
 
 
         <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
-          {isLoading 
-            ? (isEditing ? "Updating..." : "Submitting...") 
+          {isLoading
+            ? (isEditing ? "Updating..." : "Submitting...")
             : (
               <>
-                <Send className="mr-2 h-4 w-4" /> 
+                <Send className="mr-2 h-4 w-4" />
                 {isEditing ? "Update Request" : "Submit Service Request"}
               </>
             )

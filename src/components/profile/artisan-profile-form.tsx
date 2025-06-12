@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity, Edit, Loader2 } from "lucide-react";
+import { Phone, Mail, Home, Save, Coins, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity, Edit, Loader2 } from "lucide-react"; // Changed DollarSign to Coins
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
@@ -78,7 +78,7 @@ export function ArtisanProfileForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [profilePhotoPreview, setProfilePhotoPreview] = React.useState<string | null>(initialData?.profilePhotoUrl || null);
   const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
-  
+
   const [uploadedProfilePhotoUrl, setUploadedProfilePhotoUrl] = React.useState<string | null>(initialData?.profilePhotoUrl || null);
   const [uploadedPortfolioImageUrls, setUploadedPortfolioImageUrls] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
 
@@ -142,16 +142,16 @@ export function ArtisanProfileForm({
     const file = event.target.files?.[0];
     if (file && userId) {
       setIsUploadingProfilePhoto(true);
-      setProfilePhotoPreview(URL.createObjectURL(file)); 
+      setProfilePhotoPreview(URL.createObjectURL(file));
       try {
         const downloadURL = await uploadProfilePhoto(userId, file);
         setUploadedProfilePhotoUrl(downloadURL);
-        setProfilePhotoPreview(downloadURL); 
+        setProfilePhotoPreview(downloadURL);
         toast({ title: "Profile photo uploaded!" });
       } catch (error) {
         console.error("Error uploading profile photo:", error);
         toast({ title: "Upload failed", description: "Could not upload profile photo.", variant: "destructive" });
-        setProfilePhotoPreview(uploadedProfilePhotoUrl); 
+        setProfilePhotoPreview(uploadedProfilePhotoUrl);
       } finally {
         setIsUploadingProfilePhoto(false);
       }
@@ -164,11 +164,11 @@ export function ArtisanProfileForm({
       setIsUploadingPortfolio(true);
       const currentFileArray = Array.from(files);
       const optimisticPreviews = currentFileArray.map(file => URL.createObjectURL(file));
-      
+
       // Show optimistic previews immediately, respecting the limit
-      setPortfolioPreviews(prev => 
+      setPortfolioPreviews(prev =>
         [...prev.filter(url => !url.startsWith('blob:')), ...optimisticPreviews]
-        .slice(0, 5) 
+        .slice(0, 5)
       );
 
       try {
@@ -202,9 +202,9 @@ export function ArtisanProfileForm({
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
-      profilePhotoUrl: uploadedProfilePhotoUrl || undefined, 
+      profilePhotoUrl: uploadedProfilePhotoUrl || undefined,
       portfolioImageUrls: uploadedPortfolioImageUrls.filter(url => url && !url.startsWith('blob:')), // Ensure only valid, uploaded URLs
-      servicesOffered: initialData?.servicesOffered || [], 
+      servicesOffered: initialData?.servicesOffered || [],
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -236,7 +236,7 @@ export function ArtisanProfileForm({
         }
       }
       const errorMsg = errorMessages.length > 0 ? errorMessages.join('; ') : "Could not save profile. Please check your input or try again.";
-      
+
       toast({ title: "Update Failed", description: errorMsg, variant: "destructive" });
       console.error("Artisan profile save error (client error object):", result.error);
     }
@@ -245,7 +245,7 @@ export function ArtisanProfileForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        
+
         <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6 md:space-y-0">
           <FormItem className="flex flex-col items-center md:items-start">
             <FormLabel>Profile Photo</FormLabel>
@@ -263,11 +263,11 @@ export function ArtisanProfileForm({
                 {isUploadingProfilePhoto ? "Uploading..." : "Upload Photo"}
               </label>
             </Button>
-            <Input 
-              id="profile-photo-upload" 
-              type="file" 
-              className="sr-only" 
-              accept="image/*" 
+            <Input
+              id="profile-photo-upload"
+              type="file"
+              className="sr-only"
+              accept="image/*"
               onChange={handleProfilePhotoChange}
               disabled={isUploadingProfilePhoto || isSubmitting}
             />
@@ -347,7 +347,7 @@ export function ArtisanProfileForm({
             )}
           />
         </div>
-        
+
         {!isOnboarding && initialData?.servicesOffered && (
           <FormItem>
             <FormLabel className="text-md font-semibold">Your Primary Services</FormLabel>
@@ -419,7 +419,7 @@ export function ArtisanProfileForm({
                         <FormItem className="sm:col-span-1">
                         <FormLabel>Charge Amount (₦)</FormLabel>
                         <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Coins className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                             <FormControl>
                             <Input
                                 type="number"
@@ -482,7 +482,7 @@ export function ArtisanProfileForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="isLocationPublic"
@@ -505,7 +505,7 @@ export function ArtisanProfileForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="availabilityStatus"
@@ -574,21 +574,21 @@ export function ArtisanProfileForm({
                             </p>
                             <p className="text-xs text-muted-foreground">Up to 5 images (JPG, PNG, GIF)</p>
                         </div>
-                        <Input 
-                          id="portfolio-upload" 
-                          type="file" 
-                          multiple 
-                          className="sr-only" 
-                          accept="image/*" 
-                          onChange={handlePortfolioChange} 
-                          disabled={isUploadingPortfolio || isSubmitting || uploadedPortfolioImageUrls.length >=5 } 
+                        <Input
+                          id="portfolio-upload"
+                          type="file"
+                          multiple
+                          className="sr-only"
+                          accept="image/*"
+                          onChange={handlePortfolioChange}
+                          disabled={isUploadingPortfolio || isSubmitting || uploadedPortfolioImageUrls.length >=5 }
                         />
                     </label>
                 </div>
               </FormControl>
               <FormMessage className="mt-1"/>
             </FormItem>
-            
+
             {portfolioPreviews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {portfolioPreviews.slice(0,5).map((url, index) => (
@@ -626,4 +626,3 @@ export function ArtisanProfileForm({
     </Form>
   );
 }
-    

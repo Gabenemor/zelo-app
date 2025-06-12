@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Briefcase, DollarSign, MapPin, Search, Star, CalendarDays, Users } from 'lucide-react';
+import { ArrowRight, Briefcase, Coins, MapPin, Search, Star, CalendarDays, Users } from 'lucide-react'; // Changed DollarSign to Coins
 import type { ServiceRequest, ArtisanProfile } from '@/types'; // Assuming types exist
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
@@ -175,7 +175,7 @@ function PublicServiceRequestCard({ request }: PublicServiceRequestCardProps) {
             <Badge variant="secondary" className="capitalize">{request.category}</Badge>
              {request.budget && (
                 <span className="font-semibold text-primary flex items-center gap-1">
-                    <DollarSign className="h-3.5 w-3.5" />
+                    <Coins className="h-3.5 w-3.5" />
                     ₦{request.budget.toLocaleString()}
                 </span>
             )}
@@ -203,10 +203,10 @@ function PublicArtisanCard({ artisan }: PublicArtisanCardProps) {
     <Card className="overflow-hidden transition-all hover:shadow-lg h-full flex flex-col">
       <CardContent className="p-4 flex flex-col items-center text-center flex-grow">
         <Avatar className="h-20 w-20 mb-3 border-2 border-primary">
-          <AvatarImage 
-            src={artisan.profilePhotoUrl || `https://placehold.co/80x80.png`} 
-            alt={artisan.username || 'Artisan'} 
-            data-ai-hint="profile avatar" 
+          <AvatarImage
+            src={artisan.profilePhotoUrl || `https://placehold.co/80x80.png`}
+            alt={artisan.username || 'Artisan'}
+            data-ai-hint="profile avatar"
             className="object-cover"
           />
           <AvatarFallback>{artisan.username ? artisan.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
@@ -218,7 +218,7 @@ function PublicArtisanCard({ artisan }: PublicArtisanCardProps) {
         </div>
         <div className="flex items-center gap-0.5 text-yellow-500">
           {[...Array(Math.floor(artisan.rating))].map((_, i) => <Star key={`full-${i}`} className="h-3.5 w-3.5 fill-current" />)}
-          {artisan.rating % 1 >= 0.5 && <Star key="half" className="h-3.5 w-3.5 fill-current opacity-50" />} 
+          {artisan.rating % 1 >= 0.5 && <Star key="half" className="h-3.5 w-3.5 fill-current opacity-50" />}
           {[...Array(5 - Math.ceil(artisan.rating))].map((_, i) => <Star key={`empty-${i}`} className="h-3.5 w-3.5 text-muted-foreground/50" />)}
           <span className="text-xs text-muted-foreground ml-1">({artisan.rating.toFixed(1)})</span>
         </div>

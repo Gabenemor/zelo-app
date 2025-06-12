@@ -7,19 +7,19 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CreditCard, DollarSign, List, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react"; // Removed TrendingUp
+import { CreditCard, Coins, List, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react"; // Changed DollarSign to Coins
 import type { UserRole } from '@/types';
 
 const mockArtisanPaymentSummary = {
-  availableForWithdrawal: 125000, 
-  pendingPayouts: 45000, 
-  totalEarnedLifetime: 850000, 
+  availableForWithdrawal: 125000,
+  pendingPayouts: 45000,
+  totalEarnedLifetime: 850000,
 };
 
 const mockClientPaymentSummary = {
-  totalSpent: 250000, 
-  activeJobsFunded: 2, 
-  requestsAwaitingFunding: 1, 
+  totalSpent: 250000,
+  activeJobsFunded: 2,
+  requestsAwaitingFunding: 1,
 };
 
 function PaymentsOverviewPageContent() {
@@ -41,8 +41,8 @@ function PaymentsOverviewPageContent() {
       <PageHeader
         title={userRole === 'client' ? "Client Payments" : "Artisan Payments Overview"}
         description={
-          userRole === 'client' 
-          ? "Manage your service payments, view transaction history, and track job funding." 
+          userRole === 'client'
+          ? "Manage your service payments, view transaction history, and track job funding."
           : "Track your earnings, manage withdrawals, and view transaction history."
         }
         icon={CreditCard}
@@ -55,44 +55,44 @@ function PaymentsOverviewPageContent() {
 
       {userRole === 'artisan' && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard 
-            title="Available for Withdrawal" 
-            value={`₦${mockArtisanPaymentSummary.availableForWithdrawal.toLocaleString()}`} 
-            icon={DollarSign}
+          <StatCard
+            title="Available for Withdrawal"
+            value={`₦${mockArtisanPaymentSummary.availableForWithdrawal.toLocaleString()}`}
+            icon={Coins} // Changed from DollarSign
             color="text-green-500"
           />
-          <StatCard 
-            title="Pending Payouts" 
-            value={`₦${mockArtisanPaymentSummary.pendingPayouts.toLocaleString()}`} 
-            icon={DollarSign}
+          <StatCard
+            title="Pending Payouts"
+            value={`₦${mockArtisanPaymentSummary.pendingPayouts.toLocaleString()}`}
+            icon={Coins} // Changed from DollarSign
             color="text-yellow-500"
             description="From recently completed jobs"
           />
-          <StatCard 
-            title="Lifetime Earnings" 
-            value={`₦${mockArtisanPaymentSummary.totalEarnedLifetime.toLocaleString()}`} 
-            icon={CreditCard} // Changed from TrendingUp as it's not in LucideIconName
+          <StatCard
+            title="Lifetime Earnings"
+            value={`₦${mockArtisanPaymentSummary.totalEarnedLifetime.toLocaleString()}`}
+            icon={CreditCard}
           />
         </div>
       )}
 
       {userRole === 'client' && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard 
-            title="Total Spent on Zelo" 
-            value={`₦${mockClientPaymentSummary.totalSpent.toLocaleString()}`} 
+          <StatCard
+            title="Total Spent on Zelo"
+            value={`₦${mockClientPaymentSummary.totalSpent.toLocaleString()}`}
             icon={ShoppingCart}
           />
-          <StatCard 
-            title="Active Jobs Funded" 
-            value={`${mockClientPaymentSummary.activeJobsFunded}`} 
+          <StatCard
+            title="Active Jobs Funded"
+            value={`${mockClientPaymentSummary.activeJobsFunded}`}
             icon={CheckCircle2}
             color="text-green-500"
             description="Services currently in progress"
           />
-          <StatCard 
-            title="Requests Awaiting Funding" 
-            value={`${mockClientPaymentSummary.requestsAwaitingFunding}`} 
+          <StatCard
+            title="Requests Awaiting Funding"
+            value={`${mockClientPaymentSummary.requestsAwaitingFunding}`}
             icon={CreditCard}
             color="text-orange-500"
             description="Awarded jobs that need escrow funding"

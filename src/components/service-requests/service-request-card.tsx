@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MapPin, CalendarDays, DollarSign, Briefcase, Eye } from "lucide-react";
+import { MapPin, CalendarDays, Coins, Briefcase, Eye } from "lucide-react"; // Changed DollarSign to Coins
 import { formatDistanceToNow } from 'date-fns';
 
 interface ServiceRequestCardProps {
@@ -26,7 +26,7 @@ export function ServiceRequestCard({ request, showViewButton = true, currentUser
   };
 
   const detailLink = `/dashboard/services/requests/${request.id}${currentUserRole ? `?role=${currentUserRole}` : ''}`;
-  
+
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-md">
       <CardHeader>
@@ -47,7 +47,7 @@ export function ServiceRequestCard({ request, showViewButton = true, currentUser
         </div>
         {request.budget && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <DollarSign className="h-3 w-3" /> <span>Budget: ₦{request.budget.toLocaleString()}</span>
+            <Coins className="h-3 w-3" /> <span>Budget: ₦{request.budget.toLocaleString()}</span>
           </div>
         )}
       </CardContent>

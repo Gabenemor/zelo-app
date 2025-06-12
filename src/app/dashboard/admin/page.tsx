@@ -1,6 +1,7 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, Settings, DollarSign, BarChart3, ShieldAlert } from "lucide-react";
+import { Users, Briefcase, Settings, Coins, BarChart3, ShieldAlert } from "lucide-react"; // Changed DollarSign to Coins
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -27,7 +28,7 @@ export default function AdminDashboardPage() {
         <StatCard title="Total Users" value={adminStats.totalUsers.toLocaleString()} icon={Users} />
         <StatCard title="Active Artisans" value={adminStats.activeArtisans.toLocaleString()} icon={Briefcase} />
         <StatCard title="Open Service Requests" value={adminStats.openServiceRequests.toLocaleString()} icon={Briefcase} color="text-orange-500" />
-        <StatCard title="Total Platform Revenue (₦)" value={`₦${adminStats.totalRevenue.toLocaleString()}`} icon={DollarSign} color="text-green-500" />
+        <StatCard title="Total Platform Revenue (₦)" value={`₦${adminStats.totalRevenue.toLocaleString()}`} icon={Coins} color="text-green-500" />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

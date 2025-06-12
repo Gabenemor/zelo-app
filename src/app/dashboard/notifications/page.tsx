@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Bell, Check, Trash2, Briefcase, MessageSquare, DollarSign, Award, Settings, Info } from "lucide-react";
+import { Bell, Check, Trash2, Briefcase, MessageSquare, Coins, Award, Settings, Info } from "lucide-react";
 import type { NotificationItem, LucideIconName } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 const mockNotifications: NotificationItem[] = [
   { id: "notif1", userId: "user123", type: "new_message", icon: "MessageSquare", title: "New message from Client Bola", description: "Regarding 'Website Design' project...", timestamp: new Date(Date.now() - 3600000 * 2), read: false, link: "/dashboard/messages?chatWith=clientBola" },
   { id: "notif2", userId: "user123", type: "job_awarded", icon: "Award", title: "Job 'Catering for Event' awarded!", description: "Client Chioma accepted your proposal. Fund escrow to begin.", timestamp: new Date(Date.now() - 86400000 * 1), read: false, link: "/dashboard/services/requests/req_catering_xyz" },
-  { id: "notif3", userId: "user123", type: "payment_received", icon: "DollarSign", title: "Payment of ₦15,000 processed", description: "For 'Electrical Wiring Fix' completed.", timestamp: new Date(Date.now() - 86400000 * 3), read: true, link: "/dashboard/payments/history" },
+  { id: "notif3", userId: "user123", type: "payment_received", icon: "Coins", title: "Payment of ₦15,000 processed", description: "For 'Electrical Wiring Fix' completed.", timestamp: new Date(Date.now() - 86400000 * 3), read: true, link: "/dashboard/payments/history" },
   { id: "notif4", userId: "user123", type: "proposal_accepted", icon: "Briefcase", title: "Proposal for 'Garden Landscaping' accepted", description: "Client Musa wants to proceed. Awaiting funding.", timestamp: new Date(Date.now() - 86400000 * 0.5), read: false, link: "/dashboard/services/my-offers" },
   { id: "notif5", userId: "user123", type: "system_update", icon: "Settings", title: "Platform Maintenance Scheduled", description: "Zelo will undergo scheduled maintenance on July 15th, 2 AM - 4 AM WAT.", timestamp: new Date(Date.now() - 86400000 * 5), read: true },
 ];
@@ -25,10 +25,10 @@ const iconMap: Record<NotificationItem['type'], LucideIconName> = {
     job_awarded: "Award",
     proposal_accepted: "Briefcase",
     proposal_rejected: "Briefcase",
-    payment_received: "DollarSign",
+    payment_received: "Coins", // Changed from DollarSign
     job_completed_by_artisan: "Check",
     job_confirmed_by_client: "Check",
-    new_review: "Award", 
+    new_review: "Award",
     system_update: "Settings",
 };
 
@@ -78,7 +78,7 @@ export default function NotificationsPage() {
               {notifications.map((notif) => {
                 const IconComponent = iconMap[notif.type] || Bell; // Fallback to Bell icon
                 const content = (
-                  <div className={cn("flex items-start gap-4 p-4 rounded-lg border transition-colors", 
+                  <div className={cn("flex items-start gap-4 p-4 rounded-lg border transition-colors",
                                     notif.read ? "bg-card hover:bg-secondary/50" : "bg-primary/5 font-medium border-primary/20 hover:bg-primary/10"
                                   )}>
                     <div className={cn("flex h-10 w-10 items-center justify-center rounded-full shrink-0 mt-1", notif.read ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>

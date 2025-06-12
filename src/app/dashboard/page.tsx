@@ -1,5 +1,5 @@
 
-"use client"; 
+"use client";
 
 import React, { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -7,10 +7,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { 
+import {
   Briefcase, MessageSquare, PlusCircle, LayoutDashboard,
   CreditCard, FileText, Award, CheckCircle2, LucideIcon, Settings,
-  Users, MapPin, Search, ClipboardList, UserCog, UserCircle2, DollarSign, Edit3,
+  Users, MapPin, Search, ClipboardList, UserCog, UserCircle2, Coins, Edit3, // Changed DollarSign to Coins
   CalendarDays, Edit, Camera, UploadCloud, Loader2, ListChecks
 } from "lucide-react";
 import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ClientProfile, ServiceExperience, UserRole, AuthUser } from "@/types";
@@ -23,7 +23,7 @@ import { getArtisanProfile, getClientProfile, getServiceRequests } from '@/lib/f
 import { Skeleton } from '@/components/ui/skeleton';
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle: UserCircle2, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks, Activity: Users
+  LayoutDashboard, UserCircle: UserCircle2, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, Coins, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks, Activity: Users // Added Coins
 };
 
 function DashboardHomePageContent() {
@@ -48,7 +48,7 @@ function DashboardHomePageContent() {
         let fetchedStats: any = {};
         let fetchedRelevantItems: ServiceRequest[] = [];
         // Mock activities for now, can be replaced with real Firestore queries
-        let fetchedRecentActivities: ActivityItem[] = userRole === 'artisan' 
+        let fetchedRecentActivities: ActivityItem[] = userRole === 'artisan'
             ? mockRecentActivitiesArtisan.map(a => ({...a, userId: authUser.uid}))
             : mockRecentActivitiesClient.map(a => ({...a, userId: authUser.uid}));
 
@@ -57,16 +57,16 @@ function DashboardHomePageContent() {
           // Mock stats for artisan
           fetchedStats = { totalBidsSent: 25, activeJobs: 3, totalEarned: 175000 };
           // Fetch jobs matching artisan's primary services (mocked here)
-          fetchedRelevantItems = mockNewJobsForArtisan.filter(job => 
+          fetchedRelevantItems = mockNewJobsForArtisan.filter(job =>
             (userProfile as ArtisanProfile)?.servicesOffered?.some(s => job.category === s)
           ).slice(0,3);
         } else if (userRole === 'client') {
           userProfile = await getClientProfile(authUser.uid);
           // Mock stats for client
            const clientRequests = await getServiceRequests({ clientId: authUser.uid, limit: 100 }); // Fetch all for accurate stats
-           fetchedStats = { 
-             activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded').length, 
-             artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length, 
+           fetchedStats = {
+             activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded').length,
+             artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length,
              totalSpent: 250000 // Still mock, real calculation needed
            };
           fetchedRelevantItems = clientRequests.sort((a,b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()).slice(0,3);
@@ -130,14 +130,14 @@ function DashboardHomePageContent() {
           <>
             <StatCard title="Total Bids Sent (Mock)" value={dashboardData.stats.totalBidsSent?.toString() || '0'} icon={Edit3} />
             <StatCard title="Active Jobs (Mock)" value={dashboardData.stats.activeJobs?.toString() || '0'} icon={Briefcase} />
-            <StatCard title="Total Earned (₦, Mock)" value={`₦${(dashboardData.stats.totalEarned || 0).toLocaleString()}`} icon={DollarSign} />
+            <StatCard title="Total Earned (₦, Mock)" value={`₦${(dashboardData.stats.totalEarned || 0).toLocaleString()}`} icon={Coins} />
           </>
         )}
         {userRole === 'client' && (
           <>
             <StatCard title="Active Requests" value={dashboardData.stats.activeRequests?.toString() || '0'} icon={ClipboardList} />
             <StatCard title="Artisans Hired" value={dashboardData.stats.artisansHired?.toString() || '0'} icon={Users} />
-            <StatCard title="Total Spent (₦, Mock)" value={`₦${(dashboardData.stats.totalSpent || 0).toLocaleString()}`} icon={DollarSign} />
+            <StatCard title="Total Spent (₦, Mock)" value={`₦${(dashboardData.stats.totalSpent || 0).toLocaleString()}`} icon={Coins} />
           </>
         )}
       </div>
@@ -194,7 +194,7 @@ function DashboardHomePageContent() {
             </Card>
           )}
         </div>
-        
+
         <div className="lg:col-span-1 space-y-6">
            {userRole === 'artisan' && (profile as ArtisanProfile)?.serviceExperiences && (
             <Card>
@@ -213,7 +213,7 @@ function DashboardHomePageContent() {
                       </div>
                       {exp.chargeAmount && (
                         <div className="flex items-center gap-1.5">
-                          <DollarSign className="h-3.5 w-3.5" />
+                          <Coins className="h-3.5 w-3.5" />
                           <span>₦{exp.chargeAmount.toLocaleString()} {exp.chargeDescription || ''}</span>
                         </div>
                       )}
@@ -274,7 +274,7 @@ function DashboardHomePageContent() {
                           </div>
                       </div>
                       );
-                      
+
                       return (
                         <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
                           {activity.link ? (

@@ -8,7 +8,7 @@ export interface User { // Basic user data, often from Firebase Auth + role from
   role: UserRole;
   avatarUrl?: string; // Generic avatar, could be Google's or one they upload later
   createdAt: Date; // Firestore timestamp for user record creation
-  status?: 'active' | 'suspended' | 'deactivated'; 
+  status?: 'active' | 'suspended' | 'deactivated';
   emailVerified: boolean;
 }
 
@@ -28,25 +28,25 @@ export interface AuthUser {
 export interface ServiceExperience {
   serviceName: string;
   years: number;
-  chargeAmount?: number; 
-  chargeDescription?: string; 
+  chargeAmount?: number;
+  chargeDescription?: string;
 }
 
 export interface ArtisanProfile {
   userId: string; // Firebase UID, primary key
   username?: string;
-  profilePhotoUrl?: string; 
-  headline?: string; 
+  profilePhotoUrl?: string;
+  headline?: string;
   contactPhone?: string;
   contactEmail?: string; // Often same as auth email, but can be different
   servicesOffered: string[]; // Primary services
-  serviceExperiences?: ServiceExperience[]; 
+  serviceExperiences?: ServiceExperience[];
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
   isLocationPublic?: boolean;
   bio?: string;
   portfolioImageUrls?: string[];
-  availabilityStatus?: 'available' | 'busy' | 'unavailable'; 
+  availabilityStatus?: 'available' | 'busy' | 'unavailable';
   onboardingCompleted?: boolean;
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
@@ -57,10 +57,10 @@ export interface ArtisanProfile {
 
 export interface ClientProfile {
   userId: string; // Firebase UID, primary key
-  username?: string; 
-  avatarUrl?: string; 
-  fullName?: string; 
-  contactEmail?: string; 
+  username?: string;
+  avatarUrl?: string;
+  fullName?: string;
+  contactEmail?: string;
   contactPhone?: string;
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
@@ -74,7 +74,7 @@ export interface ClientProfile {
 }
 
 export interface WithdrawalAccount {
-  userId: string; 
+  userId: string;
   bankName: string;
   accountNumber: string;
   accountName: string;
@@ -84,7 +84,7 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  clientName?: string; 
+  clientName?: string;
   postedBy?: {
     name: string;
     avatarUrl?: string;
@@ -98,9 +98,9 @@ export interface ServiceRequest {
   locationCoordinates?: { lat: number; lng: number };
   budget?: number;
   postedAt: Date;
-  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed"; 
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed";
   assignedArtisanId?: string;
-  assignedArtisanName?: string; 
+  assignedArtisanName?: string;
   attachments?: Array<{ name: string; url: string; type: 'image' | 'document'; "data-ai-hint"?: string }>;
 }
 
@@ -140,11 +140,11 @@ export interface EscrowTransaction {
   updatedAt: Date;
 }
 
-export type ActivityType = 
-  | 'new_message' 
-  | 'request_update' 
-  | 'new_proposal' 
-  | 'payment_processed' 
+export type ActivityType =
+  | 'new_message'
+  | 'request_update'
+  | 'new_proposal'
+  | 'payment_processed'
   | 'profile_update'
   | 'job_awarded'
   | 'job_completed';
@@ -152,12 +152,12 @@ export type ActivityType =
 export interface ActivityItem {
   id: string;
   type: ActivityType;
-  icon: LucideIconName; 
+  icon: LucideIconName;
   title: string;
-  description?: string; 
+  description?: string;
   timestamp: Date;
-  link?: string; 
-  userId: string; 
+  link?: string;
+  userId: string;
 }
 
 
@@ -214,30 +214,30 @@ export type LucideIconName =
   | "ClipboardList"
   | "UserCog"
   | "UserCircle2"
-  | "Award" 
+  | "Award"
   | "CheckCircle2"
   | "Menu"
   | "Camera"
   | "UploadCloud"
-  | "CalendarDays" 
+  | "CalendarDays"
   | "Edit"
-  | "Bell" 
-  | "Check" 
-  | "Trash2" 
-  | "DollarSign" 
+  | "Bell"
+  | "Check"
+  | "Trash2"
+  | "Coins" // Added Coins
   | "Info"
   | "ListChecks"
-  | "ShoppingCart" 
+  | "ShoppingCart"
   | "Edit3"
   | "AlertTriangle"
   | "SlidersHorizontal"
-  | "Activity"; 
+  | "Activity";
 
 
 export interface NavItem {
   title: string;
   href: string;
-  icon?: LucideIconName; 
+  icon?: LucideIconName;
   disabled?: boolean;
   external?: boolean;
   label?: string;
@@ -258,3 +258,4 @@ export type NigerianArtisanService = ServiceName;
 
 // Define a more specific User type that combines AuthUser with profile details
 export type AppUser = AuthUser & (ClientProfile | ArtisanProfile | { /* admin profile */ });
+
