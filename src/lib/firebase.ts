@@ -1,8 +1,7 @@
 
 import { initializeApp, getApps, type FirebaseOptions } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-// Import enableNetwork, disableNetwork (optional for testing)
-import { getFirestore, connectFirestoreEmulator /*, enableNetwork, disableNetwork */ } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -35,19 +34,18 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   const errorMessage =
     `[Firebase SDK] CRITICAL ERROR: Firebase client-side configuration is missing or incomplete. ` +
     `NEXT_PUBLIC_FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_PROJECT_ID is undefined. ` +
-    `Please ensure these environment variables are correctly set in your .env.local file and that the Next.js development server was restarted. ` +
+    `Please ensure these environment variables are correctly set in your .env.local file (for local dev) or App Hosting environment variables. ` +
     `Current values - API Key: ${firebaseConfig.apiKey}, Project ID: ${firebaseConfig.projectId}. ` +
     `Firebase services will not work correctly.`;
   console.error('--------------------------------------------------------------------');
   console.error(errorMessage);
   console.error('--------------------------------------------------------------------');
-  // Throwing an error here will stop further execution and should be visible in the Studio.
   throw new Error(errorMessage);
 }
 
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-console.log(`[Firebase SDK] Firebase app initialized or retrieved: ${app.name}`);
+console.log(`[Firebase SDK] Firebase app initialized or retrieved: ${app.name} for project: ${firebaseConfig.projectId}`);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
@@ -59,54 +57,49 @@ console.log('[Firebase SDK] Firebase Storage service instance created.');
 export const functions = getFunctions(app);
 console.log('[Firebase SDK] Firebase Functions service instance created.');
 
+// Ensure emulators are NOT connected when pointing to a live test environment
+const USE_EMULATORS = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
 
-// Emulator connections
-// IMPORTANT: For Firebase Studio, window.location.hostname might be the correct host
-// if emulators are proxied. If emulators run on a separate container/IP in Studio's
-// backend, this might need adjustment or Studio-specific environment variables.
-const IS_DEV_MODE = process.env.NODE_ENV === 'development';
-
-if (IS_DEV_MODE) {
-  // Determine emulator host. In Firebase Studio, it's often window.location.hostname.
-  // For local CLI, it's "localhost".
+if (USE_EMULATORS && process.env.NODE_ENV === 'development') {
   const emulatorHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-  console.log(`[Firebase SDK] Development mode detected. Attempting to use emulator host: ${emulatorHost}`);
-  console.log('--------------------------------------------------------------------');
+  console.warn(`[Firebase SDK] DEVELOPMENT MODE & USE_EMULATORS=true: Attempting to connect to emulators on host: ${emulatorHost}`);
+  console.warn('--------------------------------------------------------------------');
   
   try {
     console.log(`[Firebase SDK] Attempting to connect to Auth Emulator on http://${emulatorHost}:9099...`);
     connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
     console.log('[Firebase SDK] Auth Emulator connection attempt made.');
   } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Auth Emulator connection attempt (is it running on ${emulatorHost}:9099?): ${error.message}`);
+    console.warn(`[Firebase SDK] Warning: Error during Auth Emulator connection: ${error.message}`);
   }
 
   try {
-    console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on http://${emulatorHost}:8080...`);
+    console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on ${emulatorHost}:8080...`);
     connectFirestoreEmulator(db, emulatorHost, 8080);
     console.log('[Firebase SDK] Firestore Emulator connection attempt made.');
   } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Firestore Emulator connection attempt (is it running on ${emulatorHost}:8080?): ${error.message}`);
+    console.warn(`[Firebase SDK] Warning: Error during Firestore Emulator connection: ${error.message}`);
   }
 
   try {
-    console.log(`[Firebase SDK] Attempting to connect to Storage Emulator on http://${emulatorHost}:9199...`);
+    console.log(`[Firebase SDK] Attempting to connect to Storage Emulator on ${emulatorHost}:9199...`);
     connectStorageEmulator(storage, emulatorHost, 9199);
     console.log('[Firebase SDK] Storage Emulator connection attempt made.');
   } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Storage Emulator connection attempt (is it running on ${emulatorHost}:9199?): ${error.message}`);
+    console.warn(`[Firebase SDK] Warning: Error during Storage Emulator connection: ${error.message}`);
   }
 
   try {
-    console.log(`[Firebase SDK] Attempting to connect to Functions Emulator on http://${emulatorHost}:5001...`);
+    console.log(`[Firebase SDK] Attempting to connect to Functions Emulator on ${emulatorHost}:5001...`);
     connectFunctionsEmulator(functions, emulatorHost, 5001);
     console.log('[Firebase SDK] Functions Emulator connection attempt made.');
   } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Functions Emulator connection attempt (is it running on ${emulatorHost}:5001?): ${error.message}`);
+    console.warn(`[Firebase SDK] Warning: Error during Functions Emulator connection: ${error.message}`);
   }
-  console.log('--------------------------------------------------------------------');
+  console.warn('--------------------------------------------------------------------');
 } else {
-  console.log('[Firebase SDK] Production mode. Connecting to live Firebase services.');
+  console.log('[Firebase SDK] Connecting to LIVE Firebase services (Emulators are OFF or NEXT_PUBLIC_USE_FIREBASE_EMULATORS is not "true").');
+  console.log(`[Firebase SDK] Target Project ID: ${firebaseConfig.projectId}`);
 }
 
 export default app;
