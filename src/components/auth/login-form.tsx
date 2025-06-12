@@ -55,16 +55,17 @@ export function LoginForm() {
           variant: "destructive",
         });
       } else if (result.user) {
-        if (!result.user.emailVerified) {
-          toast({
-            title: "Email Not Verified",
-            description: "Please verify your email address before logging in. Check your inbox for the verification link.",
-            variant: "destructive",
-            duration: 7000,
-          });
-           setIsLoading(false);
-           return;
-        }
+        // Removed the email verification check here to allow login
+        // if (!result.user.emailVerified) {
+        //   toast({
+        //     title: "Email Not Verified",
+        //     description: "Please verify your email address before logging in. Check your inbox for the verification link.",
+        //     variant: "destructive",
+        //     duration: 7000,
+        //   });
+        //    setIsLoading(false);
+        //    return;
+        // }
 
         toast({ title: "Login Successful", description: `Welcome back, ${result.user.displayName || 'User'}!` });
         

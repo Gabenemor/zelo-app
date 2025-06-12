@@ -4,9 +4,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
-  User,
+  User as FirebaseUser, // Renamed to avoid conflict with our User type
   UserCredential,
-  sendEmailVerification,
+  sendEmailVerification as firebaseSendEmailVerification, // Renamed
   GoogleAuthProvider,
   signInWithPopup,
   getAdditionalUserInfo,
@@ -53,7 +53,7 @@ export async function registerUser(
     console.log('[Auth] User created in Firebase Auth, UID:', firebaseUser.uid);
 
     console.log('[Auth] Attempting to send email verification...');
-    await sendEmailVerification(firebaseUser);
+    await firebaseSendEmailVerification(firebaseUser);
     console.log('[Auth] Email verification sent.');
 
     console.log('[Auth] Updating Firebase Auth profile with displayName:', fullName);
@@ -273,6 +273,29 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 }
+
+export async function resendVerificationEmail(): Promise<{ success: boolean; error?: string }> {
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    try {
+      await firebaseSendEmailVerification(currentUser);
+      console.log('[Auth] Verification email resent to:', currentUser.email);
+      return { success: true };
+    } catch (error: any) {
+      console.error("[Auth] Error resending verification email:", error);
+      // Provide more specific error messages if possible
+      let message = "Failed to resend verification email. Please try again later.";
+      if (error.code === 'auth/too-many-requests') {
+        message = "Too many requests. Please try again later to resend the verification email.";
+      }
+      return { success: false, error: message };
+    }
+  } else {
+    console.warn('[Auth] Attempted to resend verification email, but no user is signed in.');
+    return { success: false, error: "No user is currently signed in." };
+  }
+}
+
 
 // Note: The initial `src/lib/firebase-server-init.ts` logic has been moved into the top of `src/actions/onboarding-actions.ts`
 // and potentially will be needed in `src/actions/auth-actions.ts` if not already implicitly handled by client-side `db` import.
