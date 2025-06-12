@@ -16,16 +16,24 @@ function ArtisanOnboardingStep2Content() {
   const { toast } = useToast();
   const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
   const [isLoadingPage, setIsLoadingPage] = useState(true);
-
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; // This should ideally come from auth context or params
+  const [uid, setUid] = useState<string | null>(null);
+  
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   useEffect(() => {
     if (searchParams) {
-      const servicesOfferedString = searchParams.get('servicesOffered');
-      
-      let servicesOffered: string[] = [];
+      const userIdFromParams = searchParams.get('uid');
+      if (userIdFromParams) {
+        setUid(userIdFromParams);
+      } else {
+        toast({ title: "Error", description: "User ID missing. Cannot complete profile setup.", variant: "destructive" });
+        router.replace('/login');
+        setIsLoadingPage(false);
+        return;
+      }
 
+      const servicesOfferedString = searchParams.get('servicesOffered');
+      let servicesOffered: string[] = [];
       if (servicesOfferedString) {
         try {
           servicesOffered = JSON.parse(servicesOfferedString);
@@ -37,23 +45,28 @@ function ArtisanOnboardingStep2Content() {
       
       setInitialFormValues(prev => ({
         ...prev,
-        username: firstName || prev.username,
+        username: firstName || prev.username, // Prefer firstName from params if available for username
         servicesOffered, 
-        serviceExperiences: [], 
+        serviceExperiences: servicesOffered.map(serviceName => ({ // Initialize experiences for selected services
+            serviceName: serviceName,
+            years: 0,
+            chargeAmount: undefined,
+            chargeDescription: '',
+        })),
       }));
       setIsLoadingPage(false);
     }
-  }, [searchParams, toast, firstName]);
+  }, [searchParams, toast, firstName, router]);
 
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
-    router.push('/dashboard?role=artisan'); // Corrected redirection
+    router.push('/dashboard?role=artisan'); 
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
   const pageDescription = "This information is vital for clients to find and trust your services. Your selected services from Step 1 are pre-filled. You can add years of experience for each service here or later from your main profile page.";
 
-  if (isLoadingPage || !searchParams) {
+  if (isLoadingPage || !searchParams || (!uid && searchParams.get('uid'))) {
     return (
       <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -62,7 +75,20 @@ function ArtisanOnboardingStep2Content() {
     );
   }
 
-  const backHref = `/onboarding/artisan/step-1${firstName ? `?firstName=${encodeURIComponent(firstName)}` : ''}`;
+  if (!uid) { // Safeguard if UID wasn't set properly
+    return (
+      <div className="container mx-auto max-w-3xl py-8 sm:py-12 flex flex-col items-center justify-center">
+        <UserCircle2 className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-lg font-semibold">Error: User ID is missing.</p>
+        <p className="text-muted-foreground">Cannot load profile form without user identification.</p>
+      </div>
+    );
+  }
+
+  const backHrefQuery = new URLSearchParams();
+  if (firstName) backHrefQuery.append('firstName', firstName);
+  if (uid) backHrefQuery.append('uid', uid);
+  const backHref = `/onboarding/artisan/step-1?${backHrefQuery.toString()}`;
 
   return (
     <div className="container mx-auto max-w-3xl py-8 sm:py-12">
@@ -74,13 +100,13 @@ function ArtisanOnboardingStep2Content() {
       <OnboardingProgressIndicator currentStep={2} totalSteps={2} />
       <div className="p-0 sm:p-6 border-0 sm:border rounded-lg sm:shadow-sm sm:bg-card">
         <ArtisanProfileForm
-          userId={MOCK_USER_ID}
+          userId={uid} 
           initialData={initialFormValues}
           onSaveSuccess={handleFormSaveSuccess}
           submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
           backButtonHref={backHref}
           backButtonText={<><ArrowLeft className="mr-2 h-4 w-4" /> Back to Step 1</>}
-          isOnboarding={true} // Explicitly set for onboarding context
+          isOnboarding={true} 
         />
       </div>
     </div>

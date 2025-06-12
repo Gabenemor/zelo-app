@@ -1,213 +1,193 @@
 
 "use client"; 
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { 
-  Briefcase, 
-  MessageSquare, 
-  PlusCircle, 
-  LayoutDashboard,
-  CreditCard,
-  FileText,
-  Award,
-  CheckCircle2,
-  LucideIcon,
-  Settings,
-  Users, 
-  MapPin, 
-  Search, 
-  ClipboardList, 
-  UserCog,
-  UserCircle2,
-  DollarSign,
-  Edit3,
-  CalendarDays, 
-  Edit, 
-  Camera, 
-  UploadCloud,
-  Loader2,
-  ListChecks
-} from "lucide-react"; // Removed duplicate Bell, Check, Trash2, DollarSign, Info. Merged Settings.
-import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ServiceExperience, UserRole } from "@/types";
+  Briefcase, MessageSquare, PlusCircle, LayoutDashboard,
+  CreditCard, FileText, Award, CheckCircle2, LucideIcon, Settings,
+  Users, MapPin, Search, ClipboardList, UserCog, UserCircle2, DollarSign, Edit3,
+  CalendarDays, Edit, Camera, UploadCloud, Loader2, ListChecks
+} from "lucide-react";
+import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ClientProfile, ServiceExperience, UserRole, AuthUser } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-
-const mockUserId = "currentArtisanId123"; 
-const mockClientUserId = "mockClientUserId456";
-
-
-const mockArtisanStats = {
-  totalBidsSent: 25,
-  activeJobs: 3,
-  totalEarned: 175000, 
-  completionRate: 95, 
-};
-
-const mockClientStats = {
-  activeRequests: 2,
-  artisansHired: 5,
-  totalSpent: 250000, 
-};
-
-
-const mockArtisanServiceExperiences: ServiceExperience[] = [
-  { serviceName: "Tailoring/Fashion Design", years: 10, chargeAmount: 20000, chargeDescription: "per outfit" },
-  { serviceName: "Plumbing", years: 5, chargeAmount: 5000, chargeDescription: "call-out fee" }
-];
-
-const mockRecentActivitiesArtisan: ActivityItem[] = [
-  {
-    id: "activity1", type: "new_proposal", icon: "FileText", title: "Proposal submitted for 'Kitchen Renovation'",
-    description: "Waiting for client review.", timestamp: new Date(Date.now() - 3600000 * 1), userId: mockUserId, link: "/dashboard/services/my-offers"
-  },
-  {
-    id: "activity3", type: "job_awarded", icon: "Award", title: "Job 'Catering for Event' awarded!",
-    description: "Client Chioma accepted your proposal.", timestamp: new Date(Date.now() - 86400000 * 0.5), userId: mockUserId, link: "/dashboard/services/my-offers"
-  },
-  {
-    id: "activity4", type: "payment_processed", icon: "CreditCard", title: "Payment of ₦15,000 received",
-    description: "For 'Electrical Wiring Fix' completed.", timestamp: new Date(Date.now() - 86400000 * 3), userId: mockUserId, link: "/dashboard/payments"
-  },
-  {
-    id: "activity5", type: "new_message", icon: "MessageSquare", title: "New message from Client Bola",
-    description: "Regarding 'Website Design' project...", timestamp: new Date(Date.now() - 3600000 * 5), userId: mockUserId, link: "/dashboard/messages"
-  },
-];
-
-const mockRecentActivitiesClient: ActivityItem[] = [
-  {
-    id: "activity_c1", type: "request_update", icon: "Briefcase", title: "Plumber Adewale sent a proposal for 'Leaky Faucet'",
-    description: "Review their offer now.", timestamp: new Date(Date.now() - 3600000 * 2), userId: mockClientUserId, link: "/dashboard/services/my-requests/req1"
-  },
-  {
-    id: "activity_c2", type: "payment_processed", icon: "CreditCard", title: "Payment of ₦50,000 funded to escrow for 'Event Catering'",
-    description: "Artisan Chioma can now begin work.", timestamp: new Date(Date.now() - 86400000 * 1), userId: mockClientUserId, link: "/dashboard/payments/escrow?transactionId=txn_mock_catering"
-  },
-   {
-    id: "activity_c3", type: "new_message", icon: "MessageSquare", title: "New message from Artisan Bola",
-    description: "Regarding your 'Aso Ebi Tailoring' request...", timestamp: new Date(Date.now() - 3600000 * 4), userId: mockClientUserId, link: "/dashboard/messages"
-  },
-];
-
-
-const mockNewJobsForArtisan: ServiceRequest[] = [
-  { id: "job1", clientId: "clientNew1", title: "Urgent Plumbing for Bathroom Leak", description: "Main bathroom pipe burst, need immediate plumbing assistance in Ikeja.", category: "Plumbing", location: "Ikeja, Lagos", budget: 15000, postedAt: new Date(Date.now() - 3600000 * 3), status: "open" },
-  { id: "job2", clientId: "clientNew2", title: "Custom Bookshelf Carpentry", description: "Looking for a skilled carpenter to build a floor-to-ceiling bookshelf. Materials provided.", category: "Carpentry", location: "Lekki Phase 1, Lagos", budget: 80000, postedAt: new Date(Date.now() - 86400000 * 1), status: "open" },
-  { id: "job3", clientId: "clientNew3", title: "House Painting - Exterior", description: "Need exterior painting for a 3-bedroom bungalow in Surulere.", category: "Painting", location: "Surulere, Lagos", postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
-];
-
-const mockClientServiceRequests: ServiceRequest[] = [
-  { id: "myreq1", clientId: mockClientUserId, title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days.", category: "Plumbing", location: "Ikeja, Lagos", budget: 7000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
-  { id: "myreq2", clientId: mockClientUserId, title: "Catering for Birthday Party (30 guests)", description: "Looking for reliable catering for a small birthday party.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 120000, postedAt: new Date(Date.now() - 86400000 * 3), status: "awarded", assignedArtisanId: "art_pub_2" },
-  { id: "myreq3", clientId: mockClientUserId, title: "Repaint Living Room", description: "Need one room repainted.", category: "Painting", location: "Surulere, Lagos", budget: 40000, postedAt: new Date(Date.now() - 86400000 * 10), status: "completed", assignedArtisanId: "art_pub_random" },
-];
-
-const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username' | 'profilePhotoUrl' | 'location' | 'servicesOffered' | 'headline'> & { rating?: number })[] = [
-  { userId: "art_pub_1", username: "Adewale Plumbing Masters", profilePhotoUrl: "https://placehold.co/80x80.png?text=AP", location: "Ikeja, Lagos", servicesOffered: ["Plumbing"], headline: "Your Go-To for Quick Plumbing Fixes!", rating: 4.7 },
-  { userId: "art_pub_2", username: "Chioma's Exquisite Catering", profilePhotoUrl: "https://placehold.co/80x80.png?text=CC", location: "Lekki, Lagos", servicesOffered: ["Catering"], headline: "Delicious Meals for Memorable Events.", rating: 4.9 },
-];
-
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { getArtisanProfile, getClientProfile, getServiceRequests } from '@/lib/firestore'; // Assuming getServiceRequests exists
+import { Skeleton } from '@/components/ui/skeleton';
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks
+  LayoutDashboard, UserCircle: UserCircle2, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks, Activity: Users
 };
 
 function DashboardHomePageContent() {
-  const searchParams = useSearchParams();
-  const roleFromQuery = searchParams.get("role") as UserRole | null;
-  const userType: UserRole = roleFromQuery && ["client", "artisan", "admin"].includes(roleFromQuery) ? roleFromQuery : "client"; // Default to client if role is missing or invalid
+  const { user: authUser, loading: authLoading } = useAuthContext();
+  const [profile, setProfile] = useState<Partial<ArtisanProfile & ClientProfile> | null>(null);
+  const [dashboardData, setDashboardData] = useState<any>({ // Replace 'any' with more specific types
+    stats: {},
+    recentActivities: [],
+    relevantItems: [], // e.g., new jobs for artisan, client's open requests
+  });
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const userActivities = (userType === 'client' ? mockRecentActivitiesClient : mockRecentActivitiesArtisan)
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .slice(0, 5);
+  const userRole = authUser?.role || 'client'; // Default to client if role not yet available
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!authUser?.uid) return;
+
+      setIsLoadingData(true);
+      try {
+        let userProfile: Partial<ArtisanProfile & ClientProfile> | null = null;
+        let fetchedStats: any = {};
+        let fetchedRelevantItems: ServiceRequest[] = [];
+        // Mock activities for now, can be replaced with real Firestore queries
+        let fetchedRecentActivities: ActivityItem[] = userRole === 'artisan' 
+            ? mockRecentActivitiesArtisan.map(a => ({...a, userId: authUser.uid}))
+            : mockRecentActivitiesClient.map(a => ({...a, userId: authUser.uid}));
+
+        if (userRole === 'artisan') {
+          userProfile = await getArtisanProfile(authUser.uid);
+          // Mock stats for artisan
+          fetchedStats = { totalBidsSent: 25, activeJobs: 3, totalEarned: 175000 };
+          // Fetch jobs matching artisan's primary services (mocked here)
+          fetchedRelevantItems = mockNewJobsForArtisan.filter(job => 
+            (userProfile as ArtisanProfile)?.servicesOffered?.some(s => job.category === s)
+          ).slice(0,3);
+        } else if (userRole === 'client') {
+          userProfile = await getClientProfile(authUser.uid);
+          // Mock stats for client
+           const clientRequests = await getServiceRequests({ clientId: authUser.uid, limit: 100 }); // Fetch all for accurate stats
+           fetchedStats = { 
+             activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded').length, 
+             artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length, 
+             totalSpent: 250000 // Still mock, real calculation needed
+           };
+          fetchedRelevantItems = clientRequests.sort((a,b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()).slice(0,3);
+        }
+        setProfile(userProfile);
+        setDashboardData({
+          stats: fetchedStats,
+          recentActivities: fetchedRecentActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 5),
+          relevantItems: fetchedRelevantItems,
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        // Handle error state if necessary
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+
+    if (!authLoading && authUser) {
+      fetchData();
+    } else if (!authLoading && !authUser) {
+        setIsLoadingData(false); // No user, nothing to load
+    }
+  }, [authUser, authLoading, userRole]);
+
+  if (authLoading || isLoadingData) {
+    return <DashboardLoadingSkeleton />;
+  }
+
+  if (!authUser) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+        <p className="text-lg text-muted-foreground">Please log in to view your dashboard.</p>
+        <Button asChild className="mt-4">
+          <Link href="/login">Login</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const pageTitleText = userRole === 'artisan' ? "Artisan Dashboard" : "Client Dashboard";
+  const pageDescriptionText = userRole === 'artisan' ? "Oversee your jobs, proposals, and earnings." : "Manage your service requests and connect with artisans.";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={userType === 'artisan' ? "Artisan Dashboard" : "Client Dashboard"}
-        description={userType === 'artisan' ? "Oversee your jobs, proposals, and earnings." : "Manage your service requests and connect with artisans."}
+        title={pageTitleText}
+        description={pageDescriptionText}
         icon={LayoutDashboard}
-        action={userType === 'client' && (
+        action={userRole === 'client' && (
           <Button asChild size="lg">
-            <Link href={`/dashboard/services/request/new?role=${userType}`}>
+            <Link href={`/dashboard/services/request/new?role=${userRole}`}>
               <PlusCircle className="mr-2 h-5 w-5" /> Post New Service Request
             </Link>
           </Button>
         )}
       />
 
-      {userType === 'artisan' && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard title="Total Bids Sent" value={mockArtisanStats.totalBidsSent.toString()} icon={Edit3} />
-          <StatCard title="Active Jobs" value={mockArtisanStats.activeJobs.toString()} icon={Briefcase} />
-          <StatCard title="Total Earned (₦)" value={`₦${mockArtisanStats.totalEarned.toLocaleString()}`} icon={DollarSign} />
-        </div>
-      )}
-      {userType === 'client' && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard title="Active Requests" value={mockClientServiceRequests.filter(r => r.status === 'open' || r.status === 'awarded').length.toString()} icon={ClipboardList} />
-          <StatCard title="Artisans Hired" value={mockClientServiceRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length.toString()} icon={Users} />
-          <StatCard title="Total Spent (₦)" value={`₦${mockClientStats.totalSpent.toLocaleString()}`} icon={DollarSign} />
-        </div>
-      )}
-
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {userRole === 'artisan' && (
+          <>
+            <StatCard title="Total Bids Sent (Mock)" value={dashboardData.stats.totalBidsSent?.toString() || '0'} icon={Edit3} />
+            <StatCard title="Active Jobs (Mock)" value={dashboardData.stats.activeJobs?.toString() || '0'} icon={Briefcase} />
+            <StatCard title="Total Earned (₦, Mock)" value={`₦${(dashboardData.stats.totalEarned || 0).toLocaleString()}`} icon={DollarSign} />
+          </>
+        )}
+        {userRole === 'client' && (
+          <>
+            <StatCard title="Active Requests" value={dashboardData.stats.activeRequests?.toString() || '0'} icon={ClipboardList} />
+            <StatCard title="Artisans Hired" value={dashboardData.stats.artisansHired?.toString() || '0'} icon={Users} />
+            <StatCard title="Total Spent (₦, Mock)" value={`₦${(dashboardData.stats.totalSpent || 0).toLocaleString()}`} icon={DollarSign} />
+          </>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          {userType === 'artisan' && (
+          {userRole === 'artisan' && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> New Jobs For You</CardTitle>
-                <CardDescription>Opportunities matching your skills. (Mocked data based on your primary services)</CardDescription>
+                <CardDescription>Opportunities matching your skills.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockNewJobsForArtisan.length > 0 ? (
-                  mockNewJobsForArtisan.slice(0,3).map(job => (
-                    <ServiceRequestCard key={job.id} request={job} currentUserRole={userType} />
+                {dashboardData.relevantItems.length > 0 ? (
+                  dashboardData.relevantItems.map((job: ServiceRequest) => (
+                    <ServiceRequestCard key={job.id} request={job} currentUserRole={userRole} />
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">No new jobs matching your services right now. Check back later!</p>
                 )}
-                {mockNewJobsForArtisan.length > 0 && ( // Show "View All" only if there are jobs
-                    <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/dashboard/jobs?role=${userType}`}>View All Matching Jobs</Link>
-                    </Button>
-                )}
+                <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/dashboard/jobs?role=${userRole}`}>View All Matching Jobs</Link>
+                </Button>
               </CardContent>
             </Card>
           )}
 
-          {userType === 'client' && (
+          {userRole === 'client' && (
              <Card>
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><ListChecks className="text-primary h-5 w-5"/> My Service Requests</CardTitle>
                 <CardDescription>Track and manage the jobs you've posted.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                 {mockClientServiceRequests.length > 0 ? (
-                  mockClientServiceRequests.slice(0,3).map(request => (
-                    <ServiceRequestCard key={request.id} request={request} currentUserRole={userType} />
+                 {dashboardData.relevantItems.length > 0 ? (
+                  dashboardData.relevantItems.map((request: ServiceRequest) => (
+                    <ServiceRequestCard key={request.id} request={request} currentUserRole={userRole} />
                   ))
                 ) : (
                   <div className="text-center py-10 text-muted-foreground">
                     <Briefcase className="mx-auto h-12 w-12 mb-4" />
                     <p>You haven't posted any service requests yet.</p>
                     <Button asChild className="mt-4">
-                      <Link href={`/dashboard/services/request/new?role=${userType}`}>Post Your First Request</Link>
+                      <Link href={`/dashboard/services/request/new?role=${userRole}`}>Post Your First Request</Link>
                     </Button>
                   </div>
                 )}
-                {mockClientServiceRequests.length > 0 && ( // Show "View All" only if there are requests
+                {dashboardData.relevantItems.length > 0 && (
                     <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/dashboard/services/my-requests?role=${userType}`}>View All My Requests</Link>
+                        <Link href={`/dashboard/services/my-requests?role=${userRole}`}>View All My Requests</Link>
                     </Button>
                 )}
               </CardContent>
@@ -216,14 +196,14 @@ function DashboardHomePageContent() {
         </div>
         
         <div className="lg:col-span-1 space-y-6">
-           {userType === 'artisan' && mockArtisanServiceExperiences.length > 0 && (
+           {userRole === 'artisan' && (profile as ArtisanProfile)?.serviceExperiences && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><Briefcase className="text-primary h-5 w-5"/> Your Services</CardTitle>
                 <CardDescription>Overview of your offered services and pricing.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockArtisanServiceExperiences.map((exp, index) => (
+                {(profile as ArtisanProfile).serviceExperiences!.map((exp, index) => (
                   <div key={index}>
                     <h4 className="font-semibold text-md text-foreground">{exp.serviceName}</h4>
                     <div className="text-sm text-muted-foreground space-y-1 mt-1">
@@ -238,32 +218,32 @@ function DashboardHomePageContent() {
                         </div>
                       )}
                     </div>
-                    {index < mockArtisanServiceExperiences.length - 1 && <Separator className="my-3"/>}
+                    {index < ((profile as ArtisanProfile).serviceExperiences!.length - 1) && <Separator className="my-3"/>}
                   </div>
                 ))}
                  <Button variant="outline" size="sm" className="w-full mt-4" asChild>
-                    <Link href={`/dashboard/profile/artisan/edit?role=${userType}`}><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
+                    <Link href={`/dashboard/profile/artisan/edit?role=${userRole}`}><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {userType === 'client' && (
+          {userRole === 'client' && (
              <Card>
                 <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans (Mock)</CardTitle>
                   <CardDescription>Find skilled professionals for your needs.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {mockSuggestedArtisansForClient.length > 0 ? (
                     mockSuggestedArtisansForClient.slice(0,2).map(artisan => (
-                      <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} userRole={userType} />
+                      <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} userRole={userRole} />
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground">Could not find artisan suggestions at this time.</p>
                   )}
                   <Button variant="outline" className="w-full" asChild>
-                      <Link href={`/dashboard/services/browse?role=${userType}`}>Browse All Artisans</Link>
+                      <Link href={`/dashboard/services/browse?role=${userRole}`}>Browse All Artisans</Link>
                   </Button>
                 </CardContent>
             </Card>
@@ -275,11 +255,11 @@ function DashboardHomePageContent() {
               <CardDescription>Your latest interactions on Zelo.</CardDescription>
               </CardHeader>
               <CardContent>
-              {userActivities.length > 0 ? (
+              {dashboardData.recentActivities.length > 0 ? (
                   <ul className="space-y-4">
-                  {userActivities.map((activity) => {
+                  {dashboardData.recentActivities.map((activity: ActivityItem) => {
                       const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard;
-                      const activityLink = activity.link?.includes("?") ? `${activity.link}&role=${userType}` : `${activity.link}?role=${userType}`;
+                      const activityLink = activity.link?.includes("?") ? `${activity.link}&role=${userRole}` : `${activity.link}?role=${userRole}`;
                       const content = (
                       <div className="flex items-start gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
@@ -323,7 +303,6 @@ function DashboardHomePageContent() {
     </div>
   );
 }
-
 
 interface StatCardProps {
   title: string;
@@ -383,6 +362,24 @@ function ArtisanSuggestionCard({ artisan, userRole }: ArtisanSuggestionCardProps
   );
 }
 
+// Mock data that might still be needed if API calls aren't fully implemented yet
+const mockRecentActivitiesArtisan: ActivityItem[] = [
+  { id: "activity1", type: "new_proposal", icon: "FileText", title: "Proposal submitted for 'Kitchen Renovation'", description: "Waiting for client review.", timestamp: new Date(Date.now() - 3600000 * 1), userId: "mockArtisanId", link: "/dashboard/services/my-offers" },
+  { id: "activity3", type: "job_awarded", icon: "Award", title: "Job 'Catering for Event' awarded!", description: "Client Chioma accepted your proposal.", timestamp: new Date(Date.now() - 86400000 * 0.5), userId: "mockArtisanId", link: "/dashboard/services/my-offers" },
+];
+const mockRecentActivitiesClient: ActivityItem[] = [
+  { id: "activity_c1", type: "request_update", icon: "Briefcase", title: "Plumber Adewale sent a proposal for 'Leaky Faucet'", description: "Review their offer now.", timestamp: new Date(Date.now() - 3600000 * 2), userId: "mockClientId", link: "/dashboard/services/my-requests/req1" },
+];
+const mockNewJobsForArtisan: ServiceRequest[] = [
+  { id: "job1", clientId: "clientNew1", title: "Urgent Plumbing for Bathroom Leak", description: "Main bathroom pipe burst...", category: "Plumbing", location: "Ikeja, Lagos", budget: 15000, postedAt: new Date(Date.now() - 3600000 * 3), status: "open" },
+  { id: "job2", clientId: "clientNew2", title: "Custom Bookshelf Carpentry", description: "Looking for a skilled carpenter...", category: "Carpentry", location: "Lekki Phase 1, Lagos", budget: 80000, postedAt: new Date(Date.now() - 86400000 * 1), status: "open" },
+];
+const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username' | 'profilePhotoUrl' | 'location' | 'servicesOffered' | 'headline'> & { rating?: number })[] = [
+  { userId: "art_pub_1", username: "Adewale Plumbing Masters", profilePhotoUrl: "https://placehold.co/80x80.png?text=AP", location: "Ikeja, Lagos", servicesOffered: ["Plumbing"], headline: "Your Go-To for Quick Plumbing Fixes!", rating: 4.7 },
+  { userId: "art_pub_2", username: "Chioma's Exquisite Catering", profilePhotoUrl: "https://placehold.co/80x80.png?text=CC", location: "Lekki, Lagos", servicesOffered: ["Catering"], headline: "Delicious Meals for Memorable Events.", rating: 4.9 },
+];
+
+
 export default function DashboardPage() {
   return (
     <Suspense fallback={<DashboardLoadingSkeleton />}>
@@ -397,25 +394,25 @@ function DashboardLoadingSkeleton() {
       <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-muted"></div>
-            <div className="h-8 w-48 rounded-md bg-muted"></div>
+            <Skeleton className="h-8 w-8 rounded-md bg-muted" />
+            <Skeleton className="h-8 w-48 rounded-md bg-muted" />
           </div>
-          <div className="h-4 w-64 rounded-md bg-muted"></div>
+          <Skeleton className="h-4 w-64 rounded-md bg-muted" />
         </div>
-        <div className="h-10 w-48 rounded-md bg-muted sm:h-12"></div>
+        <Skeleton className="h-10 w-48 rounded-md bg-muted sm:h-12" />
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
-        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
-        <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>
+        <Card><CardHeader><Skeleton className="h-5 w-2/3 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 rounded-md bg-muted" /></CardContent></Card>
+        <Card><CardHeader><Skeleton className="h-5 w-2/3 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 rounded-md bg-muted" /></CardContent></Card>
+        <Card><CardHeader><Skeleton className="h-5 w-2/3 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-8 w-1/3 rounded-md bg-muted" /></CardContent></Card>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-32 w-full rounded-md bg-muted"></div><div className="h-10 w-full rounded-md bg-muted mt-4"></div></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-6 w-1/2 rounded-md bg-muted mb-2" /><Skeleton className="h-4 w-3/4 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-32 w-full rounded-md bg-muted" /><Skeleton className="h-10 w-full rounded-md bg-muted mt-4" /></CardContent></Card>
         </div>
         <div className="lg:col-span-1 space-y-6">
-          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-40 w-full rounded-md bg-muted"></div></CardContent></Card>
-          <Card><CardHeader><div className="h-6 w-1/2 rounded-md bg-muted mb-2"></div><div className="h-4 w-3/4 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-48 w-full rounded-md bg-muted"></div></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-6 w-1/2 rounded-md bg-muted mb-2" /><Skeleton className="h-4 w-3/4 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-40 w-full rounded-md bg-muted" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-6 w-1/2 rounded-md bg-muted mb-2" /><Skeleton className="h-4 w-3/4 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-48 w-full rounded-md bg-muted" /></CardContent></Card>
         </div>
       </div>
     </div>

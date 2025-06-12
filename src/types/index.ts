@@ -1,15 +1,29 @@
 
 export type UserRole = "client" | "artisan" | "admin";
 
-export interface User {
-  id: string;
+export interface User { // Basic user data, often from Firebase Auth + role from Firestore
+  id: string; // Firebase UID
   email: string | null;
   fullName: string | null;
   role: UserRole;
-  avatarUrl?: string;
-  createdAt: Date;
+  avatarUrl?: string; // Generic avatar, could be Google's or one they upload later
+  createdAt: Date; // Firestore timestamp for user record creation
   status?: 'active' | 'suspended' | 'deactivated'; 
+  emailVerified: boolean;
 }
+
+// For useAuth hook, mirrors Firebase User + our role and fetched profile data
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  role: UserRole;
+  emailVerified: boolean;
+  avatarUrl?: string; // Could be added if useAuth fetches this
+  // Potentially other core profile details if fetched by useAuth directly
+  // For now, keeping it minimal and letting pages fetch detailed profiles.
+}
+
 
 export interface ServiceExperience {
   serviceName: string;
@@ -19,13 +33,13 @@ export interface ServiceExperience {
 }
 
 export interface ArtisanProfile {
-  userId: string;
+  userId: string; // Firebase UID, primary key
   username?: string;
   profilePhotoUrl?: string; 
   headline?: string; 
   contactPhone?: string;
-  contactEmail?: string;
-  servicesOffered: string[];
+  contactEmail?: string; // Often same as auth email, but can be different
+  servicesOffered: string[]; // Primary services
   serviceExperiences?: ServiceExperience[]; 
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
@@ -36,10 +50,13 @@ export interface ArtisanProfile {
   onboardingCompleted?: boolean;
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
+  createdAt?: Date | any; // Firestore ServerTimestamp placeholder
+  updatedAt?: Date | any; // Firestore ServerTimestamp placeholder
+  fullName?: string; // Could be denormalized from /users
 }
 
 export interface ClientProfile {
-  userId: string;
+  userId: string; // Firebase UID, primary key
   username?: string; 
   avatarUrl?: string; 
   fullName?: string; 
@@ -49,9 +66,11 @@ export interface ClientProfile {
   locationCoordinates?: { lat: number; lng: number };
   isLocationPublic?: boolean;
   onboardingCompleted?: boolean;
-  servicesLookingFor?: string[];
+  servicesLookingFor?: string[]; // Services client is interested in
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
+  createdAt?: Date | any; // Firestore ServerTimestamp placeholder
+  updatedAt?: Date | any; // Firestore ServerTimestamp placeholder
 }
 
 export interface WithdrawalAccount {
@@ -212,7 +231,7 @@ export type LucideIconName =
   | "Edit3"
   | "AlertTriangle"
   | "SlidersHorizontal"
-  | "Activity"; // Added Activity icon
+  | "Activity"; 
 
 
 export interface NavItem {
@@ -236,3 +255,6 @@ export const NIGERIAN_ARTISAN_SERVICES = [
 
 type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
 export type NigerianArtisanService = ServiceName;
+
+// Define a more specific User type that combines AuthUser with profile details
+export type AppUser = AuthUser & (ClientProfile | ArtisanProfile | { /* admin profile */ });

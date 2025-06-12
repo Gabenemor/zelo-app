@@ -1,36 +1,116 @@
 
-"use client"; // Make it a client component to use useSearchParams
+"use client"; 
 
-import { Suspense } from 'react';
-import { useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from "next/navigation"; // Retain for role if useAuth doesn't pass it quickly
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { UserCircle, Edit3, CreditCard, Settings, Loader2 } from "lucide-react";
 import Image from "next/image";
-import type { UserRole } from "@/types";
+import type { UserRole, ClientProfile, ArtisanProfile, AuthUser } from "@/types";
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { getClientProfile, getArtisanProfile } from '@/lib/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 function ProfilePageContent() {
+  const { user: authUser, loading: authLoading } = useAuthContext();
   const searchParams = useSearchParams();
-  const actualRole = (searchParams.get('role') as UserRole) || 'client'; // Default for safety if param is missing
+  const [profileData, setProfileData] = useState<Partial<ClientProfile & ArtisanProfile> | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  const user = { 
-    id: `user_mock_${actualRole}_id`, 
-    name: `${actualRole.charAt(0).toUpperCase() + actualRole.slice(1)} User`,
-    email: `${actualRole}@zelo.app`,
-    role: actualRole,
-    avatarUrl: `https://placehold.co/128x128.png?text=${actualRole.charAt(0).toUpperCase()}`,
-    memberSince: "February 2024",
-    location: "Nigeria",
-    bio: actualRole === 'artisan' ? "A passionate artisan dedicated to quality." : undefined,
-  };
+  // Determine role: prioritize authUser.role, then searchParams, then default.
+  const role: UserRole = authUser?.role || (searchParams.get('role') as UserRole) || 'client';
 
-  const editProfileLink = `/dashboard/profile/edit?role=${user.role}`;
-  const settingsLink = `/dashboard/settings?role=${user.role}`;
-  const withdrawalSettingsLink = `/dashboard/profile/withdrawal-settings?role=${user.role}`;
-  const viewArtisanProfileLink = `/dashboard/artisans/${user.id}?role=${user.role}`;
+  useEffect(() => {
+    async function fetchProfile() {
+      if (authUser?.uid) {
+        setIsLoadingProfile(true);
+        try {
+          if (authUser.role === 'client') {
+            const clientData = await getClientProfile(authUser.uid);
+            setProfileData(clientData);
+          } else if (authUser.role === 'artisan') {
+            const artisanData = await getArtisanProfile(authUser.uid);
+            setProfileData(artisanData);
+          } else {
+            // Handle admin or other roles if necessary, or set profileData to a basic user object
+            setProfileData({ 
+                fullName: authUser.displayName,
+                contactEmail: authUser.email,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching profile data:", error);
+          setProfileData(null); // Or some error state
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      } else if (!authLoading) { // If auth is done loading and still no authUser.uid
+        setIsLoadingProfile(false); // Nothing to fetch
+      }
+    }
+    fetchProfile();
+  }, [authUser, authLoading, role]); // Depend on authUser and role to refetch if they change
 
+  if (authLoading || isLoadingProfile) {
+    return (
+        <div className="space-y-6">
+            <PageHeader title="My Profile" description="Loading your information..." icon={Loader2} className="animate-pulse" />
+            <div className="grid gap-6 lg:grid-cols-3">
+                <Card className="lg:col-span-1">
+                    <CardHeader className="items-center text-center">
+                        <Skeleton className="h-32 w-32 rounded-full mb-4 bg-muted" />
+                        <Skeleton className="h-7 w-48 mb-1 bg-muted" />
+                        <Skeleton className="h-5 w-32 bg-muted" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <Skeleton className="h-4 w-full bg-muted" />
+                        <Skeleton className="h-4 w-3/4 bg-muted" />
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <Skeleton className="h-7 w-1/2 bg-muted" />
+                        <Skeleton className="h-5 w-3/4 bg-muted" />
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2">
+                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
+                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
+                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
+                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <div className="space-y-6 text-center py-10">
+        <UserCircle className="mx-auto h-16 w-16 text-muted-foreground" />
+        <p className="text-lg font-medium">Please log in to view your profile.</p>
+        <Button asChild><Link href="/login">Login</Link></Button>
+      </div>
+    );
+  }
+  
+  // Use fetched profileData if available, otherwise fallback to authUser for basic info
+  const displayName = profileData?.fullName || authUser.displayName || "Zelo User";
+  const displayEmail = profileData?.contactEmail || authUser.email;
+  const displayAvatar = (profileData as ArtisanProfile)?.profilePhotoUrl || (profileData as ClientProfile)?.avatarUrl || `https://placehold.co/128x128.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const memberSince = profileData?.createdAt ? format(new Date(profileData.createdAt), "MMMM yyyy") : "N/A";
+  const location = profileData?.location || "Nigeria";
+  const bio = (profileData as ArtisanProfile)?.bio;
+
+
+  const editProfileLink = `/dashboard/profile/edit?role=${role}`;
+  const settingsLink = `/dashboard/settings?role=${role}`;
+  const withdrawalSettingsLink = `/dashboard/profile/withdrawal-settings?role=${role}`;
+  const viewArtisanProfileLink = `/dashboard/artisans/${authUser.uid}?role=${role}`;
 
   return (
     <div className="space-y-6">
@@ -44,21 +124,21 @@ function ProfilePageContent() {
         <Card className="lg:col-span-1">
           <CardHeader className="items-center text-center">
             <Image 
-              src={user.avatarUrl} 
-              alt={user.name} 
+              src={displayAvatar} 
+              alt={displayName} 
               width={128} 
               height={128} 
               className="rounded-full border-4 border-primary mb-4 object-cover"
               data-ai-hint="profile avatar" 
             />
-            <CardTitle className="font-headline text-2xl">{user.name}</CardTitle>
-            <CardDescription className="capitalize">{user.role} Account</CardDescription>
-            <CardDescription>{user.email}</CardDescription>
+            <CardTitle className="font-headline text-2xl">{displayName}</CardTitle>
+            <CardDescription className="capitalize">{role} Account</CardDescription>
+            {displayEmail && <CardDescription>{displayEmail}</CardDescription>}
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p><strong>Member Since:</strong> {user.memberSince}</p>
-            <p><strong>Location:</strong> {user.location}</p>
-            {user.role === 'artisan' && user.bio && <p className="pt-2 italic">"{user.bio}"</p>}
+            <p><strong>Member Since:</strong> {memberSince}</p>
+            <p><strong>Location:</strong> {location}</p>
+            {role === 'artisan' && bio && <p className="pt-2 italic">"{bio}"</p>}
           </CardContent>
         </Card>
 
@@ -74,7 +154,7 @@ function ProfilePageContent() {
               href={editProfileLink}
               icon={Edit3}
             />
-            {user.role === 'artisan' && (
+            {role === 'artisan' && (
               <>
                 <ActionItem
                   title="Withdrawal Settings"
@@ -86,7 +166,7 @@ function ProfilePageContent() {
                   title="View My Artisan Profile"
                   description="See how your profile appears to clients."
                   href={viewArtisanProfileLink} 
-                  icon={UserCircle}
+                  icon={UserCircle} // Re-using UserCircle icon
                 />
               </>
             )}
@@ -124,12 +204,43 @@ function ActionItem({ title, description, href, icon: Icon }: ActionItemProps) {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    }>
+    // Suspense for useSearchParams if it was still used directly for role,
+    // but now role primarily comes from useAuthContext.
+    // Suspense remains useful if any child component uses it for other params.
+    <Suspense fallback={<ProfileLoadingSkeleton />}>
       <ProfilePageContent />
     </Suspense>
+  );
+}
+
+function ProfileLoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <PageHeader title="My Profile" description="Loading..." icon={Loader2} />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardHeader className="items-center text-center">
+            <Skeleton className="h-32 w-32 rounded-full mb-4 bg-muted" />
+            <Skeleton className="h-7 w-3/4 mx-auto bg-muted" />
+            <Skeleton className="h-5 w-1/2 mx-auto bg-muted mt-1" />
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Skeleton className="h-4 w-full bg-muted" />
+            <Skeleton className="h-4 w-5/6 bg-muted" />
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <Skeleton className="h-7 w-1/3 bg-muted" />
+            <Skeleton className="h-5 w-2/3 bg-muted mt-1" />
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full bg-muted rounded-lg" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

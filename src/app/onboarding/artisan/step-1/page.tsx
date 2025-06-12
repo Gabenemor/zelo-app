@@ -19,11 +19,28 @@ function ArtisanOnboardingStep1Content() {
   const { toast } = useToast();
   const [selectedPrimaryServices, setSelectedPrimaryServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
   const REQUIRED_SERVICES_COUNT = 2;
 
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
+  useEffect(() => {
+    if (searchParams) {
+      const userIdFromParams = searchParams.get('uid');
+      if (userIdFromParams) {
+        setUid(userIdFromParams);
+      } else {
+        toast({ title: "Error", description: "User ID missing. Cannot proceed with onboarding.", variant: "destructive" });
+        router.replace('/login'); 
+      }
+    }
+  }, [searchParams, router, toast]);
+
   const handleNext = async () => {
+    if (!uid) {
+      toast({ title: "Error", description: "User ID missing. Cannot save services.", variant: "destructive" });
+      return;
+    }
     if (selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT) {
       toast({
         title: "Selection Required",
@@ -34,13 +51,14 @@ function ArtisanOnboardingStep1Content() {
     }
 
     setIsLoading(true);
-    const result = await saveArtisanStep1Services(selectedPrimaryServices);
+    const result = await saveArtisanStep1Services(uid, selectedPrimaryServices);
     setIsLoading(false);
 
     if (result.success && result.data) {
       toast({ title: "Services Saved", description: "Your primary services have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
+      if (uid) queryParams.append('uid', uid); // Pass UID to step 2
       queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
@@ -77,6 +95,15 @@ function ArtisanOnboardingStep1Content() {
 
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
   const pageDescription = `Showcase your skills. Select exactly ${REQUIRED_SERVICES_COUNT} primary services you offer. You can add more details like years of experience later.`;
+  
+  if (!searchParams || !uid && searchParams.get('uid')) { 
+     return (
+      <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2 text-muted-foreground">Loading details...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-2xl py-8 sm:py-12">
@@ -98,13 +125,13 @@ function ArtisanOnboardingStep1Content() {
             selectedServices={selectedPrimaryServices}
             onSelectedServicesChange={setSelectedPrimaryServices}
             selectionType="multiple"
-            maxSelections={REQUIRED_SERVICES_COUNT} // This prop limits to "up to X", validation in handleNext ensures "exactly X"
+            maxSelections={REQUIRED_SERVICES_COUNT} 
           />
         </CardContent>
       </Card>
 
       <div className="mt-8 flex justify-end">
-        <Button onClick={handleNext} disabled={isLoading || selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT}>
+        <Button onClick={handleNext} disabled={isLoading || !uid || selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT}>
           {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>) : "Next: Complete Your Profile"}
         </Button>
       </div>
@@ -117,7 +144,7 @@ export default function ArtisanOnboardingStep1Page() {
     <Suspense fallback={
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">Loading details...</p>
+        <p className="mt-2 text-muted-foreground">Loading...</p>
       </div>
     }>
       <ArtisanOnboardingStep1Content />

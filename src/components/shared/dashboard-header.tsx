@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation"; 
-import React, { useState, Suspense } from "react"; 
+import React, { useState, Suspense, useEffect } from "react"; 
 import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,16 +25,18 @@ import {
 } from "@/components/ui/sheet";
 import { Logo } from "./logo";
 import { dashboardNavItems } from "@/config/site";
-import type { NavItem, UserRole } from "@/types";
+import type { NavItem, UserRole, AuthUser } from "@/types"; 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { logoutUser } from '@/lib/auth'; // Import logoutUser
-import { useRouter } from "next/navigation"; // For redirect after logout
+import { logoutUser } from '@/lib/auth'; 
+import { useRouter } from "next/navigation"; 
+import { useAuthContext } from '@/components/providers/auth-provider'; // Import the context hook
 
 function DashboardHeaderContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter(); // For redirect after logout
+  const router = useRouter(); 
+  const { user: authUser, loading: authLoading } = useAuthContext(); // Use the context hook
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const roleFromQuery = searchParams.get("role") as UserRole | null;
@@ -43,14 +45,14 @@ function DashboardHeaderContent() {
   let determinedUserRole: UserRole;
   if (isAdminPage) {
     determinedUserRole = 'admin';
+  } else if (authUser?.role) { // Prioritize role from authenticated user
+    determinedUserRole = authUser.role;
   } else if (roleFromQuery && ["client", "artisan"].includes(roleFromQuery)) {
     determinedUserRole = roleFromQuery;
   } else {
-    determinedUserRole = "client"; 
+    determinedUserRole = "client"; // Fallback if no role found
   }
   const userRole = determinedUserRole;
-  
-  const user = { name: "Zelo User", email: `${userRole}@zelo.app`, avatar: "" }; 
 
   const accessibleItems = dashboardNavItems
     .filter((item) => !item.roles || item.roles.includes(userRole))
@@ -209,10 +211,12 @@ function DashboardHeaderContent() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
-              {user.avatar ? (
+              {authLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : authUser?.avatarUrl ? ( // Assuming avatarUrl might be added to AuthUser
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={authUser.avatarUrl}
+                  alt={authUser.displayName || 'User'}
                   className="h-8 w-8 rounded-full"
                   data-ai-hint="profile avatar"
                 />
@@ -223,49 +227,61 @@ function DashboardHeaderContent() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="font-medium">{user.name} ({userRole})</div>
-              <div className="text-xs text-muted-foreground">{user.email}</div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href={profileLink}>
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  View My Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={editProfileLink}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit My Profile
-                </Link>
-              </DropdownMenuItem>
-              {(userRole === 'artisan' || userRole === 'admin') && ( 
+            {authLoading ? (
+                <DropdownMenuItem disabled>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                </DropdownMenuItem>
+            ) : authUser ? (
                 <>
-                  <DropdownMenuItem asChild>
-                    <Link href={artisanServicesEditLink}>
-                      <Briefcase className="mr-2 h-4 w-4" />
-                      Edit Primary Services
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={withdrawalSettingsLink}>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Withdrawal Settings
-                    </Link>
-                  </DropdownMenuItem>
+                    <DropdownMenuLabel>
+                    <div className="font-medium">{authUser.displayName || "Zelo User"} ({authUser.role})</div>
+                    <div className="text-xs text-muted-foreground">{authUser.email}</div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                        <Link href={profileLink}>
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        View My Profile
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href={editProfileLink}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit My Profile
+                        </Link>
+                    </DropdownMenuItem>
+                    {(authUser.role === 'artisan' || authUser.role === 'admin') && ( 
+                        <>
+                        <DropdownMenuItem asChild>
+                            <Link href={artisanServicesEditLink}>
+                            <Briefcase className="mr-2 h-4 w-4" />
+                            Edit Primary Services
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={withdrawalSettingsLink}>
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Withdrawal Settings
+                            </Link>
+                        </DropdownMenuItem>
+                        </>
+                    )}
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                    <Link href={settingsLink}><Settings className="mr-2 h-4 w-4" />Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </DropdownMenuItem>
                 </>
-              )}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={settingsLink}><Settings className="mr-2 h-4 w-4" />Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </DropdownMenuItem>
+            ) : (
+                <DropdownMenuItem onClick={() => router.push('/login')}>
+                    <LogOut className="mr-2 h-4 w-4" /> Login
+                </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation'; // useSearchParams for initial name if needed
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,55 +15,65 @@ import { useToast } from '@/hooks/use-toast';
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { saveClientStep2Profile } from '@/actions/onboarding-actions';
 import Image from 'next/image';
-import { uploadClientAvatar } from '@/lib/storage'; // Import upload function
+import { uploadClientAvatar } from '@/lib/storage'; 
 
 
-// This schema is now for the form, server action will use its own
 const clientProfileSetupFormSchema = z.object({
   location: z.string().min(3, { message: 'Location is required.' }),
   username: z.string().min(3, { message: 'Username must be at least 3 characters.' }).optional().or(z.literal('')),
   fullName: z.string().min(2, "Full name is required").optional().or(z.literal('')),
   contactEmail: z.string().email("Valid email required").optional().or(z.literal('')),
-  // avatarFile: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional(),
 });
 
 type ProfileSetupFormValues = z.infer<typeof clientProfileSetupFormSchema>;
 
-export function ClientProfileSetupForm() {
+interface ClientProfileSetupFormProps {
+  userId: string; // Now passed as a prop
+}
+
+export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams(); // For initial first name
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Mock User ID - in a real app, get this from auth context or props
-  const MOCK_CLIENT_ID = "mockClientUserOnboarding123"; 
+  const initialFirstName = searchParams ? searchParams.get('firstName') : null;
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<ProfileSetupFormValues>({
     resolver: zodResolver(clientProfileSetupFormSchema),
     defaultValues: {
       location: '',
       username: '',
-      fullName: '',
+      fullName: initialFirstName || '', // Pre-fill if available
       contactEmail: '',
     },
   });
 
+  // Effect to set fullName from searchParams if not already set and available
+  useEffect(() => {
+    if (initialFirstName && !form.getValues('fullName')) {
+        setValue('fullName', initialFirstName);
+    }
+  }, [initialFirstName, setValue, form]);
+
+
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && MOCK_CLIENT_ID) {
+    if (file && userId) {
       setIsUploadingAvatar(true);
-      setAvatarPreview(URL.createObjectURL(file)); // Optimistic preview
+      setAvatarPreview(URL.createObjectURL(file)); 
       try {
-        const downloadURL = await uploadClientAvatar(MOCK_CLIENT_ID, file);
+        const downloadURL = await uploadClientAvatar(userId, file);
         setUploadedAvatarUrl(downloadURL);
-        setAvatarPreview(downloadURL); // Update preview with actual URL
+        setAvatarPreview(downloadURL); 
         toast({ title: "Avatar uploaded!" });
       } catch (error) {
         console.error("Error uploading avatar:", error);
         toast({ title: "Upload failed", description: "Could not upload avatar.", variant: "destructive" });
-        setAvatarPreview(uploadedAvatarUrl); // Revert to old/null on failure
+        setAvatarPreview(uploadedAvatarUrl); 
       } finally {
         setIsUploadingAvatar(false);
       }
@@ -74,12 +84,12 @@ export function ClientProfileSetupForm() {
     setIsSubmitting(true);
     
     const result = await saveClientStep2Profile({ 
-      userId: MOCK_CLIENT_ID, // Pass the client ID
+      userId: userId, 
       location: data.location, 
       username: data.username,
       fullName: data.fullName,
       contactEmail: data.contactEmail,
-      avatarUrl: uploadedAvatarUrl || undefined, // Send the uploaded avatar URL
+      avatarUrl: uploadedAvatarUrl || undefined, 
     });
     setIsSubmitting(false);
 
@@ -91,9 +101,10 @@ export function ClientProfileSetupForm() {
         if (result.error) {
             const fieldErrors = Object.values(result.error).flat().join(" ");
             if (fieldErrors) errorMsg = fieldErrors;
+            else if (result.error._form && Array.isArray(result.error._form)) errorMsg = result.error._form.join(" ");
         }
       toast({
-        title: "Error",
+        title: "Error Saving Profile",
         description: errorMsg,
         variant: "destructive",
       });
@@ -151,7 +162,7 @@ export function ClientProfileSetupForm() {
           <div>
             <Label htmlFor="contactEmail">Contact Email</Label>
             <div className="relative mt-1">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> {/* Consider changing icon */}
               <Input id="contactEmail" type="email" placeholder="e.g., ada@example.com" {...field} className="pl-10" disabled={isSubmitting}/>
             </div>
             {errors.contactEmail && <p className="text-sm text-destructive mt-1">{errors.contactEmail.message}</p>}
@@ -185,14 +196,12 @@ export function ClientProfileSetupForm() {
                     initialValue={field.value}
                     placeholder="Enter your city or area"
                     className="mt-1"
-                    
                 />
             )}
         />
         {errors.location && <p className="text-sm text-destructive mt-1">{errors.location.message}</p>}
       </div>
       
-
       <div>
         <Label>Currency</Label>
         <div className="mt-1 flex items-center gap-2 rounded-md border border-input bg-secondary/30 p-2.5 text-sm">
@@ -215,8 +224,8 @@ export function ClientProfileSetupForm() {
           Skip for Now
         </Button>
         <Button type="submit" disabled={isSubmitting || isUploadingAvatar}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {isSubmitting ? "Saving..." : "Save and Go to Dashboard"}
+          {isSubmitting || isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {isSubmitting || isUploadingAvatar ? "Saving..." : "Save and Go to Dashboard"}
         </Button>
       </div>
     </form>
