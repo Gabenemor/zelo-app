@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React from "react";
 import type { UserRole } from "@/types";
-import { loginUser } from "@/lib/auth"; // Import the actual login function
+import { loginUser, signInWithGoogle } from "@/lib/auth"; 
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -29,15 +29,11 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-// Examples for testing (can be removed or commented out later)
-// const ADMIN_EMAIL_EXAMPLE = "admin@zelo.app";
-// const ARTISAN_EMAIL_EXAMPLE = "artisan@zelo.app";
-// const CLIENT_EMAIL_EXAMPLE = "client@zelo.app";
-
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -66,9 +62,6 @@ export function LoginForm() {
             variant: "destructive",
             duration: 7000,
           });
-           // Optionally, redirect to a page that allows resending verification or explains the issue.
-           // For now, we'll prevent login and stay on the page.
-           // router.push(`/auth/verify-email?email=${encodeURIComponent(values.email)}&resend=true`);
            setIsLoading(false);
            return;
         }
@@ -87,7 +80,6 @@ export function LoginForm() {
         router.push(redirectPath);
       }
     } catch (error: any) {
-      // Catch any unexpected errors
       toast({
         title: "Login Error",
         description: error.message || "An unexpected error occurred. Please try again.",
@@ -97,6 +89,34 @@ export function LoginForm() {
       setIsLoading(false);
     }
   }
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setIsGoogleLoading(false);
+
+    if (result.error) {
+      toast({ title: "Google Sign-In Failed", description: result.error, variant: "destructive" });
+    } else if (result.user) {
+      toast({ title: "Google Sign-In Successful", description: `Welcome, ${result.user.displayName || 'User'}!` });
+      
+      let redirectPath = "/dashboard";
+      // New users (defaulted to client) or existing users needing profile completion are sent to onboarding
+      if (result.requiresOnboarding && result.user.role === 'client') {
+        const queryParams = new URLSearchParams({
+          firstName: result.user.displayName?.split(' ')[0] || "User",
+          email: result.user.email || "",
+          uid: result.user.uid,
+        });
+        redirectPath = `/onboarding/client/step-1?${queryParams.toString()}`;
+      } else if (result.user.role === "admin") {
+        redirectPath = "/dashboard/admin";
+      } else {
+        redirectPath = `/dashboard?role=${result.user.role}`;
+      }
+      router.push(redirectPath);
+    }
+  };
 
   return (
     <Form {...form}>
@@ -133,7 +153,7 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
+        <Button type="submit" className="w-full font-semibold" disabled={isLoading || isGoogleLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
           {isLoading ? "Logging in..." : "Login"}
         </Button>
@@ -147,16 +167,16 @@ export function LoginForm() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
+            <span className="bg-card px-2 text-muted-foreground">
               Or continue with
             </span>
           </div>
         </div>
-        {/* Placeholder for social logins */}
-        <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
-          {/* Google Icon Placeholder */}
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /><path d="M1 1h22v22H1z" fill="none" /></svg>
-          Sign in with Google
+        <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+          {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /><path d="M1 1h22v22H1z" fill="none" /></svg>
+          }
+          {isGoogleLoading ? "Signing in..." : "Sign in with Google"}
         </Button>
          <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
