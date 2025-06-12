@@ -1,151 +1,54 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    function isArtisan() {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'artisan';
-    }
-    
-    function isClient() {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client';
-    }
 
-    // Users collection
+    // Users collection:
+    // - Authenticated users can create their own user document.
+    // - Authenticated users can read their own user document.
+    // - Authenticated users can update their own user document.
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow create: if isAuthenticated() && isOwner(userId);
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId; // Allow creation during registration
+      allow delete: if false; // Generally, don't allow client-side deletes of user docs
     }
 
-    // Artisan profiles
-    match /artisanProfiles/{userId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
+    // Artisan Profiles collection:
+    // - Authenticated artisans can create their own profile.
+    // - Authenticated artisans can update their own profile.
+    // - Profiles are publicly readable (adjust if you need them private).
+    match /artisanProfiles/{artisanId} {
+      allow read: if true; // Or `if request.auth != null;` for logged-in users only
+      allow create: if request.auth != null && request.auth.uid == artisanId;
+      allow update: if request.auth != null && request.auth.uid == artisanId;
+      allow delete: if false;
     }
 
-    // Client profiles
-    match /clientProfiles/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
+    // Client Profiles collection:
+    // - Authenticated clients can create their own profile.
+    // - Authenticated clients can update their own profile.
+    // - Profiles are publicly readable (adjust if you need them private).
+    match /clientProfiles/{clientId} {
+      allow read: if true; // Or `if request.auth != null;` for logged-in users only
+      allow create: if request.auth != null && request.auth.uid == clientId;
+      allow update: if request.auth != null && request.auth.uid == clientId;
+      allow delete: if false;
     }
 
-    // Service requests
-    match /serviceRequests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isClient() && isOwner(resource.data.clientId);
-      allow update: if isAuthenticated() && 
-                   (isOwner(resource.data.clientId) || 
-                    resource.data.assignedArtisanId == request.auth.uid || 
-                    isAdmin());
-      allow delete: if isAuthenticated() && 
-                   (isOwner(resource.data.clientId) || isAdmin());
-    }
+    // Add specific rules for other collections as your app develops.
+    // For example:
+    // match /serviceRequests/{requestId} {
+    //   allow read: if true;
+    //   allow create: if request.auth != null && request.auth.uid == request.resource.data.clientId;
+    //   allow update: if request.auth != null && request.auth.uid == resource.data.clientId;
+    //                 // Or if request.auth.uid == resource.data.assignedArtisanId for certain fields
+    //   allow delete: if request.auth != null && request.auth.uid == resource.data.clientId;
+    // }
 
-    // Artisan proposals
-    match /proposals/{proposalId} {
-      allow read: if isAuthenticated() && 
-                 (isOwner(resource.data.artisanId) || 
-                  isOwner(resource.data.clientId) || 
-                  isAdmin());
-      allow create: if isAuthenticated() && isArtisan() && isOwner(resource.data.artisanId);
-      allow update: if isAuthenticated() && 
-                   (isOwner(resource.data.artisanId) || 
-                    isOwner(resource.data.clientId) || 
-                    isAdmin());
-      allow delete: if isAuthenticated() && 
-                   (isOwner(resource.data.artisanId) || isAdmin());
-    }
-
-    // Chat messages
-    match /chats/{chatId}/messages/{messageId} {
-      allow read, create: if isAuthenticated() && 
-                         (request.auth.uid in resource.data.participants || 
-                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
-      allow update: if isAuthenticated() && isOwner(resource.data.senderId);
-      allow delete: if isAdmin();
-    }
-
-    // Chat metadata
-    match /chats/{chatId} {
-      allow read, create, update: if isAuthenticated() && 
-                                  request.auth.uid in resource.data.participants;
-      allow delete: if isAdmin();
-    }
-
-    // Escrow transactions
-    match /escrowTransactions/{transactionId} {
-      allow read: if isAuthenticated() && 
-                 (isOwner(resource.data.clientId) || 
-                  isOwner(resource.data.artisanId) || 
-                  isAdmin());
-      allow create: if isAuthenticated() && isClient() && isOwner(resource.data.clientId);
-      allow update: if isAdmin(); // Only admins can update transaction status
-      allow delete: if isAdmin();
-    }
-
-    // Withdrawal accounts
-    match /withdrawalAccounts/{userId} {
-      allow read, create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    // Notifications
-    match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
-      allow create: if isAuthenticated(); // System can create notifications
-      allow update: if isAuthenticated() && isOwner(resource.data.userId);
-      allow delete: if isAuthenticated() && 
-                   (isOwner(resource.data.userId) || isAdmin());
-    }
-
-    // Disputes
-    match /disputes/{disputeId} {
-      allow read: if isAuthenticated() && 
-                 (isOwner(resource.data.clientId) || 
-                  isOwner(resource.data.artisanId) || 
-                  isAdmin());
-      allow create: if isAuthenticated() && 
-                   (isOwner(resource.data.clientId) || 
-                    isOwner(resource.data.artisanId));
-      allow update: if isAdmin(); // Only admins can resolve disputes
-      allow delete: if isAdmin();
-    }
-
-    // Reviews and ratings
-    match /reviews/{reviewId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-                   (isOwner(resource.data.reviewerId));
-      allow update: if isAuthenticated() && isOwner(resource.data.reviewerId);
-      allow delete: if isAuthenticated() && 
-                   (isOwner(resource.data.reviewerId) || isAdmin());
-    }
-
-    // Platform settings (admin only)
-    match /platformSettings/{settingId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+    // Default deny for any path not explicitly matched above.
+    // This is important for security.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
