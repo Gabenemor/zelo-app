@@ -3,10 +3,10 @@
 
 import { z } from 'zod';
 import type { ArtisanProfile, ClientProfile, ServiceExperience } from '@/types';
-import { db } from '@/lib/firebase-server-init'; // Import Firestore instance
-import { collection, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase-server-init'; 
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
-const MOCK_USER_ID = 'mockUserId123'; // This will be the document ID in Firestore for now
+const MOCK_USER_ID = 'mockUserId123'; 
 
 const ClientPreferencesSchema = z.object({
   userId: z.string(),
@@ -26,7 +26,7 @@ export async function saveClientStep1Preferences(services: string[]) {
     }
     const clientProfileRef = doc(db, 'clientProfiles', MOCK_USER_ID);
     await setDoc(clientProfileRef, {
-      userId: MOCK_USER_ID, // Ensure userId is part of the document
+      userId: MOCK_USER_ID, 
       servicesLookingFor: validation.data.servicesLookingFor,
       updatedAt: serverTimestamp(),
     }, { merge: true });
@@ -50,6 +50,7 @@ const ClientProfileSetupSchema = z.object({
 });
 
 export async function saveClientStep2Profile(data: {
+  userId: string; // Added userId
   location: string;
   username?: string;
   fullName?: string;
@@ -57,7 +58,7 @@ export async function saveClientStep2Profile(data: {
   avatarUrl?: string;
   isLocationPublic?: boolean;
 }) {
-  const validation = ClientProfileSetupSchema.safeParse({ userId: MOCK_USER_ID, ...data });
+  const validation = ClientProfileSetupSchema.safeParse(data); // Use data directly as it includes userId
   if (!validation.success) {
     console.error("[SERVER ACTION VALIDATION ERROR] Client Step 2 Profile:", JSON.stringify(validation.error.flatten(), null, 2));
     return { success: false, error: validation.error.flatten().fieldErrors };
@@ -68,12 +69,12 @@ export async function saveClientStep2Profile(data: {
       console.error("Firestore not initialized. Cannot save client profile.");
       return { success: false, error: { _form: ["Server error: Database not configured."] } };
     }
-    const clientProfileRef = doc(db, 'clientProfiles', MOCK_USER_ID);
+    const clientProfileRef = doc(db, 'clientProfiles', validation.data.userId); // Use userId from validated data
     
     const profileDataToSave: Partial<ClientProfile> = {
-      userId: MOCK_USER_ID, // Ensure userId is part of the document
+      userId: validation.data.userId, 
       location: validation.data.location,
-      username: validation.data.username || undefined, // Store undefined if empty string
+      username: validation.data.username || undefined, 
       fullName: validation.data.fullName || undefined,
       contactEmail: validation.data.contactEmail || undefined,
       avatarUrl: validation.data.avatarUrl || undefined,
@@ -110,7 +111,6 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
     if (!validation.success) {
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", JSON.stringify(flattenedErrors, null, 2));
-      // ... error formatting ...
       const clientErrorObject: Record<string, any> = {};
       if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
       if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
@@ -130,7 +130,7 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
     }
     const artisanProfileRef = doc(db, 'artisanProfiles', MOCK_USER_ID);
     await setDoc(artisanProfileRef, {
-      userId: MOCK_USER_ID, // Ensure userId is part of the document
+      userId: MOCK_USER_ID, 
       servicesOffered: validation.data.servicesOffered,
       onboardingStep1Completed: true,
       updatedAt: serverTimestamp(),
@@ -141,7 +141,6 @@ export async function saveArtisanStep1Services(servicesOffered: string[]) {
 
   } catch (e: any) {
     console.error("[SERVER ACTION UNEXPECTED ERROR] saveArtisanStep1Services:", e);
-    // ... error formatting ...
     const errorPayload: Record<string, any> = { _server_error: ["An unexpected error occurred."] };
     if (e instanceof Error && e.message) (errorPayload._server_error as string[]).push(e.message);
     return { success: false, error: errorPayload };
@@ -153,7 +152,6 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
     const dataToValidate = { userId, servicesOffered };
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); 
     if (!validation.success) {
-      // ... error formatting ...
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", JSON.stringify(flattenedErrors, null, 2));
       const clientErrorObject: Record<string, any> = {};
@@ -184,7 +182,6 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
 
   } catch (e: any) {
     console.error("[SERVER ACTION UNEXPECTED ERROR] updateArtisanPrimaryServices:", e);
-    // ... error formatting ...
     const errorPayload: Record<string, any> = { _server_error: ["An unexpected error occurred."] };
     if (e instanceof Error && e.message) (errorPayload._server_error as string[]).push(e.message);
     return { success: false, error: errorPayload };
@@ -197,7 +194,7 @@ const ArtisanOnboardingProfileSchema = z.object({
   profilePhotoUrl: z.string().url("Invalid URL for profile photo").optional().or(z.literal('')),
   headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), { message: "Invalid phone number format."}).or(z.literal('')),
-  contactEmail: z.string().email({ message: "Invalid email address." }), // Made contactEmail mandatory for artisan profile
+  contactEmail: z.string().email({ message: "Invalid email address." }),
   location: z.string().min(1, "Location is required."),
   bio: z.string().max(500, "Bio is too long.").optional().or(z.literal('')),
   serviceExperiences: z.array(z.object({
@@ -209,23 +206,22 @@ const ArtisanOnboardingProfileSchema = z.object({
   servicesOffered: z.array(z.string().min(1)).min(1, "At least one service must be offered."), 
   isLocationPublic: z.boolean().optional(),
   availabilityStatus: z.enum(['available', 'busy', 'unavailable']).optional(),
-  portfolioImageUrls: z.array(z.string().url()).optional(), // To store array of URLs
+  portfolioImageUrls: z.array(z.string().url()).optional(),
   onboardingCompleted: z.boolean().optional(),
   profileSetupCompleted: z.boolean().optional(),
 });
 
 
 export async function saveArtisanOnboardingProfile(
-  profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>> & { userId: string } // Ensure userId is passed
+  profileData: Partial<Omit<ArtisanProfile, 'userId' | 'onboardingStep1Completed'>> & { userId: string }
 ) {
   try {
-    // Ensure servicesOffered is an array, even if empty, to satisfy the schema if not provided initially.
     const dataToValidate = {
-      userId: profileData.userId, // Use passed userId
+      userId: profileData.userId, 
       username: profileData.username,
       profilePhotoUrl: profileData.profilePhotoUrl,
       headline: profileData.headline,
-      contactEmail: profileData.contactEmail, // This should be from profileData
+      contactEmail: profileData.contactEmail, 
       location: profileData.location,
       contactPhone: profileData.contactPhone,
       bio: profileData.bio,
@@ -261,14 +257,14 @@ export async function saveArtisanOnboardingProfile(
       return { success: false, error: { _form: ["Server error: Database not configured."] } };
     }
 
-    const artisanProfileRef = doc(db, 'artisanProfiles', validation.data.userId); // Use validated userId
+    const artisanProfileRef = doc(db, 'artisanProfiles', validation.data.userId);
     
-    const dataToSave: Partial<ArtisanProfile> = { // Construct from validated data
+    const dataToSave: Partial<ArtisanProfile> = { 
       userId: validation.data.userId,
       username: validation.data.username || undefined,
       profilePhotoUrl: validation.data.profilePhotoUrl || undefined,
       headline: validation.data.headline || undefined,
-      contactEmail: validation.data.contactEmail, // Already validated as required
+      contactEmail: validation.data.contactEmail, 
       contactPhone: validation.data.contactPhone || undefined,
       location: validation.data.location,
       bio: validation.data.bio || undefined,
@@ -281,6 +277,13 @@ export async function saveArtisanOnboardingProfile(
       profileSetupCompleted: true,
       updatedAt: serverTimestamp(),
     };
+    
+    // Create a document for the user if it doesn't exist, or merge if it does.
+    // This ensures that the 'createdAt' field is only set once.
+    const userProfileSnap = await getDoc(artisanProfileRef);
+    if (!userProfileSnap.exists()) {
+      (dataToSave as ArtisanProfile).createdAt = serverTimestamp() as any; // Add createdAt only if new
+    }
     
     await setDoc(artisanProfileRef, dataToSave, { merge: true });
 
@@ -300,9 +303,6 @@ export async function saveArtisanOnboardingProfile(
 }
 
 export async function checkClientProfileCompleteness(userId: string): Promise<{ complete: boolean; missingFields?: string[] }> {
-  // console.log('[SERVER ACTION] Checking client profile completeness for userId:', userId);
-  // In a real app, fetch from Firestore
-  // For now, return true to unblock UI, actual logic should be implemented
   try {
     if (!db || Object.keys(db).length === 0) {
       console.warn("Firestore not initialized during checkClientProfileCompleteness. Defaulting to incomplete.");
@@ -312,18 +312,15 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
     const profileSnap = await getDoc(clientProfileRef);
     if (profileSnap.exists()) {
       const data = profileSnap.data() as ClientProfile;
-      // Define what makes a client profile "complete" for posting a request
-      // e.g., location is required, maybe servicesLookingFor from step 1
       const missing: string[] = [];
       if (!data.location) missing.push('location');
-      // if (!data.servicesLookingFor || data.servicesLookingFor.length === 0) missing.push('service preferences');
       
       if (missing.length === 0 && data.profileSetupCompleted) {
         return { complete: true };
       }
       return { complete: false, missingFields: missing };
     }
-    return { complete: false, missingFields: ['profile not found'] }; // Default to incomplete if no profile
+    return { complete: false, missingFields: ['profile not found'] }; 
   } catch (error) {
     console.error("Error checking client profile completeness:", error);
     return { complete: false, missingFields: ['N/A - Check Error'] };

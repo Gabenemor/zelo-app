@@ -20,13 +20,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React, { useEffect } from "react";
-import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity, Edit } from "lucide-react";
+import { Phone, Mail, Home, Save, DollarSign, Tag, Image as ImageIcon, Briefcase, User, ArrowLeft, Info, UploadCloud, Camera, Activity, Edit, Loader2 } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience } from "@/types";
 import { saveArtisanOnboardingProfile } from "@/actions/onboarding-actions";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { uploadProfilePhoto, uploadPortfolioImages } from "@/lib/storage";
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -35,9 +36,10 @@ const serviceExperienceSchema = z.object({
   chargeDescription: z.string().max(50, "Basis description too long.").optional(),
 });
 
-const artisanProfileSchema = z.object({
+// Schema for form values, not directly for server action
+const artisanProfileFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters.").optional().or(z.literal('')),
-  profilePhotoFile: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
+  // profilePhotoFile: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(), // For input only
   headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), {
     message: "Invalid phone number format."
@@ -48,10 +50,10 @@ const artisanProfileSchema = z.object({
   bio: z.string().max(500, "Bio should not exceed 500 characters.").optional().or(z.literal('')),
   availabilityStatus: z.enum(['available', 'busy', 'unavailable'], {required_error: "Availability status is required."}).optional(),
   serviceExperiences: z.array(serviceExperienceSchema).optional(),
-  portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
+  // portfolioFiles: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(), // For input only
 });
 
-type ArtisanProfileFormValues = z.infer<typeof artisanProfileSchema>;
+type ArtisanProfileFormValues = z.infer<typeof artisanProfileFormSchema>;
 
 interface ArtisanProfileFormProps {
   initialData?: Partial<ArtisanProfile>;
@@ -73,15 +75,21 @@ export function ArtisanProfileForm({
   isOnboarding = false,
 }: ArtisanProfileFormProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [profilePhotoPreview, setProfilePhotoPreview] = React.useState<string | null>(initialData?.profilePhotoUrl || null);
   const [portfolioPreviews, setPortfolioPreviews] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
+  
+  const [uploadedProfilePhotoUrl, setUploadedProfilePhotoUrl] = React.useState<string | null>(initialData?.profilePhotoUrl || null);
+  const [uploadedPortfolioImageUrls, setUploadedPortfolioImageUrls] = React.useState<string[]>(initialData?.portfolioImageUrls || []);
+
+  const [isUploadingProfilePhoto, setIsUploadingProfilePhoto] = React.useState(false);
+  const [isUploadingPortfolio, setIsUploadingPortfolio] = React.useState(false);
+
 
   const form = useForm<ArtisanProfileFormValues>({
-    resolver: zodResolver(artisanProfileSchema),
+    resolver: zodResolver(artisanProfileFormSchema),
     defaultValues: {
       username: initialData?.username || "",
-      profilePhotoFile: null,
       headline: initialData?.headline || "",
       contactPhone: initialData?.contactPhone || "",
       contactEmail: initialData?.contactEmail || "",
@@ -99,7 +107,6 @@ export function ArtisanProfileForm({
             chargeDescription: existingExperience?.chargeDescription ?? '',
           };
         }) || [],
-      portfolioFiles: null,
     },
   });
 
@@ -123,73 +130,88 @@ export function ArtisanProfileForm({
     }
     if (initialData?.profilePhotoUrl) {
       setProfilePhotoPreview(initialData.profilePhotoUrl);
+      setUploadedProfilePhotoUrl(initialData.profilePhotoUrl);
     }
     if (initialData?.portfolioImageUrls) {
       setPortfolioPreviews(initialData.portfolioImageUrls);
+      setUploadedPortfolioImageUrls(initialData.portfolioImageUrls);
     }
   }, [initialData, form]);
 
-  const handleProfilePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file && userId) {
+      setIsUploadingProfilePhoto(true);
+      setProfilePhotoPreview(URL.createObjectURL(file)); 
+      try {
+        const downloadURL = await uploadProfilePhoto(userId, file);
+        setUploadedProfilePhotoUrl(downloadURL);
+        setProfilePhotoPreview(downloadURL); 
+        toast({ title: "Profile photo uploaded!" });
+      } catch (error) {
+        console.error("Error uploading profile photo:", error);
+        toast({ title: "Upload failed", description: "Could not upload profile photo.", variant: "destructive" });
+        setProfilePhotoPreview(uploadedProfilePhotoUrl); 
+      } finally {
+        setIsUploadingProfilePhoto(false);
+      }
     }
   };
 
-  const handlePortfolioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePortfolioChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newPreviews: string[] = [];
-      Array.from(files).forEach(file => {
-        if (newPreviews.length < 5) { // Max 5 previews
-          newPreviews.push(URL.createObjectURL(file));
+    if (files && files.length > 0 && userId) {
+      setIsUploadingPortfolio(true);
+      const currentFileArray = Array.from(files);
+      const optimisticPreviews = currentFileArray.map(file => URL.createObjectURL(file));
+      
+      // Show optimistic previews immediately, respecting the limit
+      setPortfolioPreviews(prev => 
+        [...prev.filter(url => !url.startsWith('blob:')), ...optimisticPreviews]
+        .slice(0, 5) 
+      );
+
+      try {
+        // Limit the number of files to upload based on how many slots are available
+        const currentNonBlobUrlsCount = uploadedPortfolioImageUrls.filter(url => !url.startsWith('blob:')).length;
+        const filesToUpload = currentFileArray.slice(0, 5 - currentNonBlobUrlsCount);
+
+        if (filesToUpload.length > 0) {
+          const newUploadedUrls = await uploadPortfolioImages(userId, filesToUpload);
+          setUploadedPortfolioImageUrls(prev => [...prev.filter(url => !url.startsWith('blob:')), ...newUploadedUrls].slice(0,5));
+          setPortfolioPreviews(prev => [...prev.filter(url => !url.startsWith('blob:')), ...newUploadedUrls].slice(0,5));
+          toast({ title: "Portfolio images uploaded!" });
+        } else if (currentNonBlobUrlsCount >= 5) {
+            toast({ title: "Portfolio Full", description: "Maximum 5 images allowed.", variant: "default"});
         }
-      });
-      setPortfolioPreviews(newPreviews);
+      } catch (error) {
+        console.error("Error uploading portfolio images:", error);
+        toast({ title: "Portfolio upload failed", description: "Could not upload all portfolio images.", variant: "destructive" });
+        // Revert previews to only confirmed URLs
+        setPortfolioPreviews(uploadedPortfolioImageUrls);
+      } finally {
+        setIsUploadingPortfolio(false);
+      }
     }
   };
 
 
   async function onSubmit(values: ArtisanProfileFormValues) {
-    setIsLoading(true);
-
-    let profilePhotoUrlToSave = profilePhotoPreview;
-    if (values.profilePhotoFile && values.profilePhotoFile.length > 0) {
-        console.log("Simulating profile photo upload for:", values.profilePhotoFile[0].name);
-        // In real app, upload file values.profilePhotoFile[0] and get URL
-        // For mock, if a new file is selected, we might use its preview URL or a placeholder
-        // For now, if a new file is selected, we'll assume its preview is the one to save (mock)
-    }
-
-
-    let uploadedPortfolioUrls = portfolioPreviews.filter(url => !url.startsWith('blob:')); // Keep existing URLs
-    if (values.portfolioFiles && values.portfolioFiles.length > 0) {
-        console.log("Simulating portfolio upload for:", values.portfolioFiles.length, "files");
-        const newUploadedUrls = portfolioPreviews.filter(url => url.startsWith('blob:')); // Mock: use blob URLs as if they were real
-        uploadedPortfolioUrls = [...uploadedPortfolioUrls, ...newUploadedUrls];
-    }
-
+    setIsSubmitting(true);
 
     const submissionData: Partial<ArtisanProfile> = {
       ...values,
       userId,
-      profilePhotoUrl: profilePhotoUrlToSave || undefined, // Save the preview URL or existing URL
+      profilePhotoUrl: uploadedProfilePhotoUrl || undefined, 
+      portfolioImageUrls: uploadedPortfolioImageUrls.filter(url => url && !url.startsWith('blob:')), // Ensure only valid, uploaded URLs
       servicesOffered: initialData?.servicesOffered || [], 
-      portfolioImageUrls: uploadedPortfolioUrls.slice(0,5), 
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
-    delete (submissionData as any).profilePhotoFile; // Don't send FileList object
-    delete (submissionData as any).portfolioFiles; // Don't send FileList object
-
 
     console.log("Artisan profile submission for user:", userId, JSON.stringify(submissionData, null, 2));
     const result = await saveArtisanOnboardingProfile(submissionData as Omit<ArtisanProfile, 'onboardingStep1Completed'>);
-    setIsLoading(false);
+    setIsSubmitting(false);
 
     if (result.success) {
       toast({ title: "Profile Saved", description: "Your artisan profile has been successfully updated." });
@@ -217,7 +239,6 @@ export function ArtisanProfileForm({
       
       toast({ title: "Update Failed", description: errorMsg, variant: "destructive" });
       console.error("Artisan profile save error (client error object):", result.error);
-      console.error("Artisan profile save error (full result):", JSON.stringify(result, null, 2));
     }
   }
 
@@ -226,42 +247,32 @@ export function ArtisanProfileForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         
         <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6 md:space-y-0">
-          <FormField
-            control={form.control}
-            name="profilePhotoFile"
-            render={({ field }) => (
-              <FormItem className="flex flex-col items-center md:items-start">
-                <FormLabel>Profile Photo</FormLabel>
-                <Image
-                  src={profilePhotoPreview || "https://placehold.co/128x128.png?text=Photo"}
-                  alt="Profile photo preview"
-                  width={128}
-                  height={128}
-                  className="rounded-full object-cover w-32 h-32 border shadow-sm"
-                  data-ai-hint="profile photo"
-                />
-                <Button type="button" variant="outline" size="sm" asChild className="mt-2">
-                  <label htmlFor="profile-photo-upload" className="cursor-pointer">
-                    <Camera className="mr-2 h-4 w-4" /> Upload Photo
-                  </label>
-                </Button>
-                <FormControl>
-                  <Input 
-                    id="profile-photo-upload" 
-                    type="file" 
-                    className="sr-only" 
-                    accept="image/*" 
-                    onChange={(e) => {
-                      field.onChange(e.target.files);
-                      handleProfilePhotoChange(e);
-                    }}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormItem className="flex flex-col items-center md:items-start">
+            <FormLabel>Profile Photo</FormLabel>
+            <Image
+              src={profilePhotoPreview || "https://placehold.co/128x128.png?text=Photo"}
+              alt="Profile photo preview"
+              width={128}
+              height={128}
+              className="rounded-full object-cover w-32 h-32 border shadow-sm"
+              data-ai-hint="profile photo"
+            />
+            <Button type="button" variant="outline" size="sm" asChild className="mt-2" disabled={isUploadingProfilePhoto || isSubmitting}>
+              <label htmlFor="profile-photo-upload" className="cursor-pointer">
+                {isUploadingProfilePhoto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                {isUploadingProfilePhoto ? "Uploading..." : "Upload Photo"}
+              </label>
+            </Button>
+            <Input 
+              id="profile-photo-upload" 
+              type="file" 
+              className="sr-only" 
+              accept="image/*" 
+              onChange={handleProfilePhotoChange}
+              disabled={isUploadingProfilePhoto || isSubmitting}
+            />
+            <FormMessage />
+          </FormItem>
 
           <div className="w-full space-y-6">
             <FormField
@@ -273,7 +284,7 @@ export function ArtisanProfileForm({
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
-                      <Input placeholder="e.g. ZeloMasterArtisan" {...field} className="pl-10" />
+                      <Input placeholder="e.g. ZeloMasterArtisan" {...field} className="pl-10" disabled={isSubmitting}/>
                     </FormControl>
                   </div>
                   <FormDescription>This will be part of your public profile URL.</FormDescription>
@@ -290,7 +301,7 @@ export function ArtisanProfileForm({
                   <div className="relative">
                     <Info className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
-                      <Input placeholder="e.g., Expert Plumber - 10+ Years Experience" {...field} className="pl-10" />
+                      <Input placeholder="e.g., Expert Plumber - 10+ Years Experience" {...field} className="pl-10" disabled={isSubmitting}/>
                     </FormControl>
                   </div>
                   <FormDescription>A short, catchy phrase for your profile.</FormDescription>
@@ -312,7 +323,7 @@ export function ArtisanProfileForm({
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <FormControl>
-                    <Input placeholder="e.g. +2348012345678" {...field} className="pl-10" />
+                    <Input placeholder="e.g. +2348012345678" {...field} className="pl-10" disabled={isSubmitting}/>
                   </FormControl>
                 </div>
                 <FormMessage />
@@ -328,7 +339,7 @@ export function ArtisanProfileForm({
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <FormControl>
-                    <Input type="email" placeholder="yourpublic@email.com" {...field} className="pl-10" />
+                    <Input type="email" placeholder="yourpublic@email.com" {...field} className="pl-10" disabled={isSubmitting}/>
                   </FormControl>
                 </div>
                 <FormMessage />
@@ -393,6 +404,7 @@ export function ArtisanProfileForm({
                                 min="0"
                                 {...yearsField}
                                 className="pl-10 pr-2 text-sm h-9"
+                                disabled={isSubmitting}
                             />
                             </FormControl>
                         </div>
@@ -416,6 +428,7 @@ export function ArtisanProfileForm({
                                 {...chargeAmountField}
                                 value={chargeAmountField.value ?? ''}
                                 className="pl-10 pr-2 text-sm h-9"
+                                disabled={isSubmitting}
                             />
                             </FormControl>
                         </div>
@@ -437,6 +450,7 @@ export function ArtisanProfileForm({
                                 {...chargeDescField}
                                 value={chargeDescField.value ?? ''}
                                 className="pl-10 pr-2 text-sm h-9"
+                                disabled={isSubmitting}
                             />
                             </FormControl>
                         </div>
@@ -460,7 +474,7 @@ export function ArtisanProfileForm({
                 <div className="relative">
                 <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" />
+                  <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" disabled={isSubmitting}/>
                 </FormControl>
               </div>
               <FormDescription>Enter your city and state.</FormDescription>
@@ -485,6 +499,7 @@ export function ArtisanProfileForm({
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   aria-label="Toggle precise location sharing"
+                  disabled={isSubmitting}
                 />
               </FormControl>
             </FormItem>
@@ -497,7 +512,7 @@ export function ArtisanProfileForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Availability Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                 <FormControl>
                   <SelectTrigger className="relative pl-10">
                     <Activity className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -528,6 +543,7 @@ export function ArtisanProfileForm({
                   placeholder="Tell clients about yourself, your skills, and what makes your service stand out..."
                   className="resize-y min-h-[100px]"
                   {...field}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>Maximum 500 characters.</FormDescription>
@@ -544,43 +560,34 @@ export function ArtisanProfileForm({
             <CardDescription>Showcase your best work. Upload up to 5 images.</CardDescription>
           </CardHeader>
           <CardContent>
-            <FormField
-              control={form.control}
-              name="portfolioFiles"
-              render={({ field }) => (
-                <FormItem>
-                   <FormControl>
-                    <div className="flex items-center justify-center w-full">
-                        <label
-                            htmlFor="portfolio-upload"
-                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors"
-                        >
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
-                                <p className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-semibold text-primary">Click to upload</span> or drag and drop
-                                </p>
-                                <p className="text-xs text-muted-foreground">Up to 5 images (JPG, PNG, GIF)</p>
-                            </div>
-                            <Input 
-                              id="portfolio-upload" 
-                              type="file" 
-                              multiple 
-                              className="sr-only" 
-                              accept="image/*" 
-                              onChange={(e) => {
-                                field.onChange(e.target.files); 
-                                handlePortfolioChange(e); 
-                              }} 
-                              disabled={isLoading} 
-                            />
-                        </label>
-                    </div>
-                  </FormControl>
-                  <FormMessage className="mt-1"/>
-                </FormItem>
-              )}
-            />
+            <FormItem>
+               <FormControl>
+                <div className="flex items-center justify-center w-full">
+                    <label
+                        htmlFor="portfolio-upload"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors"
+                    >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            {isUploadingPortfolio ? <Loader2 className="w-8 h-8 mb-2 text-muted-foreground animate-spin" /> : <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />}
+                            <p className="mb-1 text-sm text-muted-foreground">
+                                <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-muted-foreground">Up to 5 images (JPG, PNG, GIF)</p>
+                        </div>
+                        <Input 
+                          id="portfolio-upload" 
+                          type="file" 
+                          multiple 
+                          className="sr-only" 
+                          accept="image/*" 
+                          onChange={handlePortfolioChange} 
+                          disabled={isUploadingPortfolio || isSubmitting || uploadedPortfolioImageUrls.length >=5 } 
+                        />
+                    </label>
+                </div>
+              </FormControl>
+              <FormMessage className="mt-1"/>
+            </FormItem>
             
             {portfolioPreviews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -592,7 +599,7 @@ export function ArtisanProfileForm({
                       width={300}
                       height={200}
                       className="object-cover w-full h-full"
-                      data-ai-hint={url.includes("placehold.co") ? "portfolio work" : undefined}
+                      data-ai-hint={url.includes("placehold.co") || url.startsWith("blob:") ? "portfolio work" : undefined}
                     />
                   </div>
                 ))}
@@ -604,14 +611,15 @@ export function ArtisanProfileForm({
 
         <div className="flex flex-wrap justify-end gap-3 pt-4">
           {backButtonHref && (
-            <Button asChild variant="outline" disabled={isLoading}>
+            <Button asChild variant="outline" disabled={isSubmitting || isUploadingProfilePhoto || isUploadingPortfolio}>
               <Link href={backButtonHref}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> {backButtonText}
               </Link>
             </Button>
           )}
-          <Button type="submit" className="font-semibold" disabled={isLoading}>
-            {isLoading ? "Saving..." : submitButtonText}
+          <Button type="submit" className="font-semibold" disabled={isSubmitting || isUploadingProfilePhoto || isUploadingPortfolio}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (submitButtonText || <><Save className="mr-2 h-4 w-4"/> Save Profile</>)}
+            {isSubmitting && "Saving..."}
           </Button>
         </div>
       </form>
