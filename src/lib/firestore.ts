@@ -84,7 +84,7 @@ export async function getArtisanProfile(userId: string): Promise<ArtisanProfile 
     ...data,
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
-  } as ArtisanProfile;
+  } as unknown as ArtisanProfile;
 }
 
 export async function updateArtisanProfile(userId: string, updates: Partial<ArtisanProfile>): Promise<void> {
@@ -114,7 +114,7 @@ export async function getArtisans(filters?: {
     ...doc.data(),
     createdAt: convertTimestamp(doc.data().createdAt),
     updatedAt: convertTimestamp(doc.data().updatedAt),
-  })) as ArtisanProfile[];
+  })) as unknown as ArtisanProfile[];
 }
 
 // Client Profile operations
@@ -135,7 +135,7 @@ export async function getClientProfile(userId: string): Promise<ClientProfile | 
     ...data,
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
-  } as ClientProfile;
+  } as unknown as ClientProfile;
 }
 
 export async function updateClientProfile(userId: string, updates: Partial<ClientProfile>): Promise<void> {

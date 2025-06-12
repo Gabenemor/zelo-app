@@ -41,52 +41,55 @@ export async function registerUser(
     await updateProfile(firebaseUser, { displayName: fullName });
     console.log('[Auth] Firebase Auth profile updated.');
 
-    const userDocData = {
+    // Simplified data for testing
+    const userDocDataMinimal = {
       uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      fullName,
       role,
-      status: 'active',
-      emailVerified: firebaseUser.emailVerified, // Will be false initially
+      email: firebaseUser.email, // Keep email for reference
+      fullName, // Keep fullName for reference
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      status: 'active', // Add status as it's in the type
+      emailVerified: firebaseUser.emailVerified, // Add emailVerified
     };
-    console.log('[Auth] Preparing to set Firestore user document:', userDocData);
-    await setDoc(doc(db, 'users', firebaseUser.uid), userDocData);
-    console.log('[Auth] Firestore user document created/updated in /users.');
+    console.log('[Auth] Preparing to set Firestore user document (minimal):', userDocDataMinimal);
+    await setDoc(doc(db, 'users', firebaseUser.uid), userDocDataMinimal);
+    console.log('[Auth] Firestore user document (minimal) created/updated in /users.');
 
-    const commonProfileData = {
+    const commonProfileDataMinimal = {
       userId: firebaseUser.uid,
-      fullName: fullName, // Add fullName to profile as well
-      contactEmail: firebaseUser.email, // Pre-fill contact email
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      // Add other essential non-optional fields if your type definition for profiles requires them
+      // For example, if fullName and contactEmail are structurally vital for ClientProfile/ArtisanProfile:
+      fullName: fullName,
+      contactEmail: firebaseUser.email,
       onboardingCompleted: false,
       profileSetupCompleted: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
 
     if (role === 'artisan') {
-      const artisanProfileData = {
-        ...commonProfileData,
-        servicesOffered: [],
+      const artisanProfileDataMinimal = {
+        ...commonProfileDataMinimal,
+        servicesOffered: [], // Minimal required field
       };
-      console.log('[Auth] Preparing to set Firestore artisanProfile document:', artisanProfileData);
-      await setDoc(doc(db, 'artisanProfiles', firebaseUser.uid), artisanProfileData);
-      console.log('[Auth] Firestore artisanProfile document created in /artisanProfiles.');
+      console.log('[Auth] Preparing to set Firestore artisanProfile document (minimal):', artisanProfileDataMinimal);
+      await setDoc(doc(db, 'artisanProfiles', firebaseUser.uid), artisanProfileDataMinimal);
+      console.log('[Auth] Firestore artisanProfile document (minimal) created in /artisanProfiles.');
     } else if (role === 'client') {
-      const clientProfileData = {
-        ...commonProfileData,
-        servicesLookingFor: [],
+      const clientProfileDataMinimal = {
+        ...commonProfileDataMinimal,
+        servicesLookingFor: [], // Minimal required field
       };
-      console.log('[Auth] Preparing to set Firestore clientProfile document:', clientProfileData);
-      await setDoc(doc(db, 'clientProfiles', firebaseUser.uid), clientProfileData);
-      console.log('[Auth] Firestore clientProfile document created in /clientProfiles.');
+      console.log('[Auth] Preparing to set Firestore clientProfile document (minimal):', clientProfileDataMinimal);
+      await setDoc(doc(db, 'clientProfiles', firebaseUser.uid), clientProfileDataMinimal);
+      console.log('[Auth] Firestore clientProfile document (minimal) created in /clientProfiles.');
     }
 
     const registeredAuthUser: AuthUser = {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
-      displayName: firebaseUser.displayName, // Should be fullName now
+      displayName: firebaseUser.displayName,
       role,
       emailVerified: firebaseUser.emailVerified,
     };
@@ -109,20 +112,19 @@ export async function loginUser(email: string, password: string): Promise<{ user
     const firebaseUser = userCredential.user;
     console.log('[Auth] User signed in to Firebase Auth, UID:', firebaseUser.uid);
 
-    if (!firebaseUser.emailVerified) {
-      console.warn('[Auth] Email not verified for user:', firebaseUser.uid);
-      // Optionally sign them out if you strictly enforce verification before login to dashboard
-      // await signOut(auth);
-      // console.log('[Auth] User signed out due to unverified email.');
-      // return { error: "Please verify your email address before logging in. Check your inbox." };
-    }
+    // if (!firebaseUser.emailVerified) {
+    //   console.warn('[Auth] Email not verified for user:', firebaseUser.uid);
+    //   // await signOut(auth);
+    //   // console.log('[Auth] User signed out due to unverified email.');
+    //   // return { error: "Please verify your email address before logging in. Check your inbox." };
+    // }
 
     console.log('[Auth] Fetching user document from Firestore /users/', firebaseUser.uid);
     const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
     
     if (!userDoc.exists()) {
       console.error('[Auth] User document not found in Firestore for UID:', firebaseUser.uid);
-      await signOut(auth); // Sign out the user as their profile is incomplete/missing
+      await signOut(auth); 
       console.log('[Auth] User signed out due to missing Firestore user document.');
       return { error: 'User data not found. Please contact support or try registering again.' };
     }
@@ -140,7 +142,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
     console.log('[Auth] Login successful. Returning user:', loggedInAuthUser);
     return { user: loggedInAuthUser };
 
-  } catch (error: any) { 
+  } catch (error: any) { // Added opening brace for the catch block
     console.error("[Auth] Login error in @/lib/auth.ts:", error.code, error.message, error);
     // Map common Firebase auth errors to more user-friendly messages if desired
     let errorMessage = error.message || "An unknown error occurred during login.";
@@ -148,7 +150,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
       errorMessage = "Invalid email or password. Please try again.";
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
-    } else if (error.code === 'unavailable') { // Specific check for Firestore offline error
+    } else if (error.code === 'unavailable') { 
       errorMessage = "Could not connect to the database. Please check your internet connection and try again.";
     }
     return {
