@@ -17,13 +17,12 @@ function ArtisanOnboardingStep2Content() {
   const [initialFormValues, setInitialFormValues] = useState<Partial<ArtisanProfile>>({});
   const [isLoadingPage, setIsLoadingPage] = useState(true);
 
-  const MOCK_USER_ID = "mockArtisanUserIdOnboarding";
+  const MOCK_USER_ID = "mockArtisanUserIdOnboarding"; // This should ideally come from auth context or params
   const firstName = searchParams ? searchParams.get('firstName') : null;
 
   useEffect(() => {
     if (searchParams) {
       const servicesOfferedString = searchParams.get('servicesOffered');
-      // serviceExperiencesString is no longer expected from step 1
       
       let servicesOffered: string[] = [];
 
@@ -33,15 +32,14 @@ function ArtisanOnboardingStep2Content() {
         } catch (e) {
           console.error("Failed to parse servicesOffered from URL for Step 2:", e);
           toast({ title: "Error", description: "Could not load service details. Please go back to Step 1.", variant: "destructive" });
-          // Potentially redirect or handle error state
         }
       }
       
       setInitialFormValues(prev => ({
         ...prev,
         username: firstName || prev.username,
-        servicesOffered, // Pass this to pre-fill the form's understanding of services
-        serviceExperiences: [], // Initialize as empty or undefined, as it's not collected in step 1
+        servicesOffered, 
+        serviceExperiences: [], 
       }));
       setIsLoadingPage(false);
     }
@@ -49,7 +47,7 @@ function ArtisanOnboardingStep2Content() {
 
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
-    router.push('/dashboard');
+    router.push('/dashboard?role=artisan'); // Corrected redirection
   };
 
   const pageTitle = firstName ? `Almost there, ${firstName}!` : "Complete Your Artisan Profile";
@@ -82,6 +80,7 @@ function ArtisanOnboardingStep2Content() {
           submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
           backButtonHref={backHref}
           backButtonText={<><ArrowLeft className="mr-2 h-4 w-4" /> Back to Step 1</>}
+          isOnboarding={true} // Explicitly set for onboarding context
         />
       </div>
     </div>

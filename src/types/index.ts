@@ -8,7 +8,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   createdAt: Date;
-  status?: 'active' | 'suspended' | 'deactivated'; // Added status
+  status?: 'active' | 'suspended' | 'deactivated'; 
 }
 
 export interface ServiceExperience {
@@ -65,7 +65,7 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  clientName?: string; // Added for easier display
+  clientName?: string; 
   postedBy?: {
     name: string;
     avatarUrl?: string;
@@ -79,9 +79,9 @@ export interface ServiceRequest {
   locationCoordinates?: { lat: number; lng: number };
   budget?: number;
   postedAt: Date;
-  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed"; // Added 'disputed'
+  status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed"; 
   assignedArtisanId?: string;
-  assignedArtisanName?: string; // Added for easier display
+  assignedArtisanName?: string; 
   attachments?: Array<{ name: string; url: string; type: 'image' | 'document'; "data-ai-hint"?: string }>;
 }
 
@@ -211,7 +211,8 @@ export type LucideIconName =
   | "ShoppingCart" 
   | "Edit3"
   | "AlertTriangle"
-  | "SlidersHorizontal";
+  | "SlidersHorizontal"
+  | "Activity"; // Added Activity icon
 
 
 export interface NavItem {
@@ -235,4 +236,3 @@ export const NIGERIAN_ARTISAN_SERVICES = [
 
 type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
 export type NigerianArtisanService = ServiceName;
-

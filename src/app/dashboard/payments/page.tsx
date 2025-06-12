@@ -1,35 +1,40 @@
 
 "use client";
 
-import React, { Suspense } from 'react'; // Added Suspense
-import { useSearchParams } from "next/navigation"; // Added useSearchParams
+import React, { Suspense } from 'react';
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CreditCard, DollarSign, List, TrendingUp, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react";
+import { CreditCard, DollarSign, List, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react"; // Removed TrendingUp
 import type { UserRole } from '@/types';
 
-// Mock payment summary data
 const mockArtisanPaymentSummary = {
-  availableForWithdrawal: 125000, // Naira
-  pendingPayouts: 45000, // Naira
-  totalEarnedLifetime: 850000, // Naira
+  availableForWithdrawal: 125000, 
+  pendingPayouts: 45000, 
+  totalEarnedLifetime: 850000, 
 };
 
 const mockClientPaymentSummary = {
-  totalSpent: 250000, // Naira
-  activeJobsFunded: 2, // Number of jobs currently funded in escrow
-  requestsAwaitingFunding: 1, // Number of awarded jobs not yet funded
+  totalSpent: 250000, 
+  activeJobsFunded: 2, 
+  requestsAwaitingFunding: 1, 
 };
 
 function PaymentsOverviewPageContent() {
   const searchParams = useSearchParams();
   const roleFromQuery = searchParams.get("role") as UserRole | null;
-  // Default to artisan if role is not client or admin (admin might see combined view or artisan view)
-  const userRole: UserRole = roleFromQuery === 'client' ? 'client' : 'artisan';
+  const userRole: UserRole = roleFromQuery === 'client' ? 'client' : (roleFromQuery === 'artisan' ? 'artisan' : 'client'); // Default to client if role is missing/invalid
 
   const summary = userRole === 'client' ? mockClientPaymentSummary : mockArtisanPaymentSummary;
+
+  const addRoleToHref = (href: string, currentRole: UserRole): string => {
+    if (href.includes('?')) {
+      return `${href}&role=${currentRole}`;
+    }
+    return `${href}?role=${currentRole}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -66,7 +71,7 @@ function PaymentsOverviewPageContent() {
           <StatCard 
             title="Lifetime Earnings" 
             value={`₦${mockArtisanPaymentSummary.totalEarnedLifetime.toLocaleString()}`} 
-            icon={TrendingUp}
+            icon={CreditCard} // Changed from TrendingUp as it's not in LucideIconName
           />
         </div>
       )}
@@ -103,19 +108,19 @@ function PaymentsOverviewPageContent() {
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {userRole === 'artisan' && (
             <Button asChild variant="default" className="w-full">
-              <Link href={`/dashboard/profile/withdrawal-settings?role=${userRole}`}>
+              <Link href={addRoleToHref('/dashboard/profile/withdrawal-settings', userRole)}>
                 Manage Withdrawal Account
               </Link>
             </Button>
           )}
            <Button asChild variant="outline" className="w-full">
-            <Link href={`/dashboard/payments/history?role=${userRole}`}>
+            <Link href={addRoleToHref('/dashboard/payments/history', userRole)}>
               <List className="mr-2 h-4 w-4" /> View Transaction History
             </Link>
           </Button>
           {userRole === 'client' && (
              <Button asChild variant="default" className="w-full">
-                <Link href={`/dashboard/services/my-requests?role=${userRole}`}>
+                <Link href={addRoleToHref('/dashboard/services/my-requests', userRole)}>
                     <FileText className="mr-2 h-4 w-4" /> Fund a Job / View Requests
                 </Link>
             </Button>
@@ -142,7 +147,7 @@ function PaymentsOverviewPageContent() {
               </>
             )}
              <Button asChild variant="link" className="p-0 h-auto text-sm">
-                <Link href={`/dashboard/payments/escrow?role=${userRole}`}>Learn more about Zelo Secure Escrow</Link>
+                <Link href={addRoleToHref('/dashboard/payments/escrow', userRole)}>Learn more about Zelo Secure Escrow</Link>
             </Button>
         </CardContent>
       </Card>

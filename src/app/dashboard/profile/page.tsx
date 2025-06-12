@@ -1,67 +1,36 @@
 
+"use client"; // Make it a client component to use useSearchParams
+
+import { Suspense } from 'react';
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { UserCircle, Edit3, CreditCard, ShieldCheck, Settings } from "lucide-react"; // Added Settings
+import { UserCircle, Edit3, CreditCard, Settings, Loader2 } from "lucide-react";
 import Image from "next/image";
-import type { UserRole } from "@/types"; // Added UserRole type
+import type { UserRole } from "@/types";
 
-// Simulate fetching current user details including role
-// In a real app, this would come from an auth context or server session
-async function getCurrentUser(): Promise<{
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole; // 'client' | 'artisan' | 'admin'
-  avatarUrl: string;
-  memberSince: string;
-  location: string;
-  bio?: string; // Optional, more relevant for artisans
-}> {
-  // For demonstration, let's assume we can get role from searchParams
-  // This is a simplification; in a real app, role comes from session.
-  // const roleFromQuery = (new URL(request.url).searchParams.get('role') || 'client') as UserRole;
-  // For a server component, we'd need to pass searchParams or get role differently.
-  // Let's mock it for now, assuming a function that can determine role.
-  // This page component itself might receive searchParams if we make it dynamic.
-  
-  // Hardcoding for example based on common user flow, but needs proper implementation.
-  // This page needs to be dynamic or receive role prop to show correct user info.
-  // For now, let's make it generic and let links decide context.
-  // Defaulting to a generic user for now, actual user specific data fetch is needed.
-  return {
-    id: "mockUser123", // Placeholder ID
-    name: "Zelo User", 
-    email: "user@zelo.app",
-    role: "client", // <<-- This needs to be dynamic. For now, assume 'client' for testing this view
-    avatarUrl: "https://placehold.co/128x128.png",
-    memberSince: "January 2024",
-    location: "Lagos, Nigeria",
-    bio: "A dedicated Zelo user.", // Generic bio
-  };
-}
+function ProfilePageContent() {
+  const searchParams = useSearchParams();
+  const actualRole = (searchParams.get('role') as UserRole) || 'client'; // Default for safety if param is missing
 
-
-export default async function ProfilePage({ searchParams }: { searchParams?: { role?: UserRole }}) {
-  // In a real app, fetch user data based on authenticated user, not a generic mock.
-  // The role should ideally come from the user's session, not query params for *this* page.
-  // Query params are more for maintaining context *to* other pages.
-  const actualRole = searchParams?.role || 'client'; // Default for safety
-  
-  const user = { // Mock user data for display
-    id: "user_generic_id", 
-    name: "Zelo User", // This should be fetched based on logged-in user
-    email: `${actualRole}@zelo.app`, // Display dynamic email based on role context
+  const user = { 
+    id: `user_mock_${actualRole}_id`, 
+    name: `${actualRole.charAt(0).toUpperCase() + actualRole.slice(1)} User`,
+    email: `${actualRole}@zelo.app`,
     role: actualRole,
     avatarUrl: `https://placehold.co/128x128.png?text=${actualRole.charAt(0).toUpperCase()}`,
     memberSince: "February 2024",
     location: "Nigeria",
-    bio: actualRole === 'artisan' ? "A passionate artisan dedicated to quality." : undefined, // Only show bio for artisans
+    bio: actualRole === 'artisan' ? "A passionate artisan dedicated to quality." : undefined,
   };
 
   const editProfileLink = `/dashboard/profile/edit?role=${user.role}`;
   const settingsLink = `/dashboard/settings?role=${user.role}`;
+  const withdrawalSettingsLink = `/dashboard/profile/withdrawal-settings?role=${user.role}`;
+  const viewArtisanProfileLink = `/dashboard/artisans/${user.id}?role=${user.role}`;
+
 
   return (
     <div className="space-y-6">
@@ -110,17 +79,13 @@ export default async function ProfilePage({ searchParams }: { searchParams?: { r
                 <ActionItem
                   title="Withdrawal Settings"
                   description="Manage your bank account for receiving payments."
-                  href={`/dashboard/profile/withdrawal-settings?role=${user.role}`}
+                  href={withdrawalSettingsLink}
                   icon={CreditCard}
                 />
-                {/* Artisans view their own profile through a public-facing link if needed,
-                    but for context consistency, the role param is key.
-                    The ID here should be the artisan's actual ID.
-                */}
                 <ActionItem
                   title="View My Artisan Profile"
                   description="See how your profile appears to clients."
-                  href={`/dashboard/artisans/${user.id}?role=${user.role}`} 
+                  href={viewArtisanProfileLink} 
                   icon={UserCircle}
                 />
               </>
@@ -129,7 +94,7 @@ export default async function ProfilePage({ searchParams }: { searchParams?: { r
               title="Account Settings"
               description="Change password and manage security settings."
               href={settingsLink} 
-              icon={Settings} // Changed from ShieldCheck for clarity
+              icon={Settings}
             />
           </CardContent>
         </Card>
@@ -155,4 +120,16 @@ function ActionItem({ title, description, href, icon: Icon }: ActionItemProps) {
             <p className="text-xs text-muted-foreground">{description}</p>
         </Link>
     )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
+  );
 }

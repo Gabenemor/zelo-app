@@ -1,5 +1,5 @@
 
-"use client"; // This page now uses client-side hooks
+"use client"; 
 
 import React, { Suspense } from 'react';
 import Image from 'next/image';
@@ -12,7 +12,6 @@ import {
   Briefcase, 
   MessageSquare, 
   PlusCircle, 
-  UserCircle, 
   LayoutDashboard,
   CreditCard,
   FileText,
@@ -21,26 +20,22 @@ import {
   LucideIcon,
   Settings,
   Users, 
-  LogOut, 
   MapPin, 
-  ShieldCheck, 
   Search, 
   ClipboardList, 
   UserCog,
   UserCircle2,
   DollarSign,
   Edit3,
-  TrendingUp,
   CalendarDays, 
   Edit, 
   Camera, 
   UploadCloud,
   Loader2,
   ListChecks
-} from "lucide-react";
+} from "lucide-react"; // Removed duplicate Bell, Check, Trash2, DollarSign, Info. Merged Settings.
 import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ServiceExperience, UserRole } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
-import { cn } from "@/lib/utils";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -109,7 +104,6 @@ const mockNewJobsForArtisan: ServiceRequest[] = [
   { id: "job3", clientId: "clientNew3", title: "House Painting - Exterior", description: "Need exterior painting for a 3-bedroom bungalow in Surulere.", category: "Painting", location: "Surulere, Lagos", postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
 ];
 
-// Mock client's own service requests
 const mockClientServiceRequests: ServiceRequest[] = [
   { id: "myreq1", clientId: mockClientUserId, title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days.", category: "Plumbing", location: "Ikeja, Lagos", budget: 7000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
   { id: "myreq2", clientId: mockClientUserId, title: "Catering for Birthday Party (30 guests)", description: "Looking for reliable catering for a small birthday party.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 120000, postedAt: new Date(Date.now() - 86400000 * 3), status: "awarded", assignedArtisanId: "art_pub_2" },
@@ -123,13 +117,13 @@ const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username
 
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, DollarSign, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks
 };
 
 function DashboardHomePageContent() {
   const searchParams = useSearchParams();
   const roleFromQuery = searchParams.get("role") as UserRole | null;
-  const userType: UserRole = roleFromQuery && ["client", "artisan", "admin"].includes(roleFromQuery) ? roleFromQuery : "artisan"; 
+  const userType: UserRole = roleFromQuery && ["client", "artisan", "admin"].includes(roleFromQuery) ? roleFromQuery : "client"; // Default to client if role is missing or invalid
 
   const userActivities = (userType === 'client' ? mockRecentActivitiesClient : mockRecentActivitiesArtisan)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
@@ -150,7 +144,6 @@ function DashboardHomePageContent() {
         )}
       />
 
-      {/* KPI Cards */}
       {userType === 'artisan' && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard title="Total Bids Sent" value={mockArtisanStats.totalBidsSent.toString()} icon={Edit3} />
@@ -183,7 +176,7 @@ function DashboardHomePageContent() {
                 ) : (
                   <p className="text-sm text-muted-foreground">No new jobs matching your services right now. Check back later!</p>
                 )}
-                {mockNewJobsForArtisan.length > 3 && (
+                {mockNewJobsForArtisan.length > 0 && ( // Show "View All" only if there are jobs
                     <Button variant="outline" className="w-full" asChild>
                         <Link href={`/dashboard/jobs?role=${userType}`}>View All Matching Jobs</Link>
                     </Button>
@@ -212,7 +205,7 @@ function DashboardHomePageContent() {
                     </Button>
                   </div>
                 )}
-                {mockClientServiceRequests.length > 3 && (
+                {mockClientServiceRequests.length > 0 && ( // Show "View All" only if there are requests
                     <Button variant="outline" className="w-full" asChild>
                         <Link href={`/dashboard/services/my-requests?role=${userType}`}>View All My Requests</Link>
                     </Button>
@@ -409,7 +402,7 @@ function DashboardLoadingSkeleton() {
           </div>
           <div className="h-4 w-64 rounded-md bg-muted"></div>
         </div>
-        <div className="h-10 w-48 rounded-md bg-muted sm:h-12"></div> {/* Skeleton for PageHeader Action */}
+        <div className="h-10 w-48 rounded-md bg-muted sm:h-12"></div>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card><CardHeader><div className="h-5 w-2/3 rounded-md bg-muted"></div></CardHeader><CardContent><div className="h-8 w-1/3 rounded-md bg-muted"></div></CardContent></Card>

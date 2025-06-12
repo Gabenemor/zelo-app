@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation"; 
 import React, { useState, Suspense } from "react"; 
-import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2, Settings } from "lucide-react"; // Added Settings
+import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,10 +28,13 @@ import { dashboardNavItems } from "@/config/site";
 import type { NavItem, UserRole } from "@/types";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { logoutUser } from '@/lib/auth'; // Import logoutUser
+import { useRouter } from "next/navigation"; // For redirect after logout
 
 function DashboardHeaderContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter(); // For redirect after logout
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const roleFromQuery = searchParams.get("role") as UserRole | null;
@@ -43,10 +46,7 @@ function DashboardHeaderContent() {
   } else if (roleFromQuery && ["client", "artisan"].includes(roleFromQuery)) {
     determinedUserRole = roleFromQuery;
   } else {
-    // Fallback or default role if not admin and no role in query
-    // This might happen if navigated to /dashboard directly without role
-    // For robustness, decide a default or handle this case (e.g. redirect to role selection or default dashboard)
-    determinedUserRole = "client"; // Defaulting to 'client' for now if no role found
+    determinedUserRole = "client"; 
   }
   const userRole = determinedUserRole;
   
@@ -61,27 +61,22 @@ function DashboardHeaderContent() {
       ),
     }));
 
+  const addRoleToHref = (href: string | undefined, currentRole: UserRole): string => {
+    if (!href) return '#';
+    if (href.startsWith('/dashboard') && currentRole !== 'admin' && !href.includes('/admin')) {
+      const [path, query] = href.split('?');
+      const params = new URLSearchParams(query);
+      if (!params.has('role')) {
+        params.set('role', currentRole);
+      }
+      return `${path}?${params.toString()}`;
+    }
+    return href;
+  };
+  
   const NavLink = ({ item, onClick }: { item: NavItem; onClick?: () => void }) => {
     const isActive = pathname === item.href || (item.href && item.href !== "/dashboard" && pathname.startsWith(item.href));
-    
-    let finalLinkHref = item.href;
-    if (item.href) {
-      if (item.href.startsWith('/dashboard') && userRole !== 'admin' && !item.href.includes('/admin')) {
-        if (item.href.includes('?')) {
-          // If query params exist, ensure 'role' is one of them or add it
-          const existingParams = new URLSearchParams(item.href.split('?')[1]);
-          if (!existingParams.has('role')) {
-            existingParams.set('role', userRole);
-            finalLinkHref = `${item.href.split('?')[0]}?${existingParams.toString()}`;
-          }
-          // If role is already there and matches, or is different, it's handled by original item.href
-        } else {
-          // Add role if no query parameters exist
-          finalLinkHref = `${item.href}?role=${userRole}`;
-        }
-      }
-    }
-    const linkHref = finalLinkHref;
+    const linkHrefWithRole = addRoleToHref(item.href, userRole);
     
     if (item.children && item.children.length > 0) {
       return (
@@ -101,22 +96,11 @@ function DashboardHeaderContent() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
               {item.children.map((child) => {
-                let childHrefWithRole = child.href;
-                if (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin")) {
-                   if (child.href.includes('?')) {
-                        const childParams = new URLSearchParams(child.href.split('?')[1]);
-                        if (!childParams.has('role')) {
-                            childParams.set('role', userRole);
-                            childHrefWithRole = `${child.href.split('?')[0]}?${childParams.toString()}`;
-                        }
-                    } else {
-                        childHrefWithRole = `${child.href}?role=${userRole}`;
-                    }
-                }
+                const childHrefWithRole = addRoleToHref(child.href, userRole);
                 return (
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
-                    href={childHrefWithRole || '#'}
+                    href={childHrefWithRole}
                     onClick={onClick} 
                     className={cn(
                       "text-sm",
@@ -134,7 +118,7 @@ function DashboardHeaderContent() {
 
     return (
       <Link
-        href={linkHref || '#'} 
+        href={linkHrefWithRole} 
         onClick={onClick}
         className={cn(
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -161,18 +145,7 @@ function DashboardHeaderContent() {
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
               {item.children.map((child) => {
-                 let childHrefWithRole = child.href;
-                 if (child.href && child.href.startsWith("/dashboard") && userRole !== "admin" && !child.href.includes("admin")) {
-                    if (child.href.includes('?')) {
-                        const childParams = new URLSearchParams(child.href.split('?')[1]);
-                        if (!childParams.has('role')) {
-                            childParams.set('role', userRole);
-                            childHrefWithRole = `${child.href.split('?')[0]}?${childParams.toString()}`;
-                        }
-                    } else {
-                        childHrefWithRole = `${child.href}?role=${userRole}`;
-                    }
-                  }
+                 const childHrefWithRole = addRoleToHref(child.href, userRole);
                 return <NavLink key={child.href} item={{...child, href: childHrefWithRole}} onClick={() => setMobileMenuOpen(false)} />
               })}
             </>
@@ -184,13 +157,17 @@ function DashboardHeaderContent() {
     </nav>
   );
 
-  const profileLink = `/dashboard/profile?role=${userRole}`;
-  const editProfileLink = `/dashboard/profile/edit?role=${userRole}`;
-  const settingsLink = `/dashboard/settings?role=${userRole}`;
-  const notificationsLink = `/dashboard/notifications?role=${userRole}`;
-  const artisanServicesEditLink = `/dashboard/profile/artisan/services/edit?role=${userRole}`;
-  const withdrawalSettingsLink = `/dashboard/profile/withdrawal-settings?role=${userRole}`;
+  const handleLogout = async () => {
+    await logoutUser();
+    router.push('/login'); 
+  };
 
+  const profileLink = addRoleToHref("/dashboard/profile", userRole);
+  const editProfileLink = addRoleToHref("/dashboard/profile/edit", userRole);
+  const settingsLink = addRoleToHref("/dashboard/settings", userRole);
+  const notificationsLink = addRoleToHref("/dashboard/notifications", userRole);
+  const artisanServicesEditLink = addRoleToHref("/dashboard/profile/artisan/services/edit", userRole);
+  const withdrawalSettingsLink = addRoleToHref("/dashboard/profile/withdrawal-settings", userRole);
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm sm:px-6">
@@ -264,7 +241,7 @@ function DashboardHeaderContent() {
                   Edit My Profile
                 </Link>
               </DropdownMenuItem>
-              {(userRole === 'artisan' || userRole === 'admin') && ( // Admin might need to see these if impersonating or similar
+              {(userRole === 'artisan' || userRole === 'admin') && ( 
                 <>
                   <DropdownMenuItem asChild>
                     <Link href={artisanServicesEditLink}>
@@ -286,8 +263,8 @@ function DashboardHeaderContent() {
               <Link href={settingsLink}><Settings className="mr-2 h-4 w-4" />Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/">Logout</Link>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -329,8 +306,8 @@ function DashboardHeaderSkeleton() {
   return (
      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm sm:px-6 animate-pulse">
       <div className="flex items-center gap-4">
-        <div className="h-6 w-6 rounded-md bg-muted md:hidden"></div> {/* Mobile Menu Trigger Placeholder */}
-        <div className="h-8 w-20 rounded-md bg-muted"></div> {/* Logo Placeholder */}
+        <div className="h-6 w-6 rounded-md bg-muted md:hidden"></div>
+        <div className="h-8 w-20 rounded-md bg-muted"></div>
         <nav className="hidden flex-shrink-0 items-center gap-1 md:flex lg:gap-2">
           <div className="h-6 w-20 rounded-md bg-muted"></div>
           <div className="h-6 w-20 rounded-md bg-muted"></div>
@@ -338,9 +315,9 @@ function DashboardHeaderSkeleton() {
         </nav>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
-        <div className="hidden sm:block h-9 w-48 rounded-md bg-muted"></div> {/* Search Placeholder */}
-        <div className="h-8 w-8 rounded-full bg-muted"></div> {/* Bell Placeholder */}
-        <div className="h-8 w-8 rounded-full bg-muted"></div> {/* Profile Placeholder */}
+        <div className="hidden sm:block h-9 w-48 rounded-md bg-muted"></div>
+        <div className="h-8 w-8 rounded-full bg-muted"></div>
+        <div className="h-8 w-8 rounded-full bg-muted"></div>
       </div>
     </header>
   );
