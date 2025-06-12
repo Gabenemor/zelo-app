@@ -116,10 +116,14 @@ function DashboardHeaderContent() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
+              variant="ghost" // Base styling, hover will be overridden by cn()
               className={cn(
-                "text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                isActive ? "text-primary font-semibold" : "text-foreground/70",
+                "text-sm font-medium transition-colors",
+                isActive 
+                  ? "bg-primary/5 text-primary font-semibold" // Active state
+                  : "text-foreground/70", // Inactive state text
+                "hover:bg-primary/10 hover:text-primary", // Common hover for both
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 "justify-start px-3 py-2 md:px-2 md:py-1"
               )}
             >
@@ -130,14 +134,15 @@ function DashboardHeaderContent() {
           <DropdownMenuContent align="start" className="w-56">
               {item.children.map((child) => {
                 const childHrefWithRole = addRoleToHref(child.href, userRole);
+                const isChildActive = pathname === child.href;
                 return (
-                <DropdownMenuItem key={child.href} asChild>
+                <DropdownMenuItem key={child.href} asChild className={cn(isChildActive && "!bg-primary/10 !text-primary")}>
                   <Link
                     href={childHrefWithRole}
                     onClick={onClick}
                     className={cn(
                       "text-sm",
-                      pathname === child.href ? "font-semibold text-primary" : ""
+                      isChildActive ? "font-semibold" : "" // Text color handled by DropdownMenuItem hover/active
                     )}
                   >
                     {child.title}
@@ -157,7 +162,9 @@ function DashboardHeaderContent() {
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "justify-start",
           "px-3 py-2 md:px-2 md:py-1",
-          isActive ? "text-primary font-semibold" : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+          isActive 
+            ? "bg-primary/5 text-primary font-semibold" // Active state
+            : "text-foreground/70 hover:bg-primary/10 hover:text-primary" // Inactive state with new hover
         )}
       >
         {item.title}
@@ -208,7 +215,7 @@ function DashboardHeaderContent() {
         <Button
           variant="ghost"
           size="icon"
-          className="mr-2 md:hidden"
+          className="mr-2 md:hidden hover:bg-primary/10 hover:text-primary"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open menu"
         >
@@ -233,7 +240,7 @@ function DashboardHeaderContent() {
             />
           </div>
         </form>
-        <Button variant="ghost" size="icon" className="rounded-full" asChild>
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary" asChild>
           <Link href={notificationsLink}>
             <Bell className="h-5 w-5" />
             <span className="sr-only">View notifications</span>
@@ -241,8 +248,8 @@ function DashboardHeaderContent() {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
-              {authLoading || userDisplayAvatarUrl === undefined ? ( // Show loader if auth is loading OR avatar is still being fetched
+            <Button variant="ghost" size="icon" className="rounded-full overflow-hidden hover:bg-primary/10 hover:text-primary">
+              {authLoading || userDisplayAvatarUrl === undefined ? ( 
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : userDisplayAvatarUrl ? (
                 <Image
@@ -284,7 +291,7 @@ function DashboardHeaderContent() {
                         Edit My Profile
                         </Link>
                     </DropdownMenuItem>
-                    {(authUser.role === 'artisan') && ( // Only show for artisan, admin might have different profile editing
+                    {(authUser.role === 'artisan') && ( 
                         <>
                         <DropdownMenuItem asChild>
                             <Link href={artisanServicesEditLink}>
@@ -326,7 +333,7 @@ function DashboardHeaderContent() {
                 <div className="flex items-center justify-between">
                     <Logo size="md" />
                      <SheetClose asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary">
                             <X className="h-5 w-5" />
                             <span className="sr-only">Close menu</span>
                         </Button>
