@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React from "react";
 import type { UserRole } from "@/types";
-import { loginUser, signInWithGoogle } from "@/lib/auth"; 
+import { loginUser, signInWithGoogle, type SignInWithGoogleResult } from "@/lib/auth"; 
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -92,23 +92,28 @@ export function LoginForm() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    const result = await signInWithGoogle();
+    const result: SignInWithGoogleResult = await signInWithGoogle();
     setIsGoogleLoading(false);
 
     if (result.error) {
       toast({ title: "Google Sign-In Failed", description: result.error, variant: "destructive" });
+    } else if (result.requiresRoleSelection && result.partialUser) {
+      toast({ title: "Welcome!", description: `Next, please choose your account type.` });
+      const queryParams = new URLSearchParams({
+        uid: result.partialUser.uid,
+        email: result.partialUser.email || "",
+        displayName: result.partialUser.displayName || "User",
+      });
+      router.push(`/auth/choose-role?${queryParams.toString()}`);
     } else if (result.user) {
       toast({ title: "Google Sign-In Successful", description: `Welcome, ${result.user.displayName || 'User'}!` });
-      
       let redirectPath = "/dashboard";
-      // New users (defaulted to client) or existing users needing profile completion are sent to onboarding
-      if (result.requiresOnboarding && result.user.role === 'client') {
-        const queryParams = new URLSearchParams({
+      if (result.requiresOnboarding) {
+         const queryParams = new URLSearchParams({
           firstName: result.user.displayName?.split(' ')[0] || "User",
-          email: result.user.email || "",
           uid: result.user.uid,
         });
-        redirectPath = `/onboarding/client/step-1?${queryParams.toString()}`;
+        redirectPath = `/onboarding/${result.user.role}/step-1?${queryParams.toString()}`;
       } else if (result.user.role === "admin") {
         redirectPath = "/dashboard/admin";
       } else {

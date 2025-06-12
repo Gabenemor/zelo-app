@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { registerUser, signInWithGoogle } from "@/lib/auth"; 
+import { registerUser, signInWithGoogle, type SignInWithGoogleResult } from "@/lib/auth"; 
 import type { UserRole } from "@/types";
 
 const registerSchema = z.object({
@@ -159,26 +159,32 @@ export function RegisterForm() {
 
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
-    const result = await signInWithGoogle(); // signInWithGoogle handles new user creation
+    const result: SignInWithGoogleResult = await signInWithGoogle();
     setIsGoogleLoading(false);
 
     if (result.error) {
       toast({ title: "Google Sign-Up Failed", description: result.error, variant: "destructive" });
+    } else if (result.requiresRoleSelection && result.partialUser) {
+      toast({ title: "Almost there!", description: `Welcome, ${result.partialUser.displayName || 'User'}! Please choose your account type.` });
+      const queryParams = new URLSearchParams({
+        uid: result.partialUser.uid,
+        email: result.partialUser.email || "",
+        displayName: result.partialUser.displayName || "User",
+      });
+      router.push(`/auth/choose-role?${queryParams.toString()}`);
     } else if (result.user) {
-      toast({ title: "Google Sign-Up Successful", description: `Welcome, ${result.user.displayName || 'User'}! Please complete your onboarding.` });
-      
+      // Existing user or a case where role was determined (e.g., admin re-auth)
+      toast({ title: "Google Sign-In Successful", description: `Welcome, ${result.user.displayName || 'User'}!` });
       let redirectPath = "/dashboard";
-      // New users via Google are defaulted to 'client' and need onboarding.
-      if (result.isNewUser && result.user.role === 'client' && result.requiresOnboarding) {
-        const queryParams = new URLSearchParams({
+      if (result.requiresOnboarding) {
+         const queryParams = new URLSearchParams({
           firstName: result.user.displayName?.split(' ')[0] || "User",
-          email: result.user.email || "",
           uid: result.user.uid,
         });
-        redirectPath = `/onboarding/client/step-1?${queryParams.toString()}`;
-      } else if (result.user.role === "admin") { // Should not happen via public signup
+        redirectPath = `/onboarding/${result.user.role}/step-1?${queryParams.toString()}`;
+      } else if (result.user.role === "admin") {
         redirectPath = "/dashboard/admin";
-      } else { // Existing user or other roles
+      } else {
         redirectPath = `/dashboard?role=${result.user.role}`;
       }
       router.push(redirectPath);
