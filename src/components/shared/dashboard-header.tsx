@@ -25,19 +25,22 @@ import {
 } from "@/components/ui/sheet";
 import { Logo } from "./logo";
 import { dashboardNavItems } from "@/config/site";
-import type { NavItem, UserRole, AuthUser } from "@/types"; 
+import type { NavItem, UserRole, AuthUser, ClientProfile, ArtisanProfile } from "@/types"; 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { logoutUser } from '@/lib/auth'; 
 import { useRouter } from "next/navigation"; 
-import { useAuthContext } from '@/components/providers/auth-provider'; // Import the context hook
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { getClientProfile, getArtisanProfile } from "@/lib/firestore";
+import Image from "next/image";
 
 function DashboardHeaderContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter(); 
-  const { user: authUser, loading: authLoading } = useAuthContext(); // Use the context hook
+  const { user: authUser, loading: authLoading } = useAuthContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDisplayAvatarUrl, setUserDisplayAvatarUrl] = useState<string | null | undefined>(undefined); // undefined for initial, null if no avatar
   
   const roleFromQuery = searchParams.get("role") as UserRole | null;
   const isAdminPage = pathname.startsWith('/dashboard/admin');
@@ -45,14 +48,42 @@ function DashboardHeaderContent() {
   let determinedUserRole: UserRole;
   if (isAdminPage) {
     determinedUserRole = 'admin';
-  } else if (authUser?.role) { // Prioritize role from authenticated user
+  } else if (authUser?.role) {
     determinedUserRole = authUser.role;
   } else if (roleFromQuery && ["client", "artisan"].includes(roleFromQuery)) {
     determinedUserRole = roleFromQuery;
   } else {
-    determinedUserRole = "client"; // Fallback if no role found
+    determinedUserRole = "client"; 
   }
   const userRole = determinedUserRole;
+
+  useEffect(() => {
+    async function fetchProfileAvatar() {
+      if (authUser && authUser.uid && authUser.role) {
+        try {
+          if (authUser.role === 'client') {
+            const profile = await getClientProfile(authUser.uid);
+            setUserDisplayAvatarUrl(profile?.avatarUrl || null);
+          } else if (authUser.role === 'artisan') {
+            const profile = await getArtisanProfile(authUser.uid);
+            setUserDisplayAvatarUrl(profile?.profilePhotoUrl || null);
+          } else {
+             setUserDisplayAvatarUrl(null); // Admins or other roles might not have a specific avatar field like this
+          }
+        } catch (error) {
+          console.error("Error fetching profile for avatar:", error);
+          setUserDisplayAvatarUrl(null);
+        }
+      } else if (!authLoading) {
+        setUserDisplayAvatarUrl(null); // No authenticated user
+      }
+    }
+
+    if (!authLoading) {
+      fetchProfileAvatar();
+    }
+  }, [authUser, authLoading]);
+
 
   const accessibleItems = dashboardNavItems
     .filter((item) => !item.roles || item.roles.includes(userRole))
@@ -211,13 +242,15 @@ function DashboardHeaderContent() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
-              {authLoading ? (
+              {authLoading || userDisplayAvatarUrl === undefined ? ( // Show loader if auth is loading OR avatar is still being fetched
                 <Loader2 className="h-5 w-5 animate-spin" />
-              ) : authUser?.avatarUrl ? ( // Assuming avatarUrl might be added to AuthUser
-                <img
-                  src={authUser.avatarUrl}
-                  alt={authUser.displayName || 'User'}
-                  className="h-8 w-8 rounded-full"
+              ) : userDisplayAvatarUrl ? (
+                <Image
+                  src={userDisplayAvatarUrl}
+                  alt={authUser?.displayName || 'User'}
+                  width={32} 
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
                   data-ai-hint="profile avatar"
                 />
               ) : (
@@ -251,7 +284,7 @@ function DashboardHeaderContent() {
                         Edit My Profile
                         </Link>
                     </DropdownMenuItem>
-                    {(authUser.role === 'artisan' || authUser.role === 'admin') && ( 
+                    {(authUser.role === 'artisan') && ( // Only show for artisan, admin might have different profile editing
                         <>
                         <DropdownMenuItem asChild>
                             <Link href={artisanServicesEditLink}>
@@ -338,3 +371,4 @@ function DashboardHeaderSkeleton() {
     </header>
   );
 }
+
