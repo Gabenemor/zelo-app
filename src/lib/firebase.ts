@@ -1,7 +1,8 @@
 
 import { initializeApp, getApps, type FirebaseOptions } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+// Import initializeFirestore instead of getFirestore directly for more control
+import { initializeFirestore, connectFirestoreEmulator, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -54,14 +55,31 @@ export const auth = getAuth(app);
 console.log('[Firebase SDK] Firebase Auth service instance created.');
 
 const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
-export const db = databaseId && databaseId !== "(default)" && databaseId.trim() !== ""
-  ? getFirestore(app, databaseId)
-  : getFirestore(app);
+
+// Initialize Firestore with more options
+// Using 'any' for settings to allow databaseId to be conditionally included,
+// as initializeFirestore's settings type might be strict.
+const firestoreSettings: any = {
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+  experimentalForceLongPolling: true, // Force long polling
+  // experimentalAutoDetectLongPolling: true, // Alternative if force is too broad
+  // ignoreUndefinedProperties: true, // Good practice
+};
 
 if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
-  console.log(`[Firebase SDK] Firebase Firestore service instance created for Database ID: "${databaseId}".`);
+  firestoreSettings.databaseId = databaseId;
+  console.log(`[Firebase SDK] Preparing to initialize Firestore with Database ID: "${databaseId}".`);
 } else {
-  console.log('[Firebase SDK] Firebase Firestore service instance created for the (default) database.');
+  console.log('[Firebase SDK] Preparing to initialize Firestore with (default) database.');
+}
+
+export const db = initializeFirestore(app, firestoreSettings);
+
+
+if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
+  console.log(`[Firebase SDK] Firebase Firestore service instance initialized for Database ID: "${databaseId}".`);
+} else {
+  console.log('[Firebase SDK] Firebase Firestore service instance initialized for the (default) database.');
 }
 
 export const storage = getStorage(app);
@@ -87,10 +105,6 @@ if (USE_EMULATORS && process.env.NODE_ENV === 'development') {
 
   try {
     console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on ${emulatorHost}:8080...`);
-    // For Firestore emulator, if a specific databaseId is intended for emulation, it might need to be passed
-    // to connectFirestoreEmulator depending on the version and setup.
-    // However, typically, the emulator hosts all databases under the same project.
-    // Check Firebase docs if issues arise with multi-DB emulation.
     connectFirestoreEmulator(db, emulatorHost, 8080);
     console.log('[Firebase SDK] Firestore Emulator connection attempt made.');
   } catch (error: any) {
