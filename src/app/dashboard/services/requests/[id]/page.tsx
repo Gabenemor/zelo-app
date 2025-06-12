@@ -331,7 +331,7 @@ export default async function ServiceRequestDetailPage({
                     {mockProposalsReceived.filter(p => p.serviceRequestId === request.id).map(proposal => (
                         <Card key={proposal.id} className="bg-secondary/30">
                             <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
-                                <Image src={proposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={proposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
+                                <Image src={proposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={proposal.artisanName} width={40} height={40} className="rounded-full object-cover" data-ai-hint="profile avatar" />
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
                                         <Link href={`/dashboard/artisans/${proposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{proposal.artisanName}</Link>
@@ -373,7 +373,7 @@ export default async function ServiceRequestDetailPage({
                 <CardContent>
                      <Card className="bg-secondary/30">
                         <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
-                            <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full" data-ai-hint="profile avatar" />
+                            <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full object-cover" data-ai-hint="profile avatar" />
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                     <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{acceptedClientProposal.artisanName}</Link>
@@ -419,7 +419,7 @@ export default async function ServiceRequestDetailPage({
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <Image src={request.postedBy.avatarUrl || "https://placehold.co/64x64.png?text=Client"} alt={request.postedBy.name} width={56} height={56} className="rounded-full border" data-ai-hint="profile avatar"/>
+                  <Image src={request.postedBy.avatarUrl || "https://placehold.co/64x64.png?text=Client"} alt={request.postedBy.name} width={56} height={56} className="rounded-full border object-cover" data-ai-hint="profile avatar"/>
                   <div>
                     <p className="font-semibold text-foreground">{request.postedBy.name}</p>
                     {request.postedBy.memberSince && <p className="text-xs text-muted-foreground">Member since {request.postedBy.memberSince}</p>}

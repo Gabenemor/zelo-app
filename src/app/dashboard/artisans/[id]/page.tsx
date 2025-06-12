@@ -115,7 +115,7 @@ function ArtisanProfilePageContent() {
             Clients won't be able to see your details until it's complete.
           </p>
           <Button asChild className="mt-6">
-            <Link href={`/onboarding/artisan/step-2?uid=${authUser.uid}`}>Complete Your Profile Now</Link>
+            <Link href={`/onboarding/artisan/step-2?uid=${authUser.uid}&role=artisan`}>Complete Your Profile Now</Link>
           </Button>
         </div>
       );
@@ -126,7 +126,7 @@ function ArtisanProfilePageContent() {
         <PageHeader title="Artisan Not Found" description="The requested artisan profile could not be located." icon={UserCircle2} />
         <p className="mt-4 text-muted-foreground">Please check the ID or try again later.</p>
         <Button asChild className="mt-6">
-          <Link href="/dashboard/services/browse">Back to Browse Artisans</Link>
+          <Link href={`/dashboard/services/browse?role=${roleFromQuery || 'client'}`}>Back to Browse Artisans</Link>
         </Button>
       </div>
     );
@@ -154,7 +154,12 @@ function ArtisanProfilePageContent() {
           <Card>
             <CardHeader className="items-center text-center">
               <Avatar className="h-32 w-32 border-4 border-primary mb-4">
-                <AvatarImage src={artisanProfile.profilePhotoUrl || `https://placehold.co/128x128.png?text=${artisanProfile.username?.substring(0,2) || 'A'}`} alt={artisanProfile.username || 'Artisan'} data-ai-hint="profile avatar" />
+                <AvatarImage 
+                  src={artisanProfile.profilePhotoUrl || `https://placehold.co/128x128.png?text=${artisanProfile.username?.substring(0,2) || 'A'}`} 
+                  alt={artisanProfile.username || 'Artisan'} 
+                  data-ai-hint="profile avatar" 
+                  className="object-cover"
+                />
                 <AvatarFallback>{artisanProfile.username ? artisanProfile.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
               </Avatar>
               <CardTitle className="font-headline text-2xl">{artisanProfile.username || `Artisan ${artisanProfile.userId}`}</CardTitle>

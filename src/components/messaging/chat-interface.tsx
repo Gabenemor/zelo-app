@@ -216,7 +216,12 @@ function ChatInterfaceContent() {
               onClick={() => setSelectedConversation(conv)}
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={conv.otherUser.avatarUrl} alt={conv.otherUser.name} data-ai-hint="profile avatar" />
+                <AvatarImage 
+                  src={conv.otherUser.avatarUrl} 
+                  alt={conv.otherUser.name} 
+                  data-ai-hint="profile avatar" 
+                  className="object-cover"
+                />
                 <AvatarFallback>{conv.otherUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 {conv.otherUser.online && <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />}
               </Avatar>
@@ -263,7 +268,12 @@ function ChatInterfaceContent() {
           <>
             <div className="flex items-center gap-3 border-b p-3">
               <Avatar>
-                <AvatarImage src={selectedConversation.otherUser.avatarUrl} alt={selectedConversation.otherUser.name} data-ai-hint="profile avatar" />
+                <AvatarImage 
+                  src={selectedConversation.otherUser.avatarUrl} 
+                  alt={selectedConversation.otherUser.name} 
+                  data-ai-hint="profile avatar" 
+                  className="object-cover"
+                />
                 <AvatarFallback>{selectedConversation.otherUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                  {selectedConversation.otherUser.online && <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />}
               </Avatar>

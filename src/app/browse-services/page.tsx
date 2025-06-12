@@ -203,7 +203,12 @@ function PublicArtisanCard({ artisan }: PublicArtisanCardProps) {
     <Card className="overflow-hidden transition-all hover:shadow-lg h-full flex flex-col">
       <CardContent className="p-4 flex flex-col items-center text-center flex-grow">
         <Avatar className="h-20 w-20 mb-3 border-2 border-primary">
-          <AvatarImage src={artisan.profilePhotoUrl || `https://placehold.co/80x80.png`} alt={artisan.username || 'Artisan'} data-ai-hint="profile avatar" />
+          <AvatarImage 
+            src={artisan.profilePhotoUrl || `https://placehold.co/80x80.png`} 
+            alt={artisan.username || 'Artisan'} 
+            data-ai-hint="profile avatar" 
+            className="object-cover"
+          />
           <AvatarFallback>{artisan.username ? artisan.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
         </Avatar>
         <h3 className="font-headline text-md font-semibold text-foreground mb-1 line-clamp-2">{artisan.username || 'Skilled Artisan'}</h3>
