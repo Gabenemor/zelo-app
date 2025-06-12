@@ -33,25 +33,37 @@ export default function BrowseJobsPage() {
   const [budgetRange, setBudgetRange] = useState([0, 500000]);
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState(25); // Default radius in km
-  const [isUsingGeoLocation, setIsUsingGeoLocation] = useState(false); // New state
+  const [isUsingGeoLocation, setIsUsingGeoLocation] = useState(false);
   const { toast } = useToast();
 
   const handleLocationSelect = (location: { address: string; lat?: number; lng?: number }) => {
     setCurrentLocation(location);
-    setIsUsingGeoLocation(false); // User selected manually, deactivate geo-location specific UI
+    if (isUsingGeoLocation) {
+        setIsUsingGeoLocation(false); // User selected manually, deactivate geo-location specific UI
+    }
   };
 
   const handleFindNearMe = () => {
+    if (isUsingGeoLocation) { // If already active, toggle off
+      setIsUsingGeoLocation(false);
+      setCurrentLocation(null); // Clear geo-location filter
+      toast({ title: "Location Cleared", description: "No longer searching near your current location." });
+      return;
+    }
+
+    // If not active, try to activate
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setCurrentLocation({ address: `Your Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, lat: latitude, lng: longitude });
-          setIsUsingGeoLocation(true); // Geolocation is now active
+          const geoAddress = `Your Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
+          setCurrentLocation({ address: geoAddress, lat: latitude, lng: longitude });
+          setIsUsingGeoLocation(true);
           toast({ title: "Location Found", description: "Searching for jobs near your current location." });
         },
         (error) => {
           setIsUsingGeoLocation(false);
+          // Do not clear manually set location on geo error
           toast({ title: "Location Error", description: `Could not get your location: ${error.message}`, variant: "destructive" });
         }
       );
@@ -97,10 +109,14 @@ export default function BrowseJobsPage() {
               <div>
                 <label htmlFor="location" className="text-sm font-medium">Location</label>
                  <Button 
-                    variant="outline" 
                     className={cn(
-                        "w-full mt-1 justify-start text-left font-normal",
-                        isUsingGeoLocation && "bg-primary/10 text-primary border-primary hover:bg-primary/20"
+                        "w-full mt-1 justify-start text-left font-normal", // Base styles
+                        {
+                            // Active state styles
+                            "bg-primary/10 text-primary border border-primary hover:bg-primary/20 hover:text-foreground": isUsingGeoLocation,
+                            // Normal state styles
+                            "border border-input bg-background text-muted-foreground hover:bg-primary/10 hover:text-primary": !isUsingGeoLocation,
+                        }
                     )} 
                     onClick={handleFindNearMe}
                 >
@@ -196,10 +212,13 @@ const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
+  // Assuming FormDescription might not be defined globally, so added a basic one.
+  // If you have a global FormDescription from shadcn/ui, this might not be needed
+  // or should match that component's structure.
   return (
     <p
       ref={ref}
-      className={`text-[0.8rem] text-muted-foreground ${className || ''}`}
+      className={cn("text-[0.8rem] text-muted-foreground", className)}
       {...props}
     />
   );
