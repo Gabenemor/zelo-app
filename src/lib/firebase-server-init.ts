@@ -33,6 +33,7 @@ if (!firebaseConfig) {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    // Note: databaseId for getFirestore() is handled separately below
   };
 
   if (nextPublicConfig.apiKey && nextPublicConfig.projectId) {
@@ -40,7 +41,7 @@ if (!firebaseConfig) {
     console.log('[Firebase Server Init] Successfully constructed config from NEXT_PUBLIC_ variables.');
   } else {
     console.error("--------------------------------------------------------------------")
-    console.error("[Firebase Server Init] CRITICAL: Firebase configuration is missing.");
+    console.error("[Firebase Server Init] CRITICAL: Firebase configuration is missing for Server Actions.");
     console.error("Neither FIREBASE_WEBAPP_CONFIG nor all required NEXT_PUBLIC_FIREBASE_ variables are set/valid.");
     console.error("Server-side Firebase client SDK operations will likely fail.");
     console.error("Please check your environment variables in apphosting.yaml and/or .env.local.");
@@ -48,6 +49,7 @@ if (!firebaseConfig) {
   }
 }
 
+const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
 
 if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
   if (!getApps().length) {
@@ -58,8 +60,14 @@ if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
     app = getApp(); // Use the default app if already initialized
   }
   try {
-    db = getFirestore(app);
-    console.log('[Firebase Server Init] Firestore instance obtained for server actions.');
+    db = databaseId && databaseId !== "(default)" && databaseId.trim() !== ""
+      ? getFirestore(app, databaseId)
+      : getFirestore(app);
+    if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
+      console.log(`[Firebase Server Init] Firestore instance obtained for server actions, Database ID: "${databaseId}".`);
+    } else {
+      console.log('[Firebase Server Init] Firestore instance obtained for server actions, Database ID: (default).');
+    }
   } catch (e) {
      console.error("[Firebase Server Init] Error getting Firestore instance:", e);
      // @ts-ignore 

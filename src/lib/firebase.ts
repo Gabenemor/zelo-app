@@ -27,6 +27,8 @@ console.log(`  NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${firebaseConfigValues.projectId
 console.log(`  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${firebaseConfigValues.storageBucket}`);
 console.log(`  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${firebaseConfigValues.messagingSenderId}`);
 console.log(`  NEXT_PUBLIC_FIREBASE_APP_ID: ${firebaseConfigValues.appId}`);
+console.log(`  NEXT_PUBLIC_FIREBASE_DATABASE_ID: ${process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID}`);
+
 
 const firebaseConfig: FirebaseOptions = firebaseConfigValues;
 
@@ -50,8 +52,18 @@ console.log(`[Firebase SDK] Firebase app initialized or retrieved: ${app.name} f
 // Initialize Firebase services
 export const auth = getAuth(app);
 console.log('[Firebase SDK] Firebase Auth service instance created.');
-export const db = getFirestore(app);
-console.log('[Firebase SDK] Firebase Firestore service instance created.');
+
+const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
+export const db = databaseId && databaseId !== "(default)" && databaseId.trim() !== ""
+  ? getFirestore(app, databaseId)
+  : getFirestore(app);
+
+if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
+  console.log(`[Firebase SDK] Firebase Firestore service instance created for Database ID: "${databaseId}".`);
+} else {
+  console.log('[Firebase SDK] Firebase Firestore service instance created for the (default) database.');
+}
+
 export const storage = getStorage(app);
 console.log('[Firebase SDK] Firebase Storage service instance created.');
 export const functions = getFunctions(app);
@@ -75,6 +87,10 @@ if (USE_EMULATORS && process.env.NODE_ENV === 'development') {
 
   try {
     console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on ${emulatorHost}:8080...`);
+    // For Firestore emulator, if a specific databaseId is intended for emulation, it might need to be passed
+    // to connectFirestoreEmulator depending on the version and setup.
+    // However, typically, the emulator hosts all databases under the same project.
+    // Check Firebase docs if issues arise with multi-DB emulation.
     connectFirestoreEmulator(db, emulatorHost, 8080);
     console.log('[Firebase SDK] Firestore Emulator connection attempt made.');
   } catch (error: any) {
@@ -100,6 +116,11 @@ if (USE_EMULATORS && process.env.NODE_ENV === 'development') {
 } else {
   console.log('[Firebase SDK] Connecting to LIVE Firebase services (Emulators are OFF or NEXT_PUBLIC_USE_FIREBASE_EMULATORS is not "true").');
   console.log(`[Firebase SDK] Target Project ID: ${firebaseConfig.projectId}`);
+  if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
+    console.log(`[Firebase SDK] Target Firestore Database ID: "${databaseId}"`);
+  } else {
+    console.log(`[Firebase SDK] Target Firestore Database ID: (default)`);
+  }
 }
 
 export default app;
