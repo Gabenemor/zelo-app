@@ -61,46 +61,46 @@ console.log('[Firebase SDK] Firebase Functions service instance created.');
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development') {
   console.log('--------------------------------------------------------------------');
-  console.log('[Firebase SDK] Development mode detected. Attempting to connect to emulators...');
-  
-  // For cloud IDEs like Firebase Studio/Cloud Workstations,
-  // localhost in the browser won't reach the emulators in the workspace.
-  // Use window.location.hostname, as these IDEs often proxy ports on this hostname.
-  // Fallback to "127.0.0.1" if window is not defined (e.g., during SSR build checks, though less likely here).
-  const emulatorHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
-  console.log(`[Firebase SDK] Using emulator host: ${emulatorHost}`);
+  console.log('[Firebase SDK] Development mode detected.');
+  // Emulators are causing issues in HTTPS preview environment (Firebase Studio)
+  // due to mixed content or proxy issues. Commenting out for now.
+  // The app will connect to the actual Firebase backend.
 
-  try {
-    console.log(`[Firebase SDK] Attempting to connect to Auth Emulator on http://${emulatorHost}:9099...`);
-    connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
-    console.log('[Firebase SDK] Auth Emulator connection attempt made.');
-  } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Auth Emulator connection attempt (is it running on ${emulatorHost}:9099?): ${error.message}`);
-  }
+  // const emulatorHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
+  // console.log(`[Firebase SDK] Using emulator host: ${emulatorHost}`);
 
-  try {
-    console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on ${emulatorHost}:8080...`);
-    connectFirestoreEmulator(db, emulatorHost, 8080);
-    console.log('[Firebase SDK] Firestore Emulator connection attempt made.');
-  } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Firestore Emulator connection attempt (is it running on ${emulatorHost}:8080?): ${error.message}`);
-  }
+  // try {
+  //   console.log(`[Firebase SDK] Attempting to connect to Auth Emulator on http://${emulatorHost}:9099...`);
+  //   connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: true });
+  //   console.log('[Firebase SDK] Auth Emulator connection attempt made.');
+  // } catch (error: any) {
+  //   console.warn(`[Firebase SDK] Warning: Error during Auth Emulator connection attempt (is it running on ${emulatorHost}:9099?): ${error.message}`);
+  // }
 
-  try {
-    console.log(`[Firebase SDK] Attempting to connect to Storage Emulator on ${emulatorHost}:9199...`);
-    connectStorageEmulator(storage, emulatorHost, 9199);
-    console.log('[Firebase SDK] Storage Emulator connection attempt made.');
-  } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Storage Emulator connection attempt (is it running on ${emulatorHost}:9199?): ${error.message}`);
-  }
+  // try {
+  //   console.log(`[Firebase SDK] Attempting to connect to Firestore Emulator on ${emulatorHost}:8080...`);
+  //   connectFirestoreEmulator(db, emulatorHost, 8080);
+  //   console.log('[Firebase SDK] Firestore Emulator connection attempt made.');
+  // } catch (error: any) {
+  //   console.warn(`[Firebase SDK] Warning: Error during Firestore Emulator connection attempt (is it running on ${emulatorHost}:8080?): ${error.message}`);
+  // }
 
-  try {
-    console.log(`[Firebase SDK] Attempting to connect to Functions Emulator on ${emulatorHost}:5001...`);
-    connectFunctionsEmulator(functions, emulatorHost, 5001);
-    console.log('[Firebase SDK] Functions Emulator connection attempt made.');
-  } catch (error: any) {
-    console.warn(`[Firebase SDK] Warning: Error during Functions Emulator connection attempt (is it running on ${emulatorHost}:5001?): ${error.message}`);
-  }
+  // try {
+  //   console.log(`[Firebase SDK] Attempting to connect to Storage Emulator on ${emulatorHost}:9199...`);
+  //   connectStorageEmulator(storage, emulatorHost, 9199);
+  //   console.log('[Firebase SDK] Storage Emulator connection attempt made.');
+  // } catch (error: any) {
+  //   console.warn(`[Firebase SDK] Warning: Error during Storage Emulator connection attempt (is it running on ${emulatorHost}:9199?): ${error.message}`);
+  // }
+
+  // try {
+  //   console.log(`[Firebase SDK] Attempting to connect to Functions Emulator on ${emulatorHost}:5001...`);
+  //   connectFunctionsEmulator(functions, emulatorHost, 5001);
+  //   console.log('[Firebase SDK] Functions Emulator connection attempt made.');
+  // } catch (error: any) {
+  //   console.warn(`[Firebase SDK] Warning: Error during Functions Emulator connection attempt (is it running on ${emulatorHost}:5001?): ${error.message}`);
+  // }
+  console.log('[Firebase SDK] Emulator connections are currently bypassed for HTTPS preview compatibility.');
   console.log('--------------------------------------------------------------------');
 } else {
   console.log('[Firebase SDK] Production mode or emulators not explicitly configured for this environment.');
