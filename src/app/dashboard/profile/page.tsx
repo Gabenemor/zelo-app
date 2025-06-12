@@ -128,7 +128,7 @@ function ProfilePageContent() {
               alt={displayName} 
               width={128} 
               height={128} 
-              className="rounded-full border-4 border-primary mb-4 object-cover"
+              className="w-32 h-32 rounded-full border-4 border-primary mb-4 object-cover"
               data-ai-hint="profile avatar" 
             />
             <CardTitle className="font-headline text-2xl">{displayName}</CardTitle>
@@ -244,3 +244,4 @@ function ProfileLoadingSkeleton() {
     </div>
   );
 }
+

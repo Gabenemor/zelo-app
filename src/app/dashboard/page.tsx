@@ -339,7 +339,7 @@ function ArtisanSuggestionCard({ artisan, userRole }: ArtisanSuggestionCardProps
           alt={artisan.username || 'Artisan'}
           width={64}
           height={64}
-          className="rounded-lg border object-cover"
+          className="w-16 h-16 rounded-full border object-cover"
           data-ai-hint="profile avatar"
         />
         <div className="flex-1">
@@ -418,3 +418,4 @@ function DashboardLoadingSkeleton() {
     </div>
   );
 }
+
