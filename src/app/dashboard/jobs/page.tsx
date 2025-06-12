@@ -13,6 +13,7 @@ import { Search, ListFilter, Briefcase, MapPin, LocateFixed, Navigation } from "
 import type { ServiceRequest } from "@/types";
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // Mock data for service requests (jobs)
 const mockServiceRequests: ServiceRequest[] = [
@@ -32,10 +33,12 @@ export default function BrowseJobsPage() {
   const [budgetRange, setBudgetRange] = useState([0, 500000]);
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState(25); // Default radius in km
+  const [isUsingGeoLocation, setIsUsingGeoLocation] = useState(false); // New state
   const { toast } = useToast();
 
   const handleLocationSelect = (location: { address: string; lat?: number; lng?: number }) => {
     setCurrentLocation(location);
+    setIsUsingGeoLocation(false); // User selected manually, deactivate geo-location specific UI
   };
 
   const handleFindNearMe = () => {
@@ -43,17 +46,17 @@ export default function BrowseJobsPage() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          // In a real app, you'd use a reverse geocoding service to get an address
-          // For now, we'll just set coordinates and a placeholder address
-          setCurrentLocation({ address: `Near You (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, lat: latitude, lng: longitude });
+          setCurrentLocation({ address: `Your Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, lat: latitude, lng: longitude });
+          setIsUsingGeoLocation(true); // Geolocation is now active
           toast({ title: "Location Found", description: "Searching for jobs near your current location." });
-          // Trigger filtering based on new location
         },
         (error) => {
+          setIsUsingGeoLocation(false);
           toast({ title: "Location Error", description: `Could not get your location: ${error.message}`, variant: "destructive" });
         }
       );
     } else {
+      setIsUsingGeoLocation(false);
       toast({ title: "Location Not Supported", description: "Geolocation is not supported by your browser.", variant: "destructive" });
     }
   };
@@ -93,34 +96,44 @@ export default function BrowseJobsPage() {
               
               <div>
                 <label htmlFor="location" className="text-sm font-medium">Location</label>
-                 <Button variant="outline" className="w-full mt-1 justify-start text-left font-normal" onClick={handleFindNearMe}>
-                    <Navigation className="mr-2 h-4 w-4" /> Find Jobs Near Me
+                 <Button 
+                    variant="outline" 
+                    className={cn(
+                        "w-full mt-1 justify-start text-left font-normal",
+                        isUsingGeoLocation && "bg-primary/10 text-primary border-primary hover:bg-primary/20"
+                    )} 
+                    onClick={handleFindNearMe}
+                >
+                    <Navigation className="mr-2 h-4 w-4" /> 
+                    {isUsingGeoLocation ? "Using Current Location" : "Find Jobs Near Me"}
                 </Button>
                 <LocationAutocomplete 
                     onLocationSelect={handleLocationSelect}
                     placeholder="Or type specific area (e.g. Ikeja)"
-                    initialValue={currentLocation?.address.startsWith("Near You") ? "" : currentLocation?.address}
+                    initialValue={currentLocation?.address.startsWith("Your Current Location") ? "" : currentLocation?.address}
                     className="mt-2"
                 />
               </div>
 
-               <div>
-                <label htmlFor="radius" className="text-sm font-medium">Search Radius (km)</label>
-                <Slider
-                  id="radius"
-                  min={5}
-                  max={100}
-                  step={5}
-                  value={[searchRadius]}
-                  onValueChange={(value) => setSearchRadius(value[0])}
-                  className="mt-2"
-                  disabled={!currentLocation || !currentLocation.lat} // Disable if no coords
-                />
-                <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-                  <span>{searchRadius} km</span>
+              {isUsingGeoLocation && (
+                <div>
+                  <label htmlFor="radius" className="text-sm font-medium">Search Radius (km)</label>
+                  <Slider
+                    id="radius"
+                    min={5}
+                    max={100}
+                    step={5}
+                    value={[searchRadius]}
+                    onValueChange={(value) => setSearchRadius(value[0])}
+                    className="mt-2"
+                    disabled={!currentLocation || !currentLocation.lat} 
+                  />
+                  <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                    <span>{searchRadius} km</span>
+                  </div>
+                  <FormDescription className="text-xs">Effective when "Find Jobs Near Me" is used.</FormDescription>
                 </div>
-                <FormDescription className="text-xs">Effective when "Find Jobs Near Me" is used or a precise location is auto-detected.</FormDescription>
-              </div>
+              )}
 
               <div>
                 <label htmlFor="category" className="text-sm font-medium">Service Category</label>
@@ -186,9 +199,10 @@ const FormDescription = React.forwardRef<
   return (
     <p
       ref={ref}
-      className={`text-[0.8rem] text-muted-foreground ${className}`}
+      className={`text-[0.8rem] text-muted-foreground ${className || ''}`}
       {...props}
     />
   );
 });
 FormDescription.displayName = "FormDescription";
+
