@@ -2,8 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation"; 
-import React, { useState, Suspense, useEffect } from "react"; 
+import { usePathname, useSearchParams } from "next/navigation";
+import React, { useState, Suspense, useEffect } from "react";
 import { Bell, Search, UserCircle, Menu, X, ChevronDown, Briefcase, CreditCard, Edit, Loader2, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,11 +25,11 @@ import {
 } from "@/components/ui/sheet";
 import { Logo } from "./logo";
 import { dashboardNavItems } from "@/config/site";
-import type { NavItem, UserRole, AuthUser, ClientProfile, ArtisanProfile } from "@/types"; 
+import type { NavItem, UserRole, AuthUser, ClientProfile, ArtisanProfile } from "@/types";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { logoutUser } from '@/lib/auth'; 
-import { useRouter } from "next/navigation"; 
+import { logoutUser } from '@/lib/auth';
+import { useRouter } from "next/navigation";
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { getClientProfile, getArtisanProfile } from "@/lib/firestore";
 import Image from "next/image";
@@ -37,14 +37,14 @@ import Image from "next/image";
 function DashboardHeaderContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter(); 
+  const router = useRouter();
   const { user: authUser, loading: authLoading } = useAuthContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDisplayAvatarUrl, setUserDisplayAvatarUrl] = useState<string | null | undefined>(undefined); // undefined for initial, null if no avatar
-  
+
   const roleFromQuery = searchParams.get("role") as UserRole | null;
   const isAdminPage = pathname.startsWith('/dashboard/admin');
-  
+
   let determinedUserRole: UserRole;
   if (isAdminPage) {
     determinedUserRole = 'admin';
@@ -53,7 +53,7 @@ function DashboardHeaderContent() {
   } else if (roleFromQuery && ["client", "artisan"].includes(roleFromQuery)) {
     determinedUserRole = roleFromQuery;
   } else {
-    determinedUserRole = "client"; 
+    determinedUserRole = "client";
   }
   const userRole = determinedUserRole;
 
@@ -106,11 +106,11 @@ function DashboardHeaderContent() {
     }
     return href;
   };
-  
+
   const NavLink = ({ item, onClick }: { item: NavItem; onClick?: () => void }) => {
     const isActive = pathname === item.href || (item.href && item.href !== "/dashboard" && pathname.startsWith(item.href));
     const linkHrefWithRole = addRoleToHref(item.href, userRole);
-    
+
     if (item.children && item.children.length > 0) {
       return (
         <DropdownMenu>
@@ -118,8 +118,8 @@ function DashboardHeaderContent() {
             <Button
               variant="ghost"
               className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                isActive ? "text-primary" : "text-foreground/70",
+                "text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                isActive ? "text-primary font-semibold" : "text-foreground/70",
                 "justify-start px-3 py-2 md:px-2 md:py-1"
               )}
             >
@@ -134,7 +134,7 @@ function DashboardHeaderContent() {
                 <DropdownMenuItem key={child.href} asChild>
                   <Link
                     href={childHrefWithRole}
-                    onClick={onClick} 
+                    onClick={onClick}
                     className={cn(
                       "text-sm",
                       pathname === child.href ? "font-semibold text-primary" : ""
@@ -151,13 +151,13 @@ function DashboardHeaderContent() {
 
     return (
       <Link
-        href={linkHrefWithRole} 
+        href={linkHrefWithRole}
         onClick={onClick}
         className={cn(
           "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "justify-start", 
-          "px-3 py-2 md:px-2 md:py-1", 
-          isActive ? "text-primary" : "text-foreground/70 hover:text-primary"
+          "justify-start",
+          "px-3 py-2 md:px-2 md:py-1",
+          isActive ? "text-primary font-semibold" : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
         )}
       >
         {item.title}
@@ -169,11 +169,11 @@ function DashboardHeaderContent() {
       </Link>
     );
   };
-  
+
   const MobileNavContent = () => (
     <nav className="flex flex-col gap-2 p-4">
       {accessibleItems.map((item) => (
-        <div key={item.href || item.title}> 
+        <div key={item.href || item.title}>
           {item.children && item.children.length > 0 ? (
             <>
               <h4 className="mb-1 mt-2 px-3 text-sm font-semibold text-foreground/70">{item.title}</h4>
@@ -192,7 +192,7 @@ function DashboardHeaderContent() {
 
   const handleLogout = async () => {
     await logoutUser();
-    router.push('/login'); 
+    router.push('/login');
   };
 
   const profileLink = addRoleToHref("/dashboard/profile", userRole);
@@ -204,7 +204,7 @@ function DashboardHeaderContent() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm sm:px-6">
-      <div className="flex items-center gap-4"> 
+      <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -248,7 +248,7 @@ function DashboardHeaderContent() {
                 <Image
                   src={userDisplayAvatarUrl}
                   alt={authUser?.displayName || 'User'}
-                  width={32} 
+                  width={32}
                   height={32}
                   className="h-8 w-8 rounded-full object-cover"
                   data-ai-hint="profile avatar"
@@ -334,7 +334,7 @@ function DashboardHeaderContent() {
                 </div>
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-4rem)]"> 
+          <ScrollArea className="h-[calc(100vh-4rem)]">
             <MobileNavContent />
           </ScrollArea>
         </SheetContent>
