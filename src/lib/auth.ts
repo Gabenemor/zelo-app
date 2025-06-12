@@ -140,7 +140,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
     console.log('[Auth] Login successful. Returning user:', loggedInAuthUser);
     return { user: loggedInAuthUser };
 
-  } catch (error: any) { // Added opening brace for the catch block
+  } catch (error: any) { 
     console.error("[Auth] Login error in @/lib/auth.ts:", error.code, error.message, error);
     // Map common Firebase auth errors to more user-friendly messages if desired
     let errorMessage = error.message || "An unknown error occurred during login.";
@@ -148,11 +148,13 @@ export async function loginUser(email: string, password: string): Promise<{ user
       errorMessage = "Invalid email or password. Please try again.";
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
+    } else if (error.code === 'unavailable') { // Specific check for Firestore offline error
+      errorMessage = "Could not connect to the database. Please check your internet connection and try again.";
     }
     return {
       error: errorMessage
     };
-  } // Added closing brace for the catch block
+  }
 }
 
 export async function logoutUser(): Promise<void> {
@@ -198,4 +200,3 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 }
-
