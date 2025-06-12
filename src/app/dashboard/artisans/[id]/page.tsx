@@ -1,5 +1,8 @@
 
-// src/app/dashboard/artisans/[id]/page.tsx
+"use client";
+
+import React, { useEffect, useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,15 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { UserCircle2, Mail, Phone, MapPin, Briefcase, CalendarDays, DollarSign, MessageSquare, Star, Info, PlusCircle } from "lucide-react";
-import type { ArtisanProfile, ServiceExperience } from "@/types";
+import { UserCircle2, Mail, Phone, MapPin, Briefcase, CalendarDays, DollarSign, MessageSquare, Star, Info, PlusCircle, Edit, AlertTriangle, Loader2 } from "lucide-react";
+import type { ArtisanProfile, ServiceExperience, AuthUser } from "@/types";
 import { Separator } from "@/components/ui/separator";
+import { getArtisanProfile } from "@/lib/firestore";
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data for artisan profiles - in a real app, fetch this from your backend
+// Mock data for artisan profiles - for viewing OTHER artisans' profiles (can be replaced later)
 const mockArtisanProfiles: ArtisanProfile[] = [
   {
-    userId: "1", // Corresponds to Adewale Plumbing id in browse page
+    userId: "art_pub_1", // Corresponds to Adewale Plumbing id in browse page
     username: "AdewaleThePlumber",
+    profilePhotoUrl: "https://placehold.co/128x128.png?text=AP",
     contactEmail: "adewale.plumbing@example.com",
     contactPhone: "+2348012345001",
     location: "Ikeja, Lagos",
@@ -31,8 +38,9 @@ const mockArtisanProfiles: ArtisanProfile[] = [
     isLocationPublic: true,
   },
   {
-    userId: "2", // Corresponds to Chioma's Catering
+    userId: "art_pub_2",
     username: "ChiomasKitchen",
+    profilePhotoUrl: "https://placehold.co/128x128.png?text=CK",
     contactEmail: "chioma.catering@example.com",
     contactPhone: "+2348012345002",
     location: "Lekki, Lagos",
@@ -48,46 +56,71 @@ const mockArtisanProfiles: ArtisanProfile[] = [
     ],
     isLocationPublic: false,
   },
-  {
-    userId: "3", // Corresponds to Musa Electrics
-    username: "MusaSpark",
-    contactEmail: "musa.electrics@example.com",
-    location: "Wuse, Abuja",
-    bio: "Certified electrician providing safe and reliable electrical installation, repair, and maintenance services in Abuja and environs.",
-    servicesOffered: ["Electrical Services"], // Changed from "Electrical Repair" to match NIGERIAN_ARTISAN_SERVICES
-    serviceExperiences: [
-      { serviceName: "Electrical Services", years: 15, chargeAmount: 7500, chargeDescription: "inspection fee" },
-    ],
-    isLocationPublic: true,
-  },
-   {
-    userId: "4", // Corresponds to Bola Fashion House
-    username: "BolaStitches",
-    contactEmail: "bola.fashion@example.com",
-    contactPhone: "+2348012345004",
-    location: "Surulere, Lagos",
-    bio: "Exquisite tailoring and fashion design services. From traditional attires to modern chic outfits, we bring your style to life.",
-    servicesOffered: ["Tailoring/Fashion Design"], // Changed from "Tailoring"
-    serviceExperiences: [
-      { serviceName: "Tailoring/Fashion Design", years: 10, chargeAmount: 25000, chargeDescription: "per outfit (avg.)" },
-    ],
-    portfolioImageUrls: [
-      "https://placehold.co/400x300.png?text=Fashion+Design+1",
-      "https://placehold.co/400x300.png?text=Tailored+Outfit",
-    ],
-    isLocationPublic: true,
-  },
 ];
 
-// Helper function to get artisan (replace with actual data fetching)
-async function getArtisanById(id: string): Promise<ArtisanProfile | undefined> {
-  return mockArtisanProfiles.find(artisan => artisan.userId === id);
-}
+function ArtisanProfilePageContent() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user: authUser, loading: authLoading } = useAuthContext();
+  const [artisanProfile, setArtisanProfile] = useState<ArtisanProfile | null | undefined>(undefined); // undefined: loading, null: not found
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-export default async function ArtisanProfilePage({ params }: { params: { id: string } }) {
-  const artisan = await getArtisanById(params.id);
+  const artisanIdFromUrl = typeof params.id === 'string' ? params.id : undefined;
+  const roleFromQuery = searchParams.get('role'); // May be 'client' or 'admin' viewing, or 'artisan' viewing self
 
-  if (!artisan) {
+  useEffect(() => {
+    async function fetchProfile() {
+      if (authLoading || !artisanIdFromUrl) {
+        // Wait for auth context to load or if no ID in URL
+        if (!authLoading && !artisanIdFromUrl) setIsLoadingProfile(false); // No ID, so stop loading
+        return;
+      }
+
+      setIsLoadingProfile(true);
+      try {
+        // Check if the logged-in user is an artisan and is viewing their own profile
+        if (authUser && authUser.uid === artisanIdFromUrl && authUser.role === 'artisan') {
+          const profile = await getArtisanProfile(authUser.uid);
+          setArtisanProfile(profile); // Will be null if not found (e.g., onboarding incomplete)
+        } else {
+          // Viewing another artisan's profile (client or admin view, or artisan viewing another artisan)
+          // For now, use mock. Later, this can be a public profile fetch.
+          const mockProfile = mockArtisanProfiles.find(p => p.userId === artisanIdFromUrl);
+          setArtisanProfile(mockProfile || null);
+        }
+      } catch (error) {
+        console.error("Error fetching artisan profile:", error);
+        setArtisanProfile(null);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+
+    fetchProfile();
+  }, [artisanIdFromUrl, authUser, authLoading]);
+
+  if (authLoading || isLoadingProfile || artisanProfile === undefined) {
+    return <ArtisanProfileSkeleton />;
+  }
+
+  if (!artisanProfile) {
+    // Special case for an artisan viewing their own profile but it doesn't exist yet
+    if (authUser && authUser.uid === artisanIdFromUrl && authUser.role === 'artisan') {
+      return (
+        <div className="container mx-auto py-8 text-center">
+          <PageHeader title="Profile Preview Incomplete" description="Your artisan profile setup is not yet complete." icon={AlertTriangle} />
+          <p className="mt-4 text-muted-foreground">
+            It looks like you haven't finished setting up your artisan profile.
+            Clients won't be able to see your details until it's complete.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href={`/onboarding/artisan/step-2?uid=${authUser.uid}`}>Complete Your Profile Now</Link>
+          </Button>
+        </div>
+      );
+    }
+    // General "Artisan Not Found" for other cases
     return (
       <div className="container mx-auto py-8 text-center">
         <PageHeader title="Artisan Not Found" description="The requested artisan profile could not be located." icon={UserCircle2} />
@@ -98,72 +131,93 @@ export default async function ArtisanProfilePage({ params }: { params: { id: str
       </div>
     );
   }
+  
+  const isOwnProfile = authUser && authUser.uid === artisanProfile.userId && authUser.role === 'artisan';
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={artisan.username || `Artisan ${artisan.userId}`}
-        description={`Public profile for ${artisan.username || 'this artisan'}.`}
+        title={isOwnProfile ? "Your Public Artisan Profile" : (artisanProfile.username || `Artisan ${artisanProfile.userId}`)}
+        description={isOwnProfile ? "This is how clients will see your profile." : `Public profile for ${artisanProfile.username || 'this artisan'}.`}
         icon={UserCircle2}
+        action={isOwnProfile && (
+            <Button asChild variant="outline">
+                <Link href={`/dashboard/profile/artisan/edit?role=artisan`}>
+                    <Edit className="mr-2 h-4 w-4" /> Edit My Profile
+                </Link>
+            </Button>
+        )}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column: Avatar, Contact, Location */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader className="items-center text-center">
               <Avatar className="h-32 w-32 border-4 border-primary mb-4">
-                <AvatarImage src={artisan.portfolioImageUrls?.[0] || `https://placehold.co/128x128.png?text=${artisan.username?.substring(0,2) || 'A'}`} alt={artisan.username || 'Artisan'} data-ai-hint="profile avatar" />
-                <AvatarFallback>{artisan.username ? artisan.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
+                <AvatarImage src={artisanProfile.profilePhotoUrl || `https://placehold.co/128x128.png?text=${artisanProfile.username?.substring(0,2) || 'A'}`} alt={artisanProfile.username || 'Artisan'} data-ai-hint="profile avatar" />
+                <AvatarFallback>{artisanProfile.username ? artisanProfile.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
               </Avatar>
-              <CardTitle className="font-headline text-2xl">{artisan.username || `Artisan ${artisan.userId}`}</CardTitle>
-              {/* Placeholder for rating */}
+              <CardTitle className="font-headline text-2xl">{artisanProfile.username || `Artisan ${artisanProfile.userId}`}</CardTitle>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                 <span>4.5 (12 Reviews)</span> {/* Mock rating */}
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              {artisan.contactEmail && (
-                <InfoItem icon={Mail} label="Email" value={artisan.contactEmail} isLink={`mailto:${artisan.contactEmail}`} />
+              {artisanProfile.contactEmail && (
+                <InfoItem icon={Mail} label="Email" value={artisanProfile.contactEmail} isLink={`mailto:${artisanProfile.contactEmail}`} />
               )}
-              {artisan.contactPhone && (
-                <InfoItem icon={Phone} label="Phone" value={artisan.contactPhone} isLink={`tel:${artisan.contactPhone}`} />
+              {artisanProfile.contactPhone && (
+                <InfoItem icon={Phone} label="Phone" value={artisanProfile.contactPhone} isLink={`tel:${artisanProfile.contactPhone}`} />
               )}
-              {artisan.location && (
-                <InfoItem icon={MapPin} label="Location" value={artisan.isLocationPublic ? artisan.location : `${artisan.location?.split(',')[0]}, General Area`} />
+              {artisanProfile.location && (
+                <InfoItem icon={MapPin} label="Location" value={artisanProfile.isLocationPublic ? artisanProfile.location : `${artisanProfile.location?.split(',')[0]}, General Area`} />
               )}
               <Separator className="my-3" />
-              <Button className="w-full">
-                <MessageSquare className="mr-2 h-4 w-4" /> Contact Artisan
-              </Button>
-               <Button variant="outline" className="w-full">
-                <PlusCircle className="mr-2 h-4 w-4" /> Request Service
-              </Button>
+              {!isOwnProfile && (
+                <>
+                    <Button className="w-full" asChild>
+                        <Link href={`/dashboard/messages?role=${roleFromQuery}&chatWith=${artisanProfile.userId}`}>
+                            <MessageSquare className="mr-2 h-4 w-4" /> Contact Artisan
+                        </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href={`/dashboard/services/request/new?role=${roleFromQuery}&artisanId=${artisanProfile.userId}`}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Request Service
+                        </Link>
+                    </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Bio, Services, Portfolio */}
         <div className="lg:col-span-2 space-y-6">
-          {artisan.bio && (
+          {artisanProfile.headline && (
+             <Card>
+              <CardHeader>
+                <CardTitle className="font-headline text-xl">"{artisanProfile.headline}"</CardTitle>
+              </CardHeader>
+            </Card>
+          )}
+          {artisanProfile.bio && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline text-xl">About {artisan.username || 'Me'}</CardTitle>
+                <CardTitle className="font-headline text-xl">About {artisanProfile.username || 'Me'}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground whitespace-pre-line">{artisan.bio}</p>
+                <p className="text-muted-foreground whitespace-pre-line">{artisanProfile.bio}</p>
               </CardContent>
             </Card>
           )}
 
-          {artisan.serviceExperiences && artisan.serviceExperiences.length > 0 && (
+          {artisanProfile.serviceExperiences && artisanProfile.serviceExperiences.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline text-xl flex items-center gap-2"><Briefcase className="text-primary h-5 w-5"/> Services Offered</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {artisan.serviceExperiences.map((exp, index) => (
+                {artisanProfile.serviceExperiences.map((exp, index) => (
                   <div key={index} className="p-3 border rounded-md bg-secondary/30">
                     <h4 className="font-semibold text-md mb-2 text-foreground">{exp.serviceName}</h4>
                     <div className="space-y-1.5 text-sm">
@@ -181,17 +235,17 @@ export default async function ArtisanProfilePage({ params }: { params: { id: str
             </Card>
           )}
 
-          {artisan.portfolioImageUrls && artisan.portfolioImageUrls.length > 0 && (
+          {artisanProfile.portfolioImageUrls && artisanProfile.portfolioImageUrls.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline text-xl">Portfolio</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {artisan.portfolioImageUrls.map((url, index) => (
+                {artisanProfile.portfolioImageUrls.map((url, index) => (
                   <div key={index} className="aspect-video w-full overflow-hidden rounded-lg border shadow-sm">
                     <Image
                       src={url}
-                      alt={`Portfolio work ${index + 1} by ${artisan.username || 'artisan'}`}
+                      alt={`Portfolio work ${index + 1} by ${artisanProfile.username || 'artisan'}`}
                       width={300}
                       height={200}
                       className="object-cover w-full h-full transition-transform hover:scale-105"
@@ -232,3 +286,43 @@ function InfoItem({ icon: Icon, label, value, isLink }: InfoItemProps) {
     )
 }
 
+function ArtisanProfileSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <PageHeader title="Loading Artisan Profile..." description="Please wait a moment." icon={Loader2} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1 space-y-6">
+          <Card>
+            <CardHeader className="items-center text-center">
+              <Skeleton className="h-32 w-32 rounded-full mb-4 bg-muted" />
+              <Skeleton className="h-7 w-3/4 mx-auto bg-muted" />
+              <Skeleton className="h-5 w-1/2 mx-auto bg-muted mt-1" />
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <Skeleton className="h-4 w-full bg-muted" />
+              <Skeleton className="h-4 w-5/6 bg-muted" />
+              <Skeleton className="h-4 w-full bg-muted" />
+              <Separator className="my-3 bg-muted" />
+              <Skeleton className="h-10 w-full bg-muted rounded-md" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-2 space-y-6">
+          <Card><CardHeader><Skeleton className="h-7 w-1/2 bg-muted" /></CardHeader><CardContent><Skeleton className="h-10 w-full bg-muted" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-7 w-1/2 bg-muted" /></CardHeader><CardContent><Skeleton className="h-20 w-full bg-muted" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-7 w-1/2 bg-muted" /></CardHeader><CardContent className="grid grid-cols-2 gap-4"><Skeleton className="h-24 w-full bg-muted rounded-md" /><Skeleton className="h-24 w-full bg-muted rounded-md" /></CardContent></Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export default function ArtisanProfilePageWrapper() {
+  return (
+    // Suspense is crucial because child components use useParams or useSearchParams
+    <Suspense fallback={<ArtisanProfileSkeleton />}>
+      <ArtisanProfilePageContent />
+    </Suspense>
+  );
+}
