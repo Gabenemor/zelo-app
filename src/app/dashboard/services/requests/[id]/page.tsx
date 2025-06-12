@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck } from "lucide-react"; // Changed DollarSign to Coins
+import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Send, UserCircle, Edit, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,6 +69,7 @@ const mockServiceRequestInProgress: ServiceRequest = {
 const mockProposalsReceived: ArtisanProposal[] = [
     { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events and can provide an exquisite menu tailored to your 'Modern Elegance' theme. Our team is highly professional. References available upon request.", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" },
     { id: "prop2", serviceRequestId: "req_detail_123", artisanId: "artisan_ada_eze", artisanName: "Ada's Kitchen Deluxe", artisanAvatarUrl: "https://placehold.co/40x40.png?text=AKD", proposedAmount: 700000, coverLetter: "With 10 years of experience in high-end catering, we are confident we can exceed your expectations. Our package includes everything you need.", submittedAt: new Date(Date.now() - 86400000 * 1), status: "pending" },
+    { id: "prop_rejected", serviceRequestId: "req_detail_123", artisanId: "artisan_some_other", artisanName: "Foodies R Us", artisanAvatarUrl: "https://placehold.co/40x40.png?text=FRU", proposedAmount: 710000, coverLetter: "We can do this.", submittedAt: new Date(Date.now() - 86400000 * 1.5), status: "rejected" },
     // Proposal for the in_progress job
     { id: "prop3", serviceRequestId: "req_in_progress_456", artisanId: "artisan_musa_ali", artisanName: "Musa Landscaping", artisanAvatarUrl: "https://placehold.co/40x40.png?text=ML", proposedAmount: 1150000, coverLetter: "Expert landscaping services, ready to transform your garden.", submittedAt: new Date(Date.now() - 86400000 * 10), status: "accepted" },
 ];
@@ -426,7 +427,7 @@ export default async function ServiceRequestDetailPage({
                   </div>
                 </div>
                 {/* Message button conditional logic */}
-                {(isOwner && request.assignedArtisanId && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed')) && (
+                {isOwner && request.assignedArtisanId && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed') && (
                     <Button asChild variant="outline" className="w-full">
                       <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.assignedArtisanId}`}>
                         <MessageCircle className="mr-2 h-4 w-4" />
@@ -434,18 +435,40 @@ export default async function ServiceRequestDetailPage({
                       </Link>
                     </Button>
                 )}
-                {currentUserRole === 'artisan' && isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed') && (
-                     <Button asChild variant="outline" className="w-full">
-                      <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
-                        <MessageCircle className="mr-2 h-4 w-4" /> Message Client
-                      </Link>
-                    </Button>
+                {currentUserRole === 'artisan' && (
+                  <>
+                    {isAssignedArtisan && (request.status === 'awarded' || request.status === 'in_progress' || request.status === 'completed') ? (
+                      // Artisan IS ASSIGNED: ALLOW MESSAGING
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
+                          <MessageCircle className="mr-2 h-4 w-4" /> Message Client
+                        </Link>
+                      </Button>
+                    ) : currentArtisanProposalForThisRequest ? (
+                      // Artisan has submitted a proposal but is NOT yet assigned
+                      <>
+                        {currentArtisanProposalForThisRequest.status === 'pending' && (
+                          <Button variant="outline" className="w-full" disabled title="Client needs to review your proposal first.">
+                            <MessageCircle className="mr-2 h-4 w-4" /> Message Client (Proposal Pending)
+                          </Button>
+                        )}
+                        {currentArtisanProposalForThisRequest.status === 'rejected' && (
+                          <Button variant="outline" className="w-full" disabled title="Your proposal was not selected.">
+                            <MessageCircle className="mr-2 h-4 w-4" /> Message Client (Proposal Rejected)
+                          </Button>
+                        )}
+                        {/* No 'accepted' case here if !isAssignedArtisan, as acceptance implies assignment */}
+                      </>
+                    ) : (
+                      // Artisan has NOT submitted a proposal for this open request
+                      request.status === 'open' && (
+                        <Button variant="outline" className="w-full" disabled title="Submit a proposal to enable messaging.">
+                          <MessageCircle className="mr-2 h-4 w-4" /> Submit Proposal to Message Client
+                        </Button>
+                      )
+                    )}
+                  </>
                 )}
-                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status === 'open' && (
-                    <Button variant="outline" className="w-full" disabled>
-                        <MessageCircle className="mr-2 h-4 w-4" /> Contact Client (After proposal acceptance)
-                    </Button>
-                 )}
               </CardContent>
             </Card>
           )}
@@ -471,5 +494,4 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
         </div>
     )
 }
-
 
