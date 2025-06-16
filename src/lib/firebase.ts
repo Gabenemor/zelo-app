@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, type FirebaseOptions } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { initializeFirestore, connectFirestoreEmulator, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
+import { initializeFirestore, connectFirestoreEmulator, CACHE_SIZE_UNLIMITED, type Settings as FirestoreSettings } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -69,19 +69,15 @@ console.log('[Firebase SDK] Firebase Auth service instance created.');
 
 const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
 
-const firestoreSettings: any = {
+const firestoreSettings: FirestoreSettings = {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
   experimentalForceLongPolling: true,
 };
 
-if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
-  firestoreSettings.databaseId = databaseId;
-  console.log(`[Firebase SDK] Preparing to initialize Firestore with Database ID: "${databaseId}".`);
-} else {
-  console.log('[Firebase SDK] Preparing to initialize Firestore with (default) database.');
-}
-
-export const db = initializeFirestore(app, firestoreSettings);
+// Correctly pass databaseId as the third argument to initializeFirestore
+export const db = (databaseId && databaseId !== "(default)" && databaseId.trim() !== "")
+  ? initializeFirestore(app, firestoreSettings, databaseId)
+  : initializeFirestore(app, firestoreSettings);
 
 if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
   console.log(`[Firebase SDK] Firebase Firestore service instance initialized for Database ID: "${databaseId}".`);
