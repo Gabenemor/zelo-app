@@ -7,10 +7,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Bell, Check, Trash2, Briefcase, MessageSquare, Coins, Award, Settings, Info } from "lucide-react";
+import { 
+  Bell, Check, Trash2, Briefcase, MessageSquare, Coins, Award, Settings, Info, // Specific icons from old map/actions
+  LayoutDashboard, UserCircle, CreditCard, Users, LogOut, MapPin, PlusCircle, // Icons from LucideIconName type
+  ShieldCheck, FileText, Search, ClipboardList, UserCog, UserCircle2, CheckCircle2, Menu, 
+  Camera, UploadCloud, CalendarDays, Edit, ListChecks, ShoppingCart, Edit3, 
+  AlertTriangle, SlidersHorizontal, Activity,
+  type LucideIcon // Import LucideIcon type for the map
+} from "lucide-react";
 import type { NotificationItem, LucideIconName } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+// Map from LucideIconName (string) to actual Lucide component
+const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
+  LayoutDashboard, UserCircle, Briefcase, MessageSquare, Settings, CreditCard,
+  Users, LogOut, MapPin, PlusCircle, ShieldCheck, FileText, Search, ClipboardList,
+  UserCog, UserCircle2, Award, CheckCircle2, Menu, Camera, UploadCloud,
+  CalendarDays, Edit, Bell, Check, Trash2, Coins, Info, ListChecks, ShoppingCart,
+  Edit3, AlertTriangle, SlidersHorizontal, Activity
+};
 
 const mockNotifications: NotificationItem[] = [
   { id: "notif1", userId: "user123", type: "new_message", icon: "MessageSquare", title: "New message from Client Bola", description: "Regarding 'Website Design' project...", timestamp: new Date(Date.now() - 3600000 * 2), read: false, link: "/dashboard/messages?chatWith=clientBola" },
@@ -20,17 +36,6 @@ const mockNotifications: NotificationItem[] = [
   { id: "notif5", userId: "user123", type: "system_update", icon: "Settings", title: "Platform Maintenance Scheduled", description: "Zelo will undergo scheduled maintenance on July 15th, 2 AM - 4 AM WAT.", timestamp: new Date(Date.now() - 86400000 * 5), read: true },
 ];
 
-const iconMap: Record<NotificationItem['type'], LucideIconName> = {
-    new_message: "MessageSquare",
-    job_awarded: "Award",
-    proposal_accepted: "Briefcase",
-    proposal_rejected: "Briefcase",
-    payment_received: "Coins", // Changed from DollarSign
-    job_completed_by_artisan: "Check",
-    job_confirmed_by_client: "Check",
-    new_review: "Award",
-    system_update: "Settings",
-};
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>(mockNotifications);
@@ -76,13 +81,14 @@ export default function NotificationsPage() {
           {notifications.length > 0 ? (
             <ul className="space-y-4">
               {notifications.map((notif) => {
-                const IconComponent = iconMap[notif.type] || Bell; // Fallback to Bell icon
+                const IconToRender = iconComponentsMap[notif.icon] || Bell; // Use notif.icon and fallback to Bell component
+
                 const content = (
                   <div className={cn("flex items-start gap-4 p-4 rounded-lg border transition-colors",
                                     notif.read ? "bg-card hover:bg-secondary/50" : "bg-primary/5 font-medium border-primary/20 hover:bg-primary/10"
                                   )}>
                     <div className={cn("flex h-10 w-10 items-center justify-center rounded-full shrink-0 mt-1", notif.read ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
-                      <IconComponent className="h-5 w-5" />
+                      <IconToRender className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
