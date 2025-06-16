@@ -4,28 +4,51 @@ import { getFirestore } from 'firebase/firestore';
 
 let app;
 let db: ReturnType<typeof getFirestore>;
-
 let firebaseConfig: FirebaseOptions | null = null;
-// Prioritize NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG as the primary source from environment variables
-const firebaseWebAppConfigString = process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG || process.env.FIREBASE_WEBAPP_CONFIG;
 
-if (firebaseWebAppConfigString) {
+// Standardized variable names for clarity
+const nextPublicConfigString = process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG;
+const serverOnlyConfigString = process.env.FIREBASE_WEBAPP_CONFIG; // For potential server-only, non-public configs
+
+if (nextPublicConfigString) {
   try {
-    console.log('[Firebase Server Init] Attempting to use NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG (or FIREBASE_WEBAPP_CONFIG) environment variable.');
-    firebaseConfig = JSON.parse(firebaseWebAppConfigString);
+    console.log('[Firebase Server Init] Attempting to parse NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG.');
+    const parsedConfig = JSON.parse(nextPublicConfigString);
+    if (parsedConfig.apiKey && parsedConfig.projectId) {
+      firebaseConfig = parsedConfig;
+      console.log('[Firebase Server Init] Successfully parsed and validated NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG.');
+    } else {
+      console.warn('[Firebase Server Init] Parsed NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG is incomplete (missing apiKey or projectId).');
+      firebaseConfig = null;
+    }
   } catch (error) {
-    console.error("--------------------------------------------------------------------")
-    console.error("[Firebase Server Init] Failed to parse Firebase Web App Config string:", error);
-    console.error("Ensure NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG (or FIREBASE_WEBAPP_CONFIG) is a valid JSON string.");
-    console.error("Falling back to individual NEXT_PUBLIC_ variables if available.");
-    console.error("--------------------------------------------------------------------")
-    firebaseConfig = null; // Ensure it's null if parsing failed
+    console.error("[Firebase Server Init] Failed to parse NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG JSON string:", error);
+    firebaseConfig = null;
   }
 }
 
-if (!firebaseConfig || !firebaseConfig.apiKey) { // Check specifically for apiKey as a sign of successful parsing
-  console.log('[Firebase Server Init] Web App Config string not found or parsing failed. Attempting to use individual NEXT_PUBLIC_ environment variables for server-side client SDK.');
-  const nextPublicConfig: FirebaseOptions = {
+// Fallback to a server-only config string if the public one wasn't valid or found
+if (!firebaseConfig && serverOnlyConfigString) {
+  console.log('[Firebase Server Init] NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG not used. Attempting to parse FIREBASE_WEBAPP_CONFIG (server-only).');
+  try {
+    const parsedConfig = JSON.parse(serverOnlyConfigString);
+    if (parsedConfig.apiKey && parsedConfig.projectId) {
+      firebaseConfig = parsedConfig;
+      console.log('[Firebase Server Init] Successfully parsed and validated FIREBASE_WEBAPP_CONFIG.');
+    } else {
+      console.warn('[Firebase Server Init] Parsed FIREBASE_WEBAPP_CONFIG is incomplete.');
+      firebaseConfig = null;
+    }
+  } catch (error) {
+    console.error("[Firebase Server Init] Failed to parse FIREBASE_WEBAPP_CONFIG JSON string:", error);
+    firebaseConfig = null;
+  }
+}
+
+// Fallback to individual NEXT_PUBLIC_ variables if no complete config string was successfully parsed
+if (!firebaseConfig) {
+  console.log('[Firebase Server Init] No complete Firebase Web App Config JSON string found or parsed. Attempting to construct from individual NEXT_PUBLIC_ environment variables.');
+  const individualConfig: FirebaseOptions = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -34,29 +57,24 @@ if (!firebaseConfig || !firebaseConfig.apiKey) { // Check specifically for apiKe
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
 
-  if (nextPublicConfig.apiKey && nextPublicConfig.projectId) {
-    firebaseConfig = nextPublicConfig;
+  if (individualConfig.apiKey && individualConfig.projectId) {
+    firebaseConfig = individualConfig;
     console.log('[Firebase Server Init] Successfully constructed config from individual NEXT_PUBLIC_ variables.');
-  } else {
-    console.error("--------------------------------------------------------------------")
-    console.error("[Firebase Server Init] CRITICAL: Firebase configuration is missing for Server Actions.");
-    console.error("Neither a valid Web App Config string nor all required individual NEXT_PUBLIC_FIREBASE_ variables are set/valid.");
-    console.error("Server-side Firebase client SDK operations will likely fail.");
-    console.error("Please check your environment variables in apphosting.yaml and/or .env.local.");
-    console.error("--------------------------------------------------------------------")
   }
 }
 
-const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
-
+// Final check and initialization
 if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
-  if (!getApps().length) {
-    console.log('[Firebase Server Init] Initializing new Firebase app for server actions.');
-    app = initializeApp(firebaseConfig);
+  const appName = "firebase-server-init-app"; // Give a unique name
+  if (!getApps().find(existingApp => existingApp.name === appName)) {
+    console.log(`[Firebase Server Init] Initializing new Firebase app "${appName}" for server actions.`);
+    app = initializeApp(firebaseConfig, appName);
   } else {
-    console.log('[Firebase Server Init] Using existing Firebase app for server actions.');
-    app = getApp(); // Use the default app if already initialized
+    console.log(`[Firebase Server Init] Using existing Firebase app "${appName}" for server actions.`);
+    app = getApp(appName);
   }
+
+  const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
   try {
     db = databaseId && databaseId !== "(default)" && databaseId.trim() !== ""
       ? getFirestore(app, databaseId)
@@ -68,12 +86,17 @@ if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
     }
   } catch (e) {
      console.error("[Firebase Server Init] Error getting Firestore instance:", e);
-     // @ts-ignore 
+     // @ts-ignore
      db = {} as ReturnType<typeof getFirestore>; // Assign dummy to prevent hard crashes on import
   }
 } else {
-  console.warn("[Firebase Server Init] Firestore 'db' instance for server actions is not properly initialized due to missing/incomplete Firebase config. Firestore operations in Server Actions will fail.");
-  // @ts-ignore 
+  console.error("--------------------------------------------------------------------");
+  console.error("[Firebase Server Init] CRITICAL: Firebase configuration is missing or incomplete for Server Actions.");
+  console.error("Ensure NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG is set correctly in apphosting.yaml AND contains a valid JSON string with apiKey and projectId,");
+  console.error("OR ensure all individual NEXT_PUBLIC_FIREBASE_... variables (API_KEY, PROJECT_ID, etc.) are defined if not using the JSON string method.");
+  console.error("Server-side Firebase client SDK operations will likely fail.");
+  console.error("--------------------------------------------------------------------");
+  // @ts-ignore
   db = {} as ReturnType<typeof getFirestore>; // Assign dummy object
 }
 
