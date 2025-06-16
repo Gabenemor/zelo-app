@@ -154,7 +154,7 @@ export async function loginUser(email: string, password: string): Promise<{ user
   } catch (error: any) { 
     console.error("[Auth] Login error in @/lib/auth.ts:", error.code, error.message, error);
     let errorMessage = error.message || "An unknown error occurred during login.";
-    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'firebase-auth/invalid-credential') {
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       errorMessage = "Invalid email or password. Please try again.";
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
@@ -301,3 +301,4 @@ export async function resendVerificationEmail(): Promise<{ success: boolean; err
 // and potentially will be needed in `src/actions/auth-actions.ts` if not already implicitly handled by client-side `db` import.
 // Server-side initialization of Firebase Admin SDK is different and not used here for client-callable actions.
 // This file `auth.ts` relies on client-side `auth` and `db` from `./firebase`.
+
