@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation'; // Corrected import
+import { useRouter } from 'next/navigation';
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";
-import { useAuthContext } from "@/components/providers/auth-provider";
+import { AuthProvider, useAuthContext } from "@/components/providers/auth-provider";
 import { Loader2 } from "lucide-react";
 import type { UserRole } from '@/types';
 
@@ -52,20 +52,16 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    // Suspense is needed here because LoginPageContent uses useAuthContext,
-    // which relies on context that might not be available immediately during server rendering or initial client hydration.
-    // The AuthProvider itself wraps the DashboardLayout, not this page typically.
-    // However, for robust handling, especially if useAuthContext involves async operations or complex state,
-    // Suspense ensures a fallback is shown.
-    // Given useAuthContext relies on useAuth which has a loading state, Suspense is good practice.
-    <Suspense fallback={
-      <AuthLayout title="Loading..." description="Preparing your login experience...">
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      </AuthLayout>
-    }>
-      <LoginPageContent />
-    </Suspense>
+    <AuthProvider>
+      <Suspense fallback={
+        <AuthLayout title="Loading..." description="Preparing your login experience...">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </AuthLayout>
+      }>
+        <LoginPageContent />
+      </Suspense>
+    </AuthProvider>
   );
 }
