@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { registerUser, signInWithGoogle, type SignInWithGoogleResult } from "@/lib/auth"; 
+import { registerUser, signInWithGoogle, type SignInWithGoogleResult } from "@/lib/auth";
 import type { UserRole } from "@/types";
 
 const registerSchema = z.object({
@@ -137,14 +137,12 @@ export function RegisterForm() {
           variant: "destructive",
         });
       } else if (result.user) {
-        toast({ title: "Registration Successful", description: "Please check your email to verify your account." });
-        const queryParams = new URLSearchParams({
-          userType: values.userType,
+        toast({ title: "Registration Successful", description: "Welcome! Let's set up your profile." });
+        const onboardingQueryParams = new URLSearchParams({
           firstName: values.firstName,
-          email: values.email, 
-          uid: result.user.uid, 
+          uid: result.user.uid,
         });
-        router.push(`/auth/verify-email?${queryParams.toString()}`);
+        router.push(`/onboarding/${values.userType}/step-1?${onboardingQueryParams.toString()}`);
       }
     } catch (error: any) {
       toast({
