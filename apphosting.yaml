@@ -19,7 +19,7 @@ environmentVariables:
   # This configuration is typically found in your Firebase project settings (Project settings > General > Your apps > Web app > SDK setup and configuration)
   # It's a JSON string. Example format:
   # '{"apiKey":"AIza...","authDomain":"your-project-id.firebaseapp.com","projectId":"your-project-id",...}'
-  FIREBASE_WEBAPP_CONFIG: '{"apiKey":"AIzaSyB0wdprpaLZMoxh0j8VSvnAgauHDipHiag","authDomain":"zelo-totwu.firebaseapp.com","projectId":"zelo-totwu","storageBucket":"zelo-totwu.firebasestorage.app","messagingSenderId":"224281160516","appId":"1:224281160516:web:47e307338907dad4eb8511"}'
+  NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG: '{"apiKey":"AIzaSyB0wdprpaLZMoxh0j8VSvnAgauHDipHiag","authDomain":"zelo-totwu.firebaseapp.com","projectId":"zelo-totwu","storageBucket":"zelo-totwu.firebasestorage.app","messagingSenderId":"224281160516","appId":"1:224281160516:web:47e307338907dad4eb8511"}'
   # Add your new Firestore Database ID here.
   NEXT_PUBLIC_FIREBASE_DATABASE_ID: 'zelo-us-1'
   # Ensure emulators are off for deployed environments

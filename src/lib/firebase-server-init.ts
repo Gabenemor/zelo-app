@@ -6,24 +6,25 @@ let app;
 let db: ReturnType<typeof getFirestore>;
 
 let firebaseConfig: FirebaseOptions | null = null;
-const firebaseWebAppConfigString = process.env.FIREBASE_WEBAPP_CONFIG;
+// Prioritize NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG as the primary source from environment variables
+const firebaseWebAppConfigString = process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG || process.env.FIREBASE_WEBAPP_CONFIG;
 
 if (firebaseWebAppConfigString) {
   try {
-    console.log('[Firebase Server Init] Attempting to use FIREBASE_WEBAPP_CONFIG environment variable.');
+    console.log('[Firebase Server Init] Attempting to use NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG (or FIREBASE_WEBAPP_CONFIG) environment variable.');
     firebaseConfig = JSON.parse(firebaseWebAppConfigString);
   } catch (error) {
     console.error("--------------------------------------------------------------------")
-    console.error("[Firebase Server Init] Failed to parse FIREBASE_WEBAPP_CONFIG:", error);
-    console.error("Ensure FIREBASE_WEBAPP_CONFIG is a valid JSON string.");
-    console.error("Falling back to NEXT_PUBLIC_ variables if available.");
+    console.error("[Firebase Server Init] Failed to parse Firebase Web App Config string:", error);
+    console.error("Ensure NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG (or FIREBASE_WEBAPP_CONFIG) is a valid JSON string.");
+    console.error("Falling back to individual NEXT_PUBLIC_ variables if available.");
     console.error("--------------------------------------------------------------------")
     firebaseConfig = null; // Ensure it's null if parsing failed
   }
 }
 
-if (!firebaseConfig) {
-  console.log('[Firebase Server Init] FIREBASE_WEBAPP_CONFIG not found or parsing failed. Attempting to use NEXT_PUBLIC_ environment variables for server-side client SDK.');
+if (!firebaseConfig || !firebaseConfig.apiKey) { // Check specifically for apiKey as a sign of successful parsing
+  console.log('[Firebase Server Init] Web App Config string not found or parsing failed. Attempting to use individual NEXT_PUBLIC_ environment variables for server-side client SDK.');
   const nextPublicConfig: FirebaseOptions = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -31,16 +32,15 @@ if (!firebaseConfig) {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    // Note: databaseId for getFirestore() is handled separately below
   };
 
   if (nextPublicConfig.apiKey && nextPublicConfig.projectId) {
     firebaseConfig = nextPublicConfig;
-    console.log('[Firebase Server Init] Successfully constructed config from NEXT_PUBLIC_ variables.');
+    console.log('[Firebase Server Init] Successfully constructed config from individual NEXT_PUBLIC_ variables.');
   } else {
     console.error("--------------------------------------------------------------------")
     console.error("[Firebase Server Init] CRITICAL: Firebase configuration is missing for Server Actions.");
-    console.error("Neither FIREBASE_WEBAPP_CONFIG nor all required NEXT_PUBLIC_FIREBASE_ variables are set/valid.");
+    console.error("Neither a valid Web App Config string nor all required individual NEXT_PUBLIC_FIREBASE_ variables are set/valid.");
     console.error("Server-side Firebase client SDK operations will likely fail.");
     console.error("Please check your environment variables in apphosting.yaml and/or .env.local.");
     console.error("--------------------------------------------------------------------")

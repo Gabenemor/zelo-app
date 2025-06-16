@@ -1,7 +1,6 @@
 
 import { initializeApp, getApps, type FirebaseOptions } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-// Import initializeFirestore instead of getFirestore directly for more control
 import { initializeFirestore, connectFirestoreEmulator, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
@@ -12,33 +11,47 @@ console.log(`[Firebase SDK] NODE_ENV: ${process.env.NODE_ENV}`);
 console.log('[Firebase SDK] NOTE: Check the output/console in Firebase Studio for these logs.');
 console.log('--------------------------------------------------------------------');
 
-const firebaseConfigValues = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+let firebaseConfig: FirebaseOptions = {};
+const webAppConfigString = process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG;
 
-console.log('[Firebase SDK] Values for firebaseConfig from environment variables:');
-console.log(`  NEXT_PUBLIC_FIREBASE_API_KEY: ${firebaseConfigValues.apiKey}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${firebaseConfigValues.authDomain}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${firebaseConfigValues.projectId}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${firebaseConfigValues.storageBucket}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${firebaseConfigValues.messagingSenderId}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_APP_ID: ${firebaseConfigValues.appId}`);
-console.log(`  NEXT_PUBLIC_FIREBASE_DATABASE_ID: ${process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID}`);
+if (webAppConfigString) {
+  try {
+    console.log('[Firebase SDK] Attempting to parse NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG.');
+    firebaseConfig = JSON.parse(webAppConfigString);
+    console.log('[Firebase SDK] Successfully parsed NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG:', firebaseConfig);
+  } catch (error) {
+    console.error('[Firebase SDK] Failed to parse NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG:', error, 'String was:', webAppConfigString);
+    console.error('[Firebase SDK] Falling back to individual NEXT_PUBLIC_ variables if available.');
+  }
+}
 
+// Fallback if NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG is not available or parsing failed
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.log('[Firebase SDK] NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG not fully parsed or unavailable. Using individual NEXT_PUBLIC_ variables.');
+  firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+}
 
-const firebaseConfig: FirebaseOptions = firebaseConfigValues;
+console.log('[Firebase SDK] Final Firebase config being used for client-side initialization:');
+console.log(`  apiKey: ${firebaseConfig.apiKey ? '***' : 'MISSING'}`); // Mask API key in logs
+console.log(`  authDomain: ${firebaseConfig.authDomain}`);
+console.log(`  projectId: ${firebaseConfig.projectId}`);
+console.log(`  storageBucket: ${firebaseConfig.storageBucket}`);
+console.log(`  messagingSenderId: ${firebaseConfig.messagingSenderId}`);
+console.log(`  appId: ${firebaseConfig.appId}`);
+console.log(`  NEXT_PUBLIC_FIREBASE_DATABASE_ID (for Firestore): ${process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID}`);
+
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   const errorMessage =
     `[Firebase SDK] CRITICAL ERROR: Firebase client-side configuration is missing or incomplete. ` +
-    `NEXT_PUBLIC_FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_PROJECT_ID is undefined. ` +
-    `Please ensure these environment variables are correctly set in your .env.local file (for local dev) or App Hosting environment variables. ` +
-    `Current values - API Key: ${firebaseConfig.apiKey}, Project ID: ${firebaseConfig.projectId}. ` +
+    `Ensure NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG is set correctly in your environment, or individual NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID are defined. ` +
     `Firebase services will not work correctly.`;
   console.error('--------------------------------------------------------------------');
   console.error(errorMessage);
@@ -56,14 +69,9 @@ console.log('[Firebase SDK] Firebase Auth service instance created.');
 
 const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
 
-// Initialize Firestore with more options
-// Using 'any' for settings to allow databaseId to be conditionally included,
-// as initializeFirestore's settings type might be strict.
 const firestoreSettings: any = {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  experimentalForceLongPolling: true, // Force long polling
-  // experimentalAutoDetectLongPolling: true, // Alternative if force is too broad
-  // ignoreUndefinedProperties: true, // Good practice
+  experimentalForceLongPolling: true,
 };
 
 if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
@@ -74,7 +82,6 @@ if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
 }
 
 export const db = initializeFirestore(app, firestoreSettings);
-
 
 if (databaseId && databaseId !== "(default)" && databaseId.trim() !== "") {
   console.log(`[Firebase SDK] Firebase Firestore service instance initialized for Database ID: "${databaseId}".`);
@@ -87,7 +94,6 @@ console.log('[Firebase SDK] Firebase Storage service instance created.');
 export const functions = getFunctions(app);
 console.log('[Firebase SDK] Firebase Functions service instance created.');
 
-// Ensure emulators are NOT connected when pointing to a live test environment
 const USE_EMULATORS = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
 
 if (USE_EMULATORS && process.env.NODE_ENV === 'development') {
