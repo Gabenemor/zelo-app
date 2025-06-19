@@ -20,17 +20,27 @@ function ClientOnboardingStep1Content() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
-
-  const firstName = searchParams ? searchParams.get('firstName') : null;
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams) {
       const userIdFromParams = searchParams.get('uid');
+      const firstNameFromParams = searchParams.get('firstName');
+      const emailFromParams = searchParams.get('email'); // Read email
+
       if (userIdFromParams) {
         setUid(userIdFromParams);
       } else {
         toast({ title: "Error", description: "User ID missing. Cannot proceed.", variant: "destructive" });
-        router.replace('/login'); // Or a generic error page
+        router.replace('/login'); 
+        return;
+      }
+      if (firstNameFromParams) {
+        setFirstName(firstNameFromParams);
+      }
+      if (emailFromParams) {
+        setEmail(emailFromParams);
       }
     }
   }, [searchParams, router, toast]);
@@ -56,7 +66,8 @@ function ClientOnboardingStep1Content() {
       toast({ title: "Preferences Saved", description: "Your service preferences have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      if (uid) queryParams.append('uid', uid); // Pass UID to step 2
+      if (uid) queryParams.append('uid', uid);
+      if (email) queryParams.append('email', email); // Pass email to step 2
       router.push(`/onboarding/client/step-2?${queryParams.toString()}`);
     } else {
         let errorMsg = "Could not save your preferences. Please try again.";
@@ -81,7 +92,7 @@ function ClientOnboardingStep1Content() {
   const pageTitle = firstName ? `Welcome to Zelo, ${firstName}!` : "Welcome to Zelo!";
   const pageDescription = "Let's get you started. What services are you looking for?";
 
-  if (!searchParams || !uid && searchParams.get('uid')) { // Show loader if searchParams not ready or UID is expected but not set
+  if (!searchParams || (!uid && searchParams.get('uid')) ) { 
      return (
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

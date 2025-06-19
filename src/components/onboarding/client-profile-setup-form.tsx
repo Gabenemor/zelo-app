@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // useSearchParams for initial name if needed
+import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info, User, MapPin, Camera, Save, Loader2 } from 'lucide-react';
+import { Info, User, MapPin, Camera, Save, Loader2, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { saveClientStep2Profile } from '@/actions/onboarding-actions';
@@ -28,36 +28,37 @@ const clientProfileSetupFormSchema = z.object({
 type ProfileSetupFormValues = z.infer<typeof clientProfileSetupFormSchema>;
 
 interface ClientProfileSetupFormProps {
-  userId: string; // Now passed as a prop
+  userId: string; 
+  initialFullName?: string | null;
+  initialContactEmail?: string | null;
 }
 
-export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) {
+export function ClientProfileSetupForm({ userId, initialFullName, initialContactEmail }: ClientProfileSetupFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams(); // For initial first name
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const initialFirstName = searchParams ? searchParams.get('firstName') : null;
-
   const { control, handleSubmit, setValue, getValues, formState: { errors } } = useForm<ProfileSetupFormValues>({
     resolver: zodResolver(clientProfileSetupFormSchema),
     defaultValues: {
       location: '',
       username: '',
-      fullName: initialFirstName || '', // Pre-fill if available
-      contactEmail: '',
+      fullName: initialFullName || '', 
+      contactEmail: initialContactEmail || '',
     },
   });
 
-  // Effect to set fullName from searchParams if not already set and available
   useEffect(() => {
-    if (initialFirstName && !getValues('fullName')) {
-        setValue('fullName', initialFirstName);
+    if (initialFullName && !getValues('fullName')) {
+        setValue('fullName', initialFullName);
     }
-  }, [initialFirstName, setValue, getValues]);
+    if (initialContactEmail && !getValues('contactEmail')) {
+        setValue('contactEmail', initialContactEmail);
+    }
+  }, [initialFullName, initialContactEmail, setValue, getValues]);
 
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +163,7 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
           <div>
             <Label htmlFor="contactEmail">Contact Email</Label>
             <div className="relative mt-1">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> {/* Consider changing icon */}
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input id="contactEmail" type="email" placeholder="e.g., ada@example.com" {...field} className="pl-10" disabled={isSubmitting}/>
             </div>
             {errors.contactEmail && <p className="text-sm text-destructive mt-1">{errors.contactEmail.message}</p>}

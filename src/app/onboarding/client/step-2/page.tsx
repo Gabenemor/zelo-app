@@ -15,6 +15,7 @@ function ClientOnboardingStep2Content() {
   const { toast } = useToast();
   const [firstName, setFirstName] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null); // State for email
   const [isLoadingParams, setIsLoadingParams] = useState(true);
 
 
@@ -22,12 +23,15 @@ function ClientOnboardingStep2Content() {
     if (searchParams) {
       setFirstName(searchParams.get('firstName'));
       const userIdFromParams = searchParams.get('uid');
+      const emailFromParams = searchParams.get('email'); // Read email from params
+
       if (userIdFromParams) {
         setUid(userIdFromParams);
       } else {
         toast({ title: "Error", description: "User ID missing. Cannot proceed.", variant: "destructive" });
         router.replace('/login'); 
       }
+      setEmail(emailFromParams); // Set email state
       setIsLoadingParams(false);
     }
   }, [searchParams, router, toast]);
@@ -44,7 +48,7 @@ function ClientOnboardingStep2Content() {
     );
   }
   
-  if (!uid) { // Should have been caught by useEffect, but as a safeguard
+  if (!uid) { 
     return (
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center">
         <UserCog className="h-12 w-12 text-destructive mb-4" />
@@ -62,7 +66,11 @@ function ClientOnboardingStep2Content() {
       />
       <OnboardingProgressIndicator currentStep={2} totalSteps={2} />
       <div className="p-6 border rounded-lg shadow-sm bg-card">
-        <ClientProfileSetupForm userId={uid} />
+        <ClientProfileSetupForm 
+            userId={uid} 
+            initialFullName={firstName} 
+            initialContactEmail={email} 
+        />
       </div>
     </div>
   );
