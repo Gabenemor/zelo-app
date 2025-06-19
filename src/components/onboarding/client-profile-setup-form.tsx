@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { saveClientStep2Profile } from '@/actions/onboarding-actions';
 import Image from 'next/image';
-import { uploadClientAvatar } from '@/lib/storage'; 
+import { uploadClientAvatar } from '@/lib/storage';
 
 
 const clientProfileSetupFormSchema = z.object({
@@ -42,7 +42,7 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
 
   const initialFirstName = searchParams ? searchParams.get('firstName') : null;
 
-  const { control, handleSubmit, setValue, formState: { errors } } = useForm<ProfileSetupFormValues>({
+  const { control, handleSubmit, setValue, getValues, formState: { errors } } = useForm<ProfileSetupFormValues>({
     resolver: zodResolver(clientProfileSetupFormSchema),
     defaultValues: {
       location: '',
@@ -54,26 +54,26 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
 
   // Effect to set fullName from searchParams if not already set and available
   useEffect(() => {
-    if (initialFirstName && !form.getValues('fullName')) {
+    if (initialFirstName && !getValues('fullName')) {
         setValue('fullName', initialFirstName);
     }
-  }, [initialFirstName, setValue, form]);
+  }, [initialFirstName, setValue, getValues]);
 
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && userId) {
       setIsUploadingAvatar(true);
-      setAvatarPreview(URL.createObjectURL(file)); 
+      setAvatarPreview(URL.createObjectURL(file));
       try {
         const downloadURL = await uploadClientAvatar(userId, file);
         setUploadedAvatarUrl(downloadURL);
-        setAvatarPreview(downloadURL); 
+        setAvatarPreview(downloadURL);
         toast({ title: "Avatar uploaded!" });
       } catch (error) {
         console.error("Error uploading avatar:", error);
         toast({ title: "Upload failed", description: "Could not upload avatar.", variant: "destructive" });
-        setAvatarPreview(uploadedAvatarUrl); 
+        setAvatarPreview(uploadedAvatarUrl);
       } finally {
         setIsUploadingAvatar(false);
       }
@@ -82,14 +82,14 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
 
   const onSubmit = async (data: ProfileSetupFormValues) => {
     setIsSubmitting(true);
-    
-    const result = await saveClientStep2Profile({ 
-      userId: userId, 
-      location: data.location, 
+
+    const result = await saveClientStep2Profile({
+      userId: userId,
+      location: data.location,
       username: data.username,
       fullName: data.fullName,
       contactEmail: data.contactEmail,
-      avatarUrl: uploadedAvatarUrl || undefined, 
+      avatarUrl: uploadedAvatarUrl || undefined,
     });
     setIsSubmitting(false);
 
@@ -154,7 +154,7 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
           </div>
         )}
       />
-      
+
       <Controller
         name="contactEmail"
         control={control}
@@ -201,7 +201,7 @@ export function ClientProfileSetupForm({ userId }: ClientProfileSetupFormProps) 
         />
         {errors.location && <p className="text-sm text-destructive mt-1">{errors.location.message}</p>}
       </div>
-      
+
       <div>
         <Label>Currency</Label>
         <div className="mt-1 flex items-center gap-2 rounded-md border border-input bg-secondary/30 p-2.5 text-sm">
