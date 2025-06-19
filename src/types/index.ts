@@ -83,7 +83,7 @@ export interface WithdrawalAccount {
 export interface ServiceRequest {
   id: string;
   clientId: string;
-  clientName?: string;
+  clientName?: string; // Added
   postedBy?: {
     name: string;
     avatarUrl?: string;
@@ -99,21 +99,25 @@ export interface ServiceRequest {
   postedAt: Date;
   status: "open" | "in_progress" | "completed" | "cancelled" | "awarded" | "disputed";
   assignedArtisanId?: string;
-  assignedArtisanName?: string;
+  assignedArtisanName?: string; // Added
   attachments?: Array<{ name: string; url: string; type: 'image' | 'document'; "data-ai-hint"?: string }>;
+  // For UI state, not necessarily for DB. Could be derived.
+  currentUserApplicationStatus?: ArtisanProposal['status']; 
 }
 
 export interface ArtisanProposal {
   id: string;
   serviceRequestId: string;
   artisanId: string;
-  artisanName: string;
+  artisanName: string; 
   artisanAvatarUrl?: string;
   proposedAmount: number;
   coverLetter: string;
+  portfolioFileNames?: string[]; // Store names of uploaded files (mock)
   submittedAt: Date;
-  status: "pending" | "accepted" | "rejected";
+  status: "pending" | "accepted" | "rejected" | "withdrawn"; // Added withdrawn
 }
+
 
 export interface ChatMessage {
   id: string;
@@ -121,13 +125,13 @@ export interface ChatMessage {
   senderId: string;
   receiverId: string;
   text: string;
-  timestamp: Date; // Keep as Date on client-side for easier manipulation
+  timestamp: Date; 
   isRead: boolean;
   messageType?: 'text' | 'image' | 'file' | 'google_meet_link';
   metadata?: {
     fileName?: string;
     fileUrl?: string;
-    meetingUrl?: string; // Specific for Google Meet links
+    meetingUrl?: string; 
   };
 }
 
@@ -261,3 +265,4 @@ type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
 export type NigerianArtisanService = ServiceName;
 
 export type AppUser = AuthUser & (ClientProfile | ArtisanProfile | { /* admin profile */ });
+

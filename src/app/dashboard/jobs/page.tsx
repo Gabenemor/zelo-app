@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Search, ListFilter, Briefcase, MapPin, LocateFixed, Navigation } from "lucide-react";
-import type { ServiceRequest } from "@/types";
+import type { ServiceRequest, ArtisanProposal, UserRole } from "@/types";
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAuthContext } from '@/components/providers/auth-provider'; 
+import { getProposalsByArtisan } from '@/actions/proposal-actions'; 
 
 // Mock data for service requests (jobs)
 const mockServiceRequests: ServiceRequest[] = [
@@ -27,31 +29,60 @@ const mockServiceRequests: ServiceRequest[] = [
 const serviceCategories = ["Plumbing", "Catering", "Painting", "Carpentry", "Photography/Videography", "Electrical Services", "Tailoring", "Web Development", "Other"];
 const ALL_CATEGORIES_ITEM_VALUE = "_all_";
 
+// Mock artisan ID for this page context
+const MOCK_ARTISAN_VIEWER_ID = "artisan_active_user"; // Consistent ID for the artisan browsing jobs
+
+
 export default function BrowseJobsPage() {
+  const { user: authUser } = useAuthContext(); // Get authenticated user
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [budgetRange, setBudgetRange] = useState([0, 500000]);
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
-  const [searchRadius, setSearchRadius] = useState(25); // Default radius in km
+  const [searchRadius, setSearchRadius] = useState(25); 
   const [isUsingGeoLocation, setIsUsingGeoLocation] = useState(false);
   const { toast } = useToast();
+  const [artisanProposals, setArtisanProposals] = useState<ArtisanProposal[]>([]);
+  const [isLoadingProposals, setIsLoadingProposals] = useState(true);
+
+  const currentArtisanId = authUser?.uid || MOCK_ARTISAN_VIEWER_ID; // Use authenticated user ID or mock
+  const currentUserRole: UserRole = "artisan"; // This page is for artisans
+
+  useEffect(() => {
+    async function fetchProposals() {
+      if (currentArtisanId) {
+        setIsLoadingProposals(true);
+        try {
+          // In a real app, this would fetch from Firestore
+          const proposals = await getProposalsByArtisan(currentArtisanId); 
+          setArtisanProposals(proposals);
+        } catch (error) {
+          console.error("Error fetching artisan proposals:", error);
+          toast({title: "Error", description: "Could not load your application history.", variant: "destructive"});
+        } finally {
+          setIsLoadingProposals(false);
+        }
+      }
+    }
+    fetchProposals();
+  }, [currentArtisanId, toast]);
+
 
   const handleLocationSelect = (location: { address: string; lat?: number; lng?: number }) => {
     setCurrentLocation(location);
     if (isUsingGeoLocation) {
-        setIsUsingGeoLocation(false); // User selected manually, deactivate geo-location specific UI
+        setIsUsingGeoLocation(false); 
     }
   };
 
   const handleFindNearMe = () => {
-    if (isUsingGeoLocation) { // If already active, toggle off
+    if (isUsingGeoLocation) { 
       setIsUsingGeoLocation(false);
-      setCurrentLocation(null); // Clear geo-location filter
+      setCurrentLocation(null); 
       toast({ title: "Location Cleared", description: "No longer searching near your current location." });
       return;
     }
 
-    // If not active, try to activate
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -63,7 +94,6 @@ export default function BrowseJobsPage() {
         },
         (error) => {
           setIsUsingGeoLocation(false);
-          // Do not clear manually set location on geo error
           toast({ title: "Location Error", description: `Could not get your location: ${error.message}`, variant: "destructive" });
         }
       );
@@ -73,16 +103,20 @@ export default function BrowseJobsPage() {
     }
   };
 
-  const filteredRequests = mockServiceRequests.filter(request =>
+  const openRequests = mockServiceRequests.filter(request =>
     (request.title.toLowerCase().includes(searchTerm.toLowerCase()) || request.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (selectedCategory === "" || selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : request.category === selectedCategory) &&
     (request.budget ? request.budget >= budgetRange[0] && request.budget <= budgetRange[1] : true) && 
-    (currentLocation ? request.location.toLowerCase().includes(currentLocation.address.split('(')[0].trim().toLowerCase()) : true) && // Basic location string matching for mock
-    request.status === 'open' 
-  );
+    (currentLocation ? request.location.toLowerCase().includes(currentLocation.address.split('(')[0].trim().toLowerCase()) : true) && 
+    (request.status === 'open' || request.status === 'awarded') // Show open and awarded jobs, card will handle display
+  ).map(request => {
+    const proposal = artisanProposals.find(p => p.serviceRequestId === request.id);
+    return {
+      ...request,
+      currentUserApplicationStatus: proposal?.status, // Pass status to the card
+    };
+  });
   
-  const openRequests = filteredRequests.filter(req => req.status === 'open');
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -110,11 +144,9 @@ export default function BrowseJobsPage() {
                 <label htmlFor="location" className="text-sm font-medium">Location</label>
                  <Button 
                     className={cn(
-                        "w-full mt-1 justify-start text-left font-normal", // Base styles
+                        "w-full mt-1 justify-start text-left font-normal", 
                         {
-                            // Active state styles
                             "bg-primary/10 text-primary border border-primary hover:bg-primary/20 hover:text-foreground": isUsingGeoLocation,
-                            // Normal state styles
                             "border border-input bg-background text-muted-foreground hover:bg-primary/10 hover:text-primary": !isUsingGeoLocation,
                         }
                     )} 
@@ -185,11 +217,18 @@ export default function BrowseJobsPage() {
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <h2 className="font-headline text-2xl font-semibold">Open Service Requests ({openRequests.length})</h2>
-          {openRequests.length > 0 ? (
+          <h2 className="font-headline text-2xl font-semibold">Available Jobs ({openRequests.length})</h2>
+          {isLoadingProposals ? (
+            <p className="text-muted-foreground">Loading your application history...</p>
+          ) : openRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {openRequests.map(request => (
-                <ServiceRequestCard key={request.id} request={request} />
+                <ServiceRequestCard 
+                  key={request.id} 
+                  request={request} 
+                  currentUserRole={currentUserRole}
+                  applicationStatus={request.currentUserApplicationStatus}
+                />
               ))}
             </div>
           ) : (
@@ -207,14 +246,10 @@ export default function BrowseJobsPage() {
   );
 }
 
-// Custom FormDescription component if not already available globally
 const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
-  // Assuming FormDescription might not be defined globally, so added a basic one.
-  // If you have a global FormDescription from shadcn/ui, this might not be needed
-  // or should match that component's structure.
   return (
     <p
       ref={ref}
