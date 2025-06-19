@@ -39,10 +39,11 @@ import { useToast } from '@/hooks/use-toast';
 
 const MOCK_ARTISAN_ACTIVE_USER_ID = "artisan_active_user"; 
 
-const mockServiceRequest: ServiceRequest = {
+// Mock data from requests/[id]/page.tsx (original)
+const mockServiceRequestDetailSpecific: ServiceRequest = {
   id: "req_detail_123",
   clientId: "client_jane_doe",
-  clientName: "Jane Doe",
+  clientName: "Jane Doe", // Added for consistency
   postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD", memberSince: "March 2023", email: "jane.doe@example.com" },
   title: "Professional Catering for Corporate Event (100 Guests)",
   description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner. The event will host approximately 100 executives. We require a three-course meal (appetizer, main course, dessert) with options for vegetarian and gluten-free diets. Service staff, cutlery, and crockery should be included. Please provide sample menus and references if available. The event theme is 'Modern Elegance'.",
@@ -50,19 +51,53 @@ const mockServiceRequest: ServiceRequest = {
   postedAt: new Date(Date.now() - 86400000 * 7), status: "awarded", assignedArtisanId: "artisan_john_bull", assignedArtisanName: "John Bull Catering",
   attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/400x300.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
 };
-const mockServiceRequestInProgress: ServiceRequest = {
-  id: "req_in_progress_456", clientId: "client_jane_doe", clientName: "Jane Doe",
+const mockServiceRequestInProgressDetailSpecific: ServiceRequest = {
+  id: "req_in_progress_456", clientId: "client_jane_doe", clientName: "Jane Doe", // Added
   title: "Garden Landscaping Project", description: "Full garden redesign...", category: "Gardening/Landscaping",
   location: "Banana Island, Lagos", budget: 1200000, postedAt: new Date(Date.now() - 86400000 * 15),
   status: "in_progress", assignedArtisanId: "artisan_musa_ali", assignedArtisanName: "Musa Landscaping",
+  postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD" } // Added basic postedBy
 };
-const mockOpenServiceRequest: ServiceRequest = {
-  id: "req_open_789", clientId: "client_open_job", clientName: "Open Job Client",
+const mockOpenServiceRequestDetailSpecific: ServiceRequest = {
+  id: "req_open_789", clientId: "client_open_job", clientName: "Open Job Client", // Added
   title: "Urgent Website Design Task", description: "Need a landing page designed by next week.", category: "Web Development",
   location: "Remote", budget: 100000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open",
+  postedBy: { name: "Open Job Client", avatarUrl: "https://placehold.co/80x80.png?text=OC" } // Added basic postedBy
 };
 
-const allMockRequests = [mockServiceRequest, mockServiceRequestInProgress, mockOpenServiceRequest];
+// Mock data from jobs/page.tsx
+const mockServiceRequestsFromJobsPage: ServiceRequest[] = [
+  { id: "req1", clientId: "client123", clientName: "Client for Faucet", title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days, need a plumber to fix it urgently. It's a modern mixer tap.", category: "Plumbing", location: "Ikeja, Lagos", budget: 5000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open", postedBy: {name: "Client for Faucet"} },
+  { id: "req2", clientId: "clientABC", clientName: "Client for Party", title: "Catering for Birthday Party (50 guests)", description: "Need catering for a birthday party, Nigerian Jollof, Fried Rice, Chicken, Small Chops required. Event is next month.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 150000, postedAt: new Date(Date.now() - 86400000 * 5), status: "open", postedBy: {name: "Client for Party"} },
+  { id: "req3", clientId: "clientDEF", clientName: "Client for Painting", title: "Repaint Living Room Walls (Urgent)", description: "Living room needs a fresh coat of paint, approx 20sqm. Emulsion paint, light cream color.", category: "Painting", location: "Festac Town, Lagos", postedAt: new Date(Date.now() - 86400000 * 1), status: "open", postedBy: {name: "Client for Painting"} },
+  { id: "req4", clientId: "clientXYZ", clientName: "Client for Wardrobe", title: "Custom Wardrobe Design & Build", description: "Looking for a carpenter to design and build a custom wardrobe for master bedroom. Dimensions 2.5m x 3m.", category: "Carpentry", location: "Garki, Abuja", budget: 250000, postedAt: new Date(Date.now() - 86400000 * 10), status: "open", postedBy: {name: "Client for Wardrobe"} },
+  { id: "req5", clientId: "clientMNO", clientName: "Client for Wedding Photos", title: "Wedding Photography Full Day Coverage", description: "Need a photographer for a full day wedding event, including pre-ceremony, ceremony, and reception. Deliverables: edited high-res photos.", category: "Photography/Videography", location: "Victoria Island, Lagos", budget: 300000, postedAt: new Date(Date.now() - 86400000 * 15), status: "awarded", assignedArtisanId: "artisan_photo_pro", assignedArtisanName: "PhotoPro Studios", postedBy: {name: "Client for Wedding Photos"} },
+];
+
+// Mock data from my-requests/page.tsx (some overlap with jobs page, status might differ)
+// For simplicity, the IDs from jobs page cover these scenarios. We ensure all IDs are unique or consolidated.
+// This array will combine and deduplicate.
+const allMockRequestsMap = new Map<string, ServiceRequest>();
+
+[
+    ...mockServiceRequestsFromJobsPage, // Add requests from jobs page first
+    mockServiceRequestDetailSpecific,
+    mockServiceRequestInProgressDetailSpecific,
+    mockOpenServiceRequestDetailSpecific
+].forEach(req => {
+    if (!allMockRequestsMap.has(req.id)) {
+        // Add clientName if only postedBy is present and vice-versa for simpler access
+        if (req.postedBy && !req.clientName) req.clientName = req.postedBy.name;
+        if (req.clientName && !req.postedBy) req.postedBy = { name: req.clientName };
+        allMockRequestsMap.set(req.id, req);
+    } else {
+        // If ID exists, potentially merge or prioritize (e.g., prefer jobs page status if it's 'open')
+        // For now, simple priority to first-seen (which is jobs page then detail page specific)
+    }
+});
+
+const allMockRequests = Array.from(allMockRequestsMap.values());
+
 
 function ServiceRequestDetailPageContent() {
   const params = useParams();
@@ -91,6 +126,7 @@ function ServiceRequestDetailPageContent() {
       }
       setIsLoadingPageData(true);
       try {
+        // Find the request from the consolidated mock data
         const foundRequest = allMockRequests.find(r => r.id === requestId);
         setRequest(foundRequest || null);
 
@@ -139,7 +175,7 @@ function ServiceRequestDetailPageContent() {
     const result = await handleMarkJobAsCompleteArtisanServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Marked Complete", description: result.message });
-        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); 
+        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); // Simplified status update
     } else {
         toast({ title: "Error", description: result.message || "Could not mark job complete.", variant: "destructive" });
     }
@@ -161,11 +197,18 @@ function ServiceRequestDetailPageContent() {
     : undefined;
 
   const handleFundEscrow = async () => {
-      if (!request || !acceptedClientProposal || !request.postedBy?.email) {
-          toast({title: "Error", description: "Cannot initiate payment. Missing details.", variant: "destructive"});
+      if (!request || !acceptedClientProposal || !(request.postedBy?.email || request.clientName)) { // Check either for funding
+          toast({title: "Error", description: "Cannot initiate payment. Missing critical details.", variant: "destructive"});
           return;
       }
-      const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy.email, request.title);
+      const clientEmailForPayment = request.postedBy?.email || `${request.clientName?.replace(/\s+/g, '.').toLowerCase()}@example.com`; // Construct a mock email if only name
+      
+      const result = await handleFundEscrowServerAction(
+          request.id, 
+          acceptedClientProposal.proposedAmount, 
+          clientEmailForPayment, 
+          request.title
+      );
       if (result.success && result.redirectUrl) {
           toast({title: "Success", description: result.message});
           router.push(result.redirectUrl); 
