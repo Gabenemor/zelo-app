@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,102 +10,54 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { UserCircle2, Mail, Phone, MapPin, Briefcase, CalendarDays, DollarSign, MessageSquare, Star, Info, PlusCircle, Edit, AlertTriangle, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Briefcase, CalendarDays, DollarSign, MessageSquare, Star, Info, PlusCircle, Edit, AlertTriangle, Loader2 } from "lucide-react";
 import type { ArtisanProfile, ServiceExperience, AuthUser } from "@/types";
 import { Separator } from "@/components/ui/separator";
 import { getArtisanProfile } from "@/lib/firestore";
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Mock data for artisan profiles - for viewing OTHER artisans' profiles (can be replaced later)
-const mockArtisanProfiles: ArtisanProfile[] = [
-  {
-    userId: "art_pub_1", // Corresponds to Adewale Plumbing id in browse page
-    username: "AdewaleThePlumber",
-    profilePhotoUrl: "https://placehold.co/128x128.png?text=AP",
-    contactEmail: "adewale.plumbing@example.com",
-    contactPhone: "+2348012345001",
-    location: "Ikeja, Lagos",
-    bio: "Your reliable and experienced plumber for all residential and commercial needs in Lagos. No job too small, no leak too stubborn!",
-    servicesOffered: ["Plumbing"],
-    serviceExperiences: [
-      { serviceName: "Plumbing", years: 12, chargeAmount: 5000, chargeDescription: "per call-out" },
-    ],
-    portfolioImageUrls: [
-      "https://placehold.co/400x300.png?text=Plumbing+Work+1",
-      "https://placehold.co/400x300.png?text=Plumbing+Work+2",
-    ],
-    isLocationPublic: true,
-  },
-  {
-    userId: "art_pub_2",
-    username: "ChiomasKitchen",
-    profilePhotoUrl: "https://placehold.co/128x128.png?text=CK",
-    contactEmail: "chioma.catering@example.com",
-    contactPhone: "+2348012345002",
-    location: "Lekki, Lagos",
-    bio: "Delicious homemade meals for your events. Specializing in Nigerian cuisine, small chops, and custom cakes. Let's make your event memorable!",
-    servicesOffered: ["Catering"],
-    serviceExperiences: [
-      { serviceName: "Catering", years: 8, chargeAmount: 10000, chargeDescription: "per head (min 20)" },
-    ],
-    portfolioImageUrls: [
-      "https://placehold.co/400x300.png?text=Catering+Dish+1",
-      "https://placehold.co/400x300.png?text=Event+Setup",
-      "https://placehold.co/400x300.png?text=Delicious+Cake",
-    ],
-    isLocationPublic: false,
-  },
-];
+import { useToast } from '@/hooks/use-toast';
 
 function ArtisanProfilePageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser, loading: authLoading } = useAuthContext();
-  const [artisanProfile, setArtisanProfile] = useState<ArtisanProfile | null | undefined>(undefined); // undefined: loading, null: not found
+  const { toast } = useToast();
+  const [artisanProfile, setArtisanProfile] = useState<ArtisanProfile | null | undefined>(undefined);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const artisanIdFromUrl = typeof params.id === 'string' ? params.id : undefined;
-  const roleFromQuery = searchParams.get('role'); // May be 'client' or 'admin' viewing, or 'artisan' viewing self
+  const roleFromQuery = searchParams.get('role'); 
+
+  const fetchProfile = useCallback(async () => {
+    if (!artisanIdFromUrl) {
+      setArtisanProfile(null);
+      setIsLoadingProfile(false);
+      return;
+    }
+    setIsLoadingProfile(true);
+    try {
+      const profile = await getArtisanProfile(artisanIdFromUrl);
+      setArtisanProfile(profile);
+    } catch (error) {
+      console.error("Error fetching artisan profile:", error);
+      toast({ title: "Error", description: "Could not load artisan profile.", variant: "destructive" });
+      setArtisanProfile(null);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [artisanIdFromUrl, toast]);
 
   useEffect(() => {
-    async function fetchProfile() {
-      if (authLoading || !artisanIdFromUrl) {
-        // Wait for auth context to load or if no ID in URL
-        if (!authLoading && !artisanIdFromUrl) setIsLoadingProfile(false); // No ID, so stop loading
-        return;
-      }
-
-      setIsLoadingProfile(true);
-      try {
-        // Check if the logged-in user is an artisan and is viewing their own profile
-        if (authUser && authUser.uid === artisanIdFromUrl && authUser.role === 'artisan') {
-          const profile = await getArtisanProfile(authUser.uid);
-          setArtisanProfile(profile); // Will be null if not found (e.g., onboarding incomplete)
-        } else {
-          // Viewing another artisan's profile (client or admin view, or artisan viewing another artisan)
-          // For now, use mock. Later, this can be a public profile fetch.
-          const mockProfile = mockArtisanProfiles.find(p => p.userId === artisanIdFromUrl);
-          setArtisanProfile(mockProfile || null);
-        }
-      } catch (error) {
-        console.error("Error fetching artisan profile:", error);
-        setArtisanProfile(null);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    }
-
     fetchProfile();
-  }, [artisanIdFromUrl, authUser, authLoading]);
+  }, [fetchProfile]);
 
   if (authLoading || isLoadingProfile || artisanProfile === undefined) {
     return <ArtisanProfileSkeleton />;
   }
 
   if (!artisanProfile) {
-    // Special case for an artisan viewing their own profile but it doesn't exist yet
     if (authUser && authUser.uid === artisanIdFromUrl && authUser.role === 'artisan') {
       return (
         <div className="container mx-auto py-8 text-center">
@@ -120,7 +72,6 @@ function ArtisanProfilePageContent() {
         </div>
       );
     }
-    // General "Artisan Not Found" for other cases
     return (
       <div className="container mx-auto py-8 text-center">
         <PageHeader title="Artisan Not Found" description="The requested artisan profile could not be located." />
@@ -137,8 +88,8 @@ function ArtisanProfilePageContent() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isOwnProfile ? "Your Public Artisan Profile" : (artisanProfile.username || `Artisan ${artisanProfile.userId}`)}
-        description={isOwnProfile ? "This is how clients will see your profile." : `Public profile for ${artisanProfile.username || 'this artisan'}.`}
+        title={isOwnProfile ? "Your Public Artisan Profile" : (artisanProfile.username || artisanProfile.fullName || `Artisan`)}
+        description={isOwnProfile ? "This is how clients will see your profile." : `Public profile for ${artisanProfile.username || artisanProfile.fullName || 'this artisan'}.`}
         action={isOwnProfile && (
             <Button asChild variant="outline">
                 <Link href={`/dashboard/profile/artisan/edit?role=artisan`}>
@@ -154,18 +105,19 @@ function ArtisanProfilePageContent() {
             <CardHeader className="items-center text-center">
               <Avatar className="h-32 w-32 border-4 border-primary mb-4">
                 <AvatarImage 
-                  src={artisanProfile.profilePhotoUrl || `https://placehold.co/128x128.png?text=${artisanProfile.username?.substring(0,2) || 'A'}`} 
-                  alt={artisanProfile.username || 'Artisan'} 
+                  src={artisanProfile.profilePhotoUrl || `https://placehold.co/128x128.png?text=${(artisanProfile.username || artisanProfile.fullName || 'A').substring(0,2)}`} 
+                  alt={artisanProfile.username || artisanProfile.fullName || 'Artisan'} 
                   data-ai-hint="profile avatar" 
                   className="object-cover"
                 />
-                <AvatarFallback>{artisanProfile.username ? artisanProfile.username.substring(0, 2).toUpperCase() : "AR"}</AvatarFallback>
+                <AvatarFallback>{(artisanProfile.username || artisanProfile.fullName || "AR").substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <CardTitle className="font-headline text-2xl">{artisanProfile.username || `Artisan ${artisanProfile.userId}`}</CardTitle>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <CardTitle className="font-headline text-2xl">{artisanProfile.username || artisanProfile.fullName || `Artisan ${artisanProfile.userId.substring(0,6)}`}</CardTitle>
+              {/* Mock rating, replace with real data if available */}
+              {/* <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                <span>4.5 (12 Reviews)</span> {/* Mock rating */}
-              </div>
+                <span>4.5 (12 Reviews)</span> 
+              </div> */}
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {artisanProfile.contactEmail && (
@@ -178,15 +130,15 @@ function ArtisanProfilePageContent() {
                 <InfoItem icon={MapPin} label="Location" value={artisanProfile.isLocationPublic ? artisanProfile.location : `${artisanProfile.location?.split(',')[0]}, General Area`} />
               )}
               <Separator className="my-3" />
-              {!isOwnProfile && (
+              {!isOwnProfile && authUser && ( // Ensure authUser exists to show contact buttons
                 <>
                     <Button className="w-full" asChild>
-                        <Link href={`/dashboard/messages?role=${roleFromQuery}&chatWith=${artisanProfile.userId}`}>
+                        <Link href={`/dashboard/messages?role=${roleFromQuery || authUser.role}&chatWith=${artisanProfile.userId}`}>
                             <MessageSquare className="mr-2 h-4 w-4" /> Contact Artisan
                         </Link>
                     </Button>
                     <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/dashboard/services/request/new?role=${roleFromQuery}&artisanId=${artisanProfile.userId}`}>
+                        <Link href={`/dashboard/services/request/new?role=${roleFromQuery || authUser.role}&artisanId=${artisanProfile.userId}`}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Request Service
                         </Link>
                     </Button>
@@ -207,7 +159,7 @@ function ArtisanProfilePageContent() {
           {artisanProfile.bio && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline text-xl">About {artisanProfile.username || 'Me'}</CardTitle>
+                <CardTitle className="font-headline text-xl">About {artisanProfile.username || artisanProfile.fullName || 'Me'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground whitespace-pre-line">{artisanProfile.bio}</p>
@@ -266,7 +218,6 @@ function ArtisanProfilePageContent() {
   );
 }
 
-
 interface InfoItemProps {
     icon: React.ElementType;
     label: string;
@@ -308,6 +259,7 @@ function ArtisanProfileSkeleton() {
               <Skeleton className="h-4 w-full bg-muted" />
               <Separator className="my-3 bg-muted" />
               <Skeleton className="h-10 w-full bg-muted rounded-md" />
+              <Skeleton className="h-10 w-full bg-muted rounded-md" />
             </CardContent>
           </Card>
         </div>
@@ -321,10 +273,8 @@ function ArtisanProfileSkeleton() {
   );
 }
 
-
 export default function ArtisanProfilePageWrapper() {
   return (
-    // Suspense is crucial because child components use useParams or useSearchParams
     <Suspense fallback={<ArtisanProfileSkeleton />}>
       <ArtisanProfilePageContent />
     </Suspense>

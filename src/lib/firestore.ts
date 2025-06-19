@@ -1,3 +1,4 @@
+
 import {
   collection,
   doc,
@@ -14,10 +15,13 @@ import {
   Timestamp,
   serverTimestamp,
   addDoc,
+  QueryConstraint, // Import QueryConstraint
   QueryDocumentSnapshot,
   DocumentData,
   onSnapshot,
-  Unsubscribe
+  Unsubscribe,
+  writeBatch,
+  arrayRemove
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type {
@@ -34,17 +38,26 @@ import type {
 
 // Helper function to convert Firestore timestamp to Date
 const convertTimestamp = (timestamp: any): Date => {
+  if (!timestamp) return new Date(); 
   if (timestamp?.toDate) {
     return timestamp.toDate();
   }
-  return new Date(timestamp);
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  const parsedDate = new Date(timestamp);
+  if (!isNaN(parsedDate.getTime())) {
+    return parsedDate;
+  }
+  return new Date(); 
 };
 
 // User operations
-export async function createUser(userData: Omit<User, 'createdAt'>): Promise<void> {
+export async function createUserDoc(userData: Omit<User, 'createdAt' | 'updatedAt' | 'id'> & { id: string }): Promise<void> {
   await setDoc(doc(db, 'users', userData.id), {
     ...userData,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -55,8 +68,25 @@ export async function getUser(userId: string): Promise<User | null> {
   const data = userDoc.data();
   return {
     ...data,
+    id: userDoc.id,
     createdAt: convertTimestamp(data.createdAt),
+    updatedAt: convertTimestamp(data.updatedAt),
   } as User;
+}
+
+export async function getAllUsers(options?: { limit?: number }): Promise<User[]> {
+  const queryConstraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+  if (options?.limit) {
+    queryConstraints.push(limit(options.limit));
+  }
+  const q = query(collection(db, 'users'), ...queryConstraints);
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    id: doc.id,
+    createdAt: convertTimestamp(doc.data().createdAt),
+    updatedAt: convertTimestamp(doc.data().updatedAt),
+  })) as User[];
 }
 
 export async function updateUser(userId: string, updates: Partial<User>): Promise<void> {
@@ -82,9 +112,10 @@ export async function getArtisanProfile(userId: string): Promise<ArtisanProfile 
   const data = profileDoc.data();
   return {
     ...data,
+    userId: profileDoc.id,
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
-  } as unknown as ArtisanProfile;
+  } as ArtisanProfile;
 }
 
 export async function updateArtisanProfile(userId: string, updates: Partial<ArtisanProfile>): Promise<void> {
@@ -99,22 +130,29 @@ export async function getArtisans(filters?: {
   location?: string;
   limit?: number;
 }): Promise<ArtisanProfile[]> {
-  let q = query(collection(db, 'artisanProfiles'));
-
+  const queryConstraints: QueryConstraint[] = [];
   if (filters?.services && filters.services.length > 0) {
-    q = query(q, where('servicesOffered', 'array-contains-any', filters.services));
+    queryConstraints.push(where('servicesOffered', 'array-contains-any', filters.services));
   }
-
+  if (filters?.location) {
+    queryConstraints.push(where('location', '>=', filters.location), where('location', '<=', filters.location + '\uf8ff'));
+  }
   if (filters?.limit) {
-    q = query(q, limit(filters.limit));
+    queryConstraints.push(limit(filters.limit));
   }
-
+  // Add a default order by if no other order is specified, e.g., by username or creation date
+  if (!queryConstraints.some(c => c.type === 'orderBy')) {
+    queryConstraints.push(orderBy('username', 'asc')); // Example default order
+  }
+  
+  const q = query(collection(db, 'artisanProfiles'), ...queryConstraints);
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({
     ...doc.data(),
+    userId: doc.id,
     createdAt: convertTimestamp(doc.data().createdAt),
     updatedAt: convertTimestamp(doc.data().updatedAt),
-  })) as unknown as ArtisanProfile[];
+  })) as ArtisanProfile[];
 }
 
 // Client Profile operations
@@ -133,9 +171,10 @@ export async function getClientProfile(userId: string): Promise<ClientProfile | 
   const data = profileDoc.data();
   return {
     ...data,
+    userId: profileDoc.id,
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
-  } as unknown as ClientProfile;
+  } as ClientProfile;
 }
 
 export async function updateClientProfile(userId: string, updates: Partial<ClientProfile>): Promise<void> {
@@ -146,10 +185,11 @@ export async function updateClientProfile(userId: string, updates: Partial<Clien
 }
 
 // Service Request operations
-export async function createServiceRequest(request: Omit<ServiceRequest, 'id' | 'postedAt'>): Promise<string> {
+export async function createServiceRequest(request: Omit<ServiceRequest, 'id' | 'postedAt' | 'status'>): Promise<string> {
   const docRef = await addDoc(collection(db, 'serviceRequests'), {
     ...request,
     postedAt: serverTimestamp(),
+    status: 'open',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -165,6 +205,8 @@ export async function getServiceRequest(requestId: string): Promise<ServiceReque
     ...data,
     id: requestDoc.id,
     postedAt: convertTimestamp(data.postedAt),
+    createdAt: convertTimestamp(data.createdAt), // Ensure these are converted
+    updatedAt: convertTimestamp(data.updatedAt),
   } as ServiceRequest;
 }
 
@@ -177,33 +219,51 @@ export async function updateServiceRequest(requestId: string, updates: Partial<S
 
 export async function getServiceRequests(filters?: {
   clientId?: string;
-  status?: string;
+  status?: ServiceRequest['status'] | ServiceRequest['status'][];
   category?: string;
+  artisanId?: string;
   limit?: number;
+  orderByField?: string;
+  orderDirection?: 'asc' | 'desc';
 }): Promise<ServiceRequest[]> {
-  let q = query(collection(db, 'serviceRequests'), orderBy('postedAt', 'desc'));
-
+  const queryConstraints: QueryConstraint[] = [];
+  if (filters?.orderByField) {
+    queryConstraints.push(orderBy(filters.orderByField, filters.orderDirection || 'desc'));
+  } else {
+    queryConstraints.push(orderBy('postedAt', 'desc'));
+  }
   if (filters?.clientId) {
-    q = query(q, where('clientId', '==', filters.clientId));
+    queryConstraints.push(where('clientId', '==', filters.clientId));
   }
-
   if (filters?.status) {
-    q = query(q, where('status', '==', filters.status));
+    if (Array.isArray(filters.status)) {
+      if (filters.status.length > 0) { // Firestore 'in' queries require a non-empty array
+        queryConstraints.push(where('status', 'in', filters.status));
+      } else {
+        return []; // No status to filter by, effectively no results for this filter
+      }
+    } else {
+      queryConstraints.push(where('status', '==', filters.status));
+    }
   }
-
   if (filters?.category) {
-    q = query(q, where('category', '==', filters.category));
+    queryConstraints.push(where('category', '==', filters.category));
   }
-
+  if (filters?.artisanId) {
+    queryConstraints.push(where('assignedArtisanId', '==', filters.artisanId));
+  }
   if (filters?.limit) {
-    q = query(q, limit(filters.limit));
+    queryConstraints.push(limit(filters.limit));
   }
-
+  
+  const q = query(collection(db, 'serviceRequests'), ...queryConstraints);
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({
     ...doc.data(),
     id: doc.id,
     postedAt: convertTimestamp(doc.data().postedAt),
+    createdAt: convertTimestamp(doc.data().createdAt),
+    updatedAt: convertTimestamp(doc.data().updatedAt),
   })) as ServiceRequest[];
 }
 
@@ -227,6 +287,8 @@ export async function getProposal(proposalId: string): Promise<ArtisanProposal |
     ...data,
     id: proposalDoc.id,
     submittedAt: convertTimestamp(data.submittedAt),
+    createdAt: convertTimestamp(data.createdAt),
+    updatedAt: convertTimestamp(data.updatedAt),
   } as ArtisanProposal;
 }
 
@@ -240,27 +302,31 @@ export async function updateProposal(proposalId: string, updates: Partial<Artisa
 export async function getProposals(filters: {
   serviceRequestId?: string;
   artisanId?: string;
-  status?: string;
+  status?: ArtisanProposal['status'];
+  limit?: number;
 }): Promise<ArtisanProposal[]> {
-  let q = query(collection(db, 'proposals'), orderBy('submittedAt', 'desc'));
-
+  const queryConstraints: QueryConstraint[] = [orderBy('submittedAt', 'desc')];
   if (filters.serviceRequestId) {
-    q = query(q, where('serviceRequestId', '==', filters.serviceRequestId));
+    queryConstraints.push(where('serviceRequestId', '==', filters.serviceRequestId));
   }
-
   if (filters.artisanId) {
-    q = query(q, where('artisanId', '==', filters.artisanId));
+    queryConstraints.push(where('artisanId', '==', filters.artisanId));
   }
-
   if (filters.status) {
-    q = query(q, where('status', '==', filters.status));
+    queryConstraints.push(where('status', '==', filters.status));
+  }
+  if (filters.limit) {
+    queryConstraints.push(limit(filters.limit));
   }
 
+  const q = query(collection(db, 'proposals'), ...queryConstraints);
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({
     ...doc.data(),
     id: doc.id,
     submittedAt: convertTimestamp(doc.data().submittedAt),
+    createdAt: convertTimestamp(doc.data().createdAt),
+    updatedAt: convertTimestamp(doc.data().updatedAt),
   })) as ArtisanProposal[];
 }
 
@@ -294,25 +360,27 @@ export async function updateEscrowTransaction(transactionId: string, updates: Pa
   });
 }
 
-export async function getEscrowTransactions(filters: {
+export async function getEscrowTransactions(filters?: {
   clientId?: string;
   artisanId?: string;
   status?: string;
+  limit?: number;
 }): Promise<EscrowTransaction[]> {
-  let q = query(collection(db, 'escrowTransactions'), orderBy('createdAt', 'desc'));
-
-  if (filters.clientId) {
-    q = query(q, where('clientId', '==', filters.clientId));
+  const queryConstraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+  if (filters?.clientId) {
+    queryConstraints.push(where('clientId', '==', filters.clientId));
+  }
+  if (filters?.artisanId) {
+    queryConstraints.push(where('artisanId', '==', filters.artisanId));
+  }
+  if (filters?.status) {
+    queryConstraints.push(where('status', '==', filters.status));
+  }
+  if (filters?.limit) {
+    queryConstraints.push(limit(filters.limit));
   }
 
-  if (filters.artisanId) {
-    q = query(q, where('artisanId', '==', filters.artisanId));
-  }
-
-  if (filters.status) {
-    q = query(q, where('status', '==', filters.status));
-  }
-
+  const q = query(collection(db, 'escrowTransactions'), ...queryConstraints);
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({
     ...doc.data(),
@@ -323,12 +391,12 @@ export async function getEscrowTransactions(filters: {
 }
 
 // Withdrawal Account operations
-export async function createWithdrawalAccount(account: WithdrawalAccount): Promise<void> {
+export async function createWithdrawalAccount(account: Omit<WithdrawalAccount, 'createdAt' | 'updatedAt'>): Promise<void> {
   await setDoc(doc(db, 'withdrawalAccounts', account.userId), {
     ...account,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  }, { merge: true });
 }
 
 export async function getWithdrawalAccount(userId: string): Promise<WithdrawalAccount | null> {
@@ -376,26 +444,84 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
   });
 }
 
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+  const q = query(collection(db, 'notifications'), where('userId', '==', userId), where('read', '==', false));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return;
+  const batch = writeBatch(db);
+  snapshot.docs.forEach(doc => {
+    batch.update(doc.ref, { read: true });
+  });
+  await batch.commit();
+}
+
+export async function clearAllNotifications(userId: string): Promise<void> {
+    const q = query(collection(db, 'notifications'), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}
+
+// Dispute operations
+export async function createDispute(disputeData: Omit<DisputeItem, 'id' | 'createdAt' | 'lastUpdatedAt'>): Promise<string> {
+  const docRef = await addDoc(collection(db, 'disputes'), {
+    ...disputeData,
+    createdAt: serverTimestamp(),
+    lastUpdatedAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function getDisputes(filters?: { status?: DisputeItem['status'], limit?: number }): Promise<DisputeItem[]> {
+  const queryConstraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+  if (filters?.status) {
+    queryConstraints.push(where('status', '==', filters.status));
+  }
+  if (filters?.limit) {
+    queryConstraints.push(limit(filters.limit));
+  }
+  const q = query(collection(db, 'disputes'), ...queryConstraints);
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    ...doc.data(),
+    id: doc.id,
+    createdAt: convertTimestamp(doc.data().createdAt),
+    lastUpdatedAt: convertTimestamp(doc.data().lastUpdatedAt),
+  })) as DisputeItem[];
+}
+
+export async function updateDispute(disputeId: string, updates: Partial<DisputeItem>): Promise<void> {
+  await updateDoc(doc(db, 'disputes', disputeId), {
+    ...updates,
+    lastUpdatedAt: serverTimestamp(),
+  });
+}
+
 // Real-time subscriptions
 export function subscribeToServiceRequests(
   filters: { status?: string; category?: string },
   callback: (requests: ServiceRequest[]) => void
 ): Unsubscribe {
-  let q = query(collection(db, 'serviceRequests'), orderBy('postedAt', 'desc'));
-
+  const queryConstraints: QueryConstraint[] = [orderBy('postedAt', 'desc')];
   if (filters.status) {
-    q = query(q, where('status', '==', filters.status));
+    queryConstraints.push(where('status', '==', filters.status));
   }
-
   if (filters.category) {
-    q = query(q, where('category', '==', filters.category));
+    queryConstraints.push(where('category', '==', filters.category));
   }
 
+  const q = query(collection(db, 'serviceRequests'), ...queryConstraints);
   return onSnapshot(q, (snapshot) => {
     const requests = snapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id,
       postedAt: convertTimestamp(doc.data().postedAt),
+      createdAt: convertTimestamp(doc.data().createdAt),
+      updatedAt: convertTimestamp(doc.data().updatedAt),
     })) as ServiceRequest[];
     callback(requests);
   });
@@ -419,5 +545,7 @@ export function subscribeToNotifications(
       timestamp: convertTimestamp(doc.data().timestamp),
     })) as NotificationItem[];
     callback(notifications);
+  }, (error) => {
+    console.error("Error in notifications snapshot listener: ", error);
   });
 }

@@ -1,71 +1,82 @@
 
 "use client"; 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Search, ListFilter, Briefcase, MapPin, LocateFixed, Navigation } from "lucide-react";
+import { Search, ListFilter, Briefcase, MapPin, Navigation, Loader2 } from "lucide-react";
 import type { ServiceRequest, ArtisanProposal, UserRole } from "@/types";
 import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/components/providers/auth-provider'; 
 import { getProposalsByArtisan } from '@/actions/proposal-actions'; 
-
-// Mock data for service requests (jobs)
-const mockServiceRequests: ServiceRequest[] = [
-  { id: "req1", clientId: "client123", title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days, need a plumber to fix it urgently. It's a modern mixer tap.", category: "Plumbing", location: "Ikeja, Lagos", budget: 5000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
-  { id: "req2", clientId: "clientABC", title: "Catering for Birthday Party (50 guests)", description: "Need catering for a birthday party, Nigerian Jollof, Fried Rice, Chicken, Small Chops required. Event is next month.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 150000, postedAt: new Date(Date.now() - 86400000 * 5), status: "open" },
-  { id: "req3", clientId: "clientDEF", title: "Repaint Living Room Walls (Urgent)", description: "Living room needs a fresh coat of paint, approx 20sqm. Emulsion paint, light cream color.", category: "Painting", location: "Festac Town, Lagos", postedAt: new Date(Date.now() - 86400000 * 1), status: "open" },
-  { id: "req4", clientId: "clientXYZ", title: "Custom Wardrobe Design & Build", description: "Looking for a carpenter to design and build a custom wardrobe for master bedroom. Dimensions 2.5m x 3m.", category: "Carpentry", location: "Garki, Abuja", budget: 250000, postedAt: new Date(Date.now() - 86400000 * 10), status: "open" },
-  { id: "req5", clientId: "clientMNO", title: "Wedding Photography Full Day Coverage", description: "Need a photographer for a full day wedding event, including pre-ceremony, ceremony, and reception. Deliverables: edited high-res photos.", category: "Photography/Videography", location: "Victoria Island, Lagos", budget: 300000, postedAt: new Date(Date.now() - 86400000 * 15), status: "awarded" },
-];
+import { getServiceRequests } from '@/lib/firestore'; 
 
 const serviceCategories = ["Plumbing", "Catering", "Painting", "Carpentry", "Photography/Videography", "Electrical Services", "Tailoring", "Web Development", "Other"];
 const ALL_CATEGORIES_ITEM_VALUE = "_all_";
 
-// Mock artisan ID for this page context
-const MOCK_ARTISAN_VIEWER_ID = "artisan_active_user"; // Consistent ID for the artisan browsing jobs
-
-
 export default function BrowseJobsPage() {
-  const { user: authUser } = useAuthContext(); // Get authenticated user
+  const { user: authUser, loading: authLoading } = useAuthContext(); 
+  const { toast } = useToast();
+
+  const [allOpenServiceRequests, setAllOpenServiceRequests] = useState<ServiceRequest[]>([]);
+  const [artisanProposals, setArtisanProposals] = useState<ArtisanProposal[]>([]);
+  
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingProposals, setIsLoadingProposals] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [budgetRange, setBudgetRange] = useState([0, 500000]);
+  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES_ITEM_VALUE);
+  const [budgetRange, setBudgetRange] = useState([0, 1000000]);
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState(25); 
   const [isUsingGeoLocation, setIsUsingGeoLocation] = useState(false);
-  const { toast } = useToast();
-  const [artisanProposals, setArtisanProposals] = useState<ArtisanProposal[]>([]);
-  const [isLoadingProposals, setIsLoadingProposals] = useState(true);
 
-  const currentArtisanId = authUser?.uid || MOCK_ARTISAN_VIEWER_ID; // Use authenticated user ID or mock
-  const currentUserRole: UserRole = "artisan"; // This page is for artisans
+  const currentArtisanId = authUser?.uid;
+  const currentUserRole: UserRole = "artisan";
+
+  const fetchJobs = useCallback(async () => {
+    setIsLoadingData(true);
+    try {
+      const requests = await getServiceRequests({ status: 'open' });
+      setAllOpenServiceRequests(requests);
+    } catch (error) {
+      console.error("Error fetching service requests:", error);
+      toast({ title: "Error", description: "Could not load job opportunities.", variant: "destructive" });
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [toast]);
+
+  const fetchProposals = useCallback(async () => {
+    if (currentArtisanId) {
+      setIsLoadingProposals(true);
+      try {
+        const proposals = await getProposalsByArtisan(currentArtisanId); 
+        setArtisanProposals(proposals);
+      } catch (error) {
+        console.error("Error fetching artisan proposals:", error);
+        toast({title: "Error", description: "Could not load your application history.", variant: "destructive"});
+      } finally {
+        setIsLoadingProposals(false);
+      }
+    } else {
+        setIsLoadingProposals(false); // No artisan ID, so no proposals to load
+    }
+  }, [currentArtisanId, toast]);
 
   useEffect(() => {
-    async function fetchProposals() {
-      if (currentArtisanId) {
-        setIsLoadingProposals(true);
-        try {
-          // In a real app, this would fetch from Firestore
-          const proposals = await getProposalsByArtisan(currentArtisanId); 
-          setArtisanProposals(proposals);
-        } catch (error) {
-          console.error("Error fetching artisan proposals:", error);
-          toast({title: "Error", description: "Could not load your application history.", variant: "destructive"});
-        } finally {
-          setIsLoadingProposals(false);
-        }
-      }
+    if (!authLoading) {
+      fetchJobs();
+      fetchProposals();
     }
-    fetchProposals();
-  }, [currentArtisanId, toast]);
+  }, [authLoading, fetchJobs, fetchProposals]);
 
 
   const handleLocationSelect = (location: { address: string; lat?: number; lng?: number }) => {
@@ -103,20 +114,29 @@ export default function BrowseJobsPage() {
     }
   };
 
-  const openRequests = mockServiceRequests.filter(request =>
+  const filteredAndAugmentedRequests = allOpenServiceRequests.filter(request =>
     (request.title.toLowerCase().includes(searchTerm.toLowerCase()) || request.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedCategory === "" || selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : request.category === selectedCategory) &&
+    (selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : request.category === selectedCategory) &&
     (request.budget ? request.budget >= budgetRange[0] && request.budget <= budgetRange[1] : true) && 
-    (currentLocation ? request.location.toLowerCase().includes(currentLocation.address.split('(')[0].trim().toLowerCase()) : true) && 
-    (request.status === 'open' || request.status === 'awarded') // Show open and awarded jobs, card will handle display
+    (currentLocation ? request.location.toLowerCase().includes(currentLocation.address.split('(')[0].trim().toLowerCase()) : true)
+    // TODO: Add radius filter if currentLocation.lat/lng exist
   ).map(request => {
     const proposal = artisanProposals.find(p => p.serviceRequestId === request.id);
     return {
       ...request,
-      currentUserApplicationStatus: proposal?.status, // Pass status to the card
+      currentUserApplicationStatus: proposal?.status,
     };
   });
   
+  if (authLoading || (!currentArtisanId && !authLoading)) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg text-muted-foreground">Loading user data...</p>
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -210,18 +230,21 @@ export default function BrowseJobsPage() {
                   <span>₦{budgetRange[1].toLocaleString()}</span>
                 </div>
               </div>
-               <Button className="w-full">Apply Filters</Button>
+               {/* <Button className="w-full">Apply Filters</Button> */} {/* Filter application is instant now */}
             </CardContent>
           </Card>
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <h2 className="font-headline text-2xl font-semibold">Available Jobs ({openRequests.length})</h2>
-          {isLoadingProposals ? (
-            <p className="text-muted-foreground">Loading your application history...</p>
-          ) : openRequests.length > 0 ? (
+          <h2 className="font-headline text-2xl font-semibold">Available Jobs ({isLoadingData ? '...' : filteredAndAugmentedRequests.length})</h2>
+          {isLoadingData || isLoadingProposals ? (
+             <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="ml-3 text-muted-foreground">Loading jobs and your applications...</p>
+            </div>
+          ) : filteredAndAugmentedRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {openRequests.map(request => (
+              {filteredAndAugmentedRequests.map(request => (
                 <ServiceRequestCard 
                   key={request.id} 
                   request={request} 
@@ -258,4 +281,3 @@ const FormDescription = React.forwardRef<
   );
 });
 FormDescription.displayName = "FormDescription";
-

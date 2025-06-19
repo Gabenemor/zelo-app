@@ -1,25 +1,80 @@
 
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
-import { FileText, PlusCircle } from "lucide-react";
-import type { ServiceRequest } from "@/types";
+import { FileText, PlusCircle, Loader2 } from "lucide-react";
+import type { ServiceRequest, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { getServiceRequests } from '@/lib/firestore';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data for service requests
-const mockClientRequests: ServiceRequest[] = [
-  { id: "req1", clientId: "client123", title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days, need a plumber to fix it urgently. It's a modern mixer tap.", category: "Plumbing", location: "Ikeja, Lagos", budget: 5000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open" },
-  { id: "req2", clientId: "client123", title: "Catering for Birthday Party (50 guests)", description: "Need catering for a birthday party, Nigerian Jollof, Fried Rice, Chicken, Small Chops required. Event is next month.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 150000, postedAt: new Date(Date.now() - 86400000 * 5), status: "in_progress", assignedArtisanId: "artisan456" },
-  { id: "req3", clientId: "client123", title: "Repaint Living Room Walls", description: "Living room needs a fresh coat of paint, approx 20sqm. Emulsion paint, light cream color.", category: "Painting", location: "Festac Town, Lagos", postedAt: new Date(Date.now() - 86400000 * 10), status: "completed", assignedArtisanId: "artisan789" },
-];
+export default function MyServiceRequestsPage() {
+  const { user: authUser, loading: authLoading } = useAuthContext();
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const currentUserRole: UserRole = "client"; // This page is specifically for clients
 
+  const fetchRequests = useCallback(async (clientId: string) => {
+    setIsLoading(true);
+    try {
+      const clientRequests = await getServiceRequests({ clientId });
+      setRequests(clientRequests);
+    } catch (error) {
+      console.error("Error fetching client service requests:", error);
+      toast({ title: "Error", description: "Could not load your service requests.", variant: "destructive"});
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
-export default async function MyServiceRequestsPage() {
-  // Placeholder: In a real app, fetch requests for the logged-in client
-  // const clientId = await getCurrentUserId();
-  // const requests = await db.collection("serviceRequests").where("clientId", "==", clientId).get();
-  const requests = mockClientRequests;
-  const currentUserRole = "client"; // This page is specifically for clients
+  useEffect(() => {
+    if (authUser?.uid && authUser.role === 'client') {
+      fetchRequests(authUser.uid);
+    } else if (!authLoading && authUser?.role !== 'client') {
+        // Not a client, or no authUser, or auth still loading
+        setIsLoading(false); // Stop loading if role is not client or no user
+        setRequests([]);
+    }
+  }, [authUser, authLoading, fetchRequests]);
+
+  if (authLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg text-muted-foreground">Loading your requests...</p>
+        </div>
+    );
+  }
+
+  if (!authUser || authUser.role !== 'client') {
+     return (
+        <div className="py-12 text-center">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-lg font-medium text-foreground">Access Denied</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+                This page is for clients. Please log in as a client to view your service requests.
+            </p>
+             <Button asChild className="mt-6">
+                <Link href={`/login?redirect=/dashboard/services/my-requests`}>Login as Client</Link>
+            </Button>
+        </div>
+     );
+  }
+  
+  if (isLoading) {
+     return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg text-muted-foreground">Fetching your service requests...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

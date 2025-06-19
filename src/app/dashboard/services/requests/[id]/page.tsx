@@ -11,7 +11,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck, Loader2, Edit, AlertTriangle, Send, Award } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
-import type { ServiceRequest, ArtisanProposal, UserRole, AuthUser } from "@/types";
+import type { ServiceRequest, ArtisanProposal, UserRole, AuthUser, ClientProfile } from "@/types";
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -22,11 +22,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { ArtisanProposalForm } from '@/components/service-requests/artisan-proposal-form';
-import { getProposalsForRequest, getProposalsByArtisan } from '@/actions/proposal-actions'; 
+import { getProposalsForRequest, getProposalsByArtisan, acceptArtisanProposal } from '@/actions/proposal-actions'; 
 import { 
     handleCancelRequestServerAction, 
     handleMarkJobAsCompleteArtisanServerAction,
@@ -35,68 +34,7 @@ import {
 } from '@/actions/service-request-detail-actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-
-
-const MOCK_ARTISAN_ACTIVE_USER_ID = "artisan_active_user"; 
-
-// Mock data from requests/[id]/page.tsx (original)
-const mockServiceRequestDetailSpecific: ServiceRequest = {
-  id: "req_detail_123",
-  clientId: "client_jane_doe",
-  clientName: "Jane Doe", // Added for consistency
-  postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD", memberSince: "March 2023", email: "jane.doe@example.com" },
-  title: "Professional Catering for Corporate Event (100 Guests)",
-  description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner. The event will host approximately 100 executives. We require a three-course meal (appetizer, main course, dessert) with options for vegetarian and gluten-free diets. Service staff, cutlery, and crockery should be included. Please provide sample menus and references if available. The event theme is 'Modern Elegance'.",
-  category: "Catering", location: "Eko Hotel & Suites, Victoria Island, Lagos", budget: 750000,
-  postedAt: new Date(Date.now() - 86400000 * 7), status: "awarded", assignedArtisanId: "artisan_john_bull", assignedArtisanName: "John Bull Catering",
-  attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
-};
-const mockServiceRequestInProgressDetailSpecific: ServiceRequest = {
-  id: "req_in_progress_456", clientId: "client_jane_doe", clientName: "Jane Doe", // Added
-  title: "Garden Landscaping Project", description: "Full garden redesign...", category: "Gardening/Landscaping",
-  location: "Banana Island, Lagos", budget: 1200000, postedAt: new Date(Date.now() - 86400000 * 15),
-  status: "in_progress", assignedArtisanId: "artisan_musa_ali", assignedArtisanName: "Musa Landscaping",
-  postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD" } // Added basic postedBy
-};
-const mockOpenServiceRequestDetailSpecific: ServiceRequest = {
-  id: "req_open_789", clientId: "client_open_job", clientName: "Open Job Client", // Added
-  title: "Urgent Website Design Task", description: "Need a landing page designed by next week.", category: "Web Development",
-  location: "Remote", budget: 100000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open",
-  postedBy: { name: "Open Job Client", avatarUrl: "https://placehold.co/80x80.png?text=OC" } // Added basic postedBy
-};
-
-// Mock data from jobs/page.tsx
-const mockServiceRequestsFromJobsPage: ServiceRequest[] = [
-  { id: "req1", clientId: "client123", clientName: "Client for Faucet", title: "Fix Leaky Kitchen Faucet", description: "My kitchen faucet has been dripping for days, need a plumber to fix it urgently. It's a modern mixer tap.", category: "Plumbing", location: "Ikeja, Lagos", budget: 5000, postedAt: new Date(Date.now() - 86400000 * 2), status: "open", postedBy: {name: "Client for Faucet"} },
-  { id: "req2", clientId: "clientABC", clientName: "Client for Party", title: "Catering for Birthday Party (50 guests)", description: "Need catering for a birthday party, Nigerian Jollof, Fried Rice, Chicken, Small Chops required. Event is next month.", category: "Catering", location: "Lekki Phase 1, Lagos", budget: 150000, postedAt: new Date(Date.now() - 86400000 * 5), status: "open", postedBy: {name: "Client for Party"} },
-  { id: "req3", clientId: "clientDEF", clientName: "Client for Painting", title: "Repaint Living Room Walls (Urgent)", description: "Living room needs a fresh coat of paint, approx 20sqm. Emulsion paint, light cream color.", category: "Painting", location: "Festac Town, Lagos", postedAt: new Date(Date.now() - 86400000 * 1), status: "open", postedBy: {name: "Client for Painting"} },
-  { id: "req4", clientId: "clientXYZ", clientName: "Client for Wardrobe", title: "Custom Wardrobe Design & Build", description: "Looking for a carpenter to design and build a custom wardrobe for master bedroom. Dimensions 2.5m x 3m.", category: "Carpentry", location: "Garki, Abuja", budget: 250000, postedAt: new Date(Date.now() - 86400000 * 10), status: "open", postedBy: {name: "Client for Wardrobe"} },
-  { id: "req5", clientId: "clientMNO", clientName: "Client for Wedding Photos", title: "Wedding Photography Full Day Coverage", description: "Need a photographer for a full day wedding event, including pre-ceremony, ceremony, and reception. Deliverables: edited high-res photos.", category: "Photography/Videography", location: "Victoria Island, Lagos", budget: 300000, postedAt: new Date(Date.now() - 86400000 * 15), status: "awarded", assignedArtisanId: "artisan_photo_pro", assignedArtisanName: "PhotoPro Studios", postedBy: {name: "Client for Wedding Photos"} },
-];
-
-// Mock data from my-requests/page.tsx (some overlap with jobs page, status might differ)
-// For simplicity, the IDs from jobs page cover these scenarios. We ensure all IDs are unique or consolidated.
-// This array will combine and deduplicate.
-const allMockRequestsMap = new Map<string, ServiceRequest>();
-
-[
-    ...mockServiceRequestsFromJobsPage, // Add requests from jobs page first
-    mockServiceRequestDetailSpecific,
-    mockServiceRequestInProgressDetailSpecific,
-    mockOpenServiceRequestDetailSpecific
-].forEach(req => {
-    if (!allMockRequestsMap.has(req.id)) {
-        // Add clientName if only postedBy is present and vice-versa for simpler access
-        if (req.postedBy && !req.clientName) req.clientName = req.postedBy.name;
-        if (req.clientName && !req.postedBy) req.postedBy = { name: req.clientName };
-        allMockRequestsMap.set(req.id, req);
-    } else {
-        // If ID exists, potentially merge or prioritize (e.g., prefer jobs page status if it's 'open')
-        // For now, simple priority to first-seen (which is jobs page then detail page specific)
-    }
-});
-
-const allMockRequests = Array.from(allMockRequestsMap.values());
+import { getServiceRequest as fetchServiceRequestFromDb, getClientProfile } from '@/lib/firestore';
 
 
 function ServiceRequestDetailPageContent() {
@@ -107,6 +45,7 @@ function ServiceRequestDetailPageContent() {
   const { user: authUser, loading: authLoading } = useAuthContext();
   
   const [request, setRequest] = useState<ServiceRequest | null | undefined>(undefined); 
+  const [clientProfile, setClientProfile] = useState<ClientProfile | null>(null);
   const [proposalsForThisRequest, setProposalsForThisRequest] = useState<ArtisanProposal[]>([]);
   const [myProposal, setMyProposal] = useState<ArtisanProposal | null>(null);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
@@ -115,48 +54,52 @@ function ServiceRequestDetailPageContent() {
   
   const roleFromQuery = searchParams.get('role') as UserRole | undefined;
   const currentUserRole = authUser?.role || roleFromQuery || 'client';
-  const currentUserId = authUser?.uid || (currentUserRole === 'artisan' ? MOCK_ARTISAN_ACTIVE_USER_ID : "mock_client_id");
+  const currentUserId = authUser?.uid;
+
+  const fetchData = useCallback(async () => {
+    if (!requestId) {
+      setRequest(null);
+      setIsLoadingPageData(false);
+      return;
+    }
+    setIsLoadingPageData(true);
+    try {
+      const foundRequest = await fetchServiceRequestFromDb(requestId);
+      setRequest(foundRequest || null);
+
+      if (foundRequest) {
+        const clientData = await getClientProfile(foundRequest.clientId);
+        setClientProfile(clientData);
+        
+        const allProposals = await getProposalsForRequest(foundRequest.id); 
+        setProposalsForThisRequest(allProposals);
+
+        if (currentUserRole === 'artisan' && currentUserId) {
+          const artisanSpecificProposals = await getProposalsByArtisan(currentUserId); 
+          const specificProposal = artisanSpecificProposals.find(p => p.serviceRequestId === foundRequest.id);
+          setMyProposal(specificProposal || null);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching page data:", error);
+      toast({title: "Error", description: "Could not load service request details.", variant: "destructive"});
+      setRequest(null);
+    } finally {
+      setIsLoadingPageData(false);
+    }
+  }, [requestId, currentUserRole, currentUserId, toast]);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!requestId) {
-        setRequest(null);
-        setIsLoadingPageData(false);
-        return;
-      }
-      setIsLoadingPageData(true);
-      try {
-        // Find the request from the consolidated mock data
-        const foundRequest = allMockRequests.find(r => r.id === requestId);
-        setRequest(foundRequest || null);
-
-        if (foundRequest) {
-          const allProposals = await getProposalsForRequest(foundRequest.id); 
-          setProposalsForThisRequest(allProposals);
-
-          if (currentUserRole === 'artisan' && currentUserId) {
-            const artisanSpecificProposals = await getProposalsByArtisan(currentUserId); 
-            const specificProposal = artisanSpecificProposals.find(p => p.serviceRequestId === foundRequest.id);
-            setMyProposal(specificProposal || null);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching page data:", error);
-        toast({title: "Error", description: "Could not load service request details.", variant: "destructive"});
-        setRequest(null);
-      } finally {
-        setIsLoadingPageData(false);
-      }
-    }
     if (!authLoading) { 
         fetchData();
     }
-  }, [requestId, authLoading, currentUserId, currentUserRole, toast]);
+  }, [authLoading, fetchData]);
 
   const handleProposalSubmissionSuccess = (newProposal: ArtisanProposal) => {
     setMyProposal(newProposal); 
     setProposalsForThisRequest(prev => [...prev.filter(p => p.artisanId !== newProposal.artisanId), newProposal]);
     toast({ title: "Proposal Submitted!", description: "Your proposal has been sent to the client." });
+    fetchData(); // Re-fetch to ensure all states are fresh
   };
   
   const handleCancelRequest = async () => {
@@ -164,7 +107,7 @@ function ServiceRequestDetailPageContent() {
     const result = await handleCancelRequestServerAction(request.id);
     if (result.success) {
         toast({ title: "Request Cancelled", description: result.message });
-        setRequest(prev => prev ? { ...prev, status: 'cancelled' } : null);
+        fetchData();
     } else {
         toast({ title: "Error", description: result.message || "Could not cancel request.", variant: "destructive" });
     }
@@ -175,7 +118,7 @@ function ServiceRequestDetailPageContent() {
     const result = await handleMarkJobAsCompleteArtisanServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Marked Complete", description: result.message });
-        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); // Simplified status update
+        fetchData();
     } else {
         toast({ title: "Error", description: result.message || "Could not mark job complete.", variant: "destructive" });
     }
@@ -186,9 +129,20 @@ function ServiceRequestDetailPageContent() {
     const result = await handleClientConfirmCompleteAndReleaseFundsServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Confirmed & Funds Released", description: result.message });
-        setRequest(prev => prev ? { ...prev, status: 'completed' } : null);
+        fetchData();
     } else {
         toast({ title: "Error", description: result.message || "Could not confirm completion.", variant: "destructive" });
+    }
+  };
+
+  const handleAcceptProposal = async (proposal: ArtisanProposal) => {
+    if (!request) return;
+    const result = await acceptArtisanProposal(proposal.id, request.id, proposal.artisanId, proposal.artisanName);
+    if (result.success) {
+      toast({ title: "Proposal Accepted!", description: `You've accepted ${proposal.artisanName}'s offer. Please fund escrow.` });
+      fetchData(); // Re-fetch to update request and proposal statuses
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to accept proposal.", variant: "destructive" });
     }
   };
 
@@ -197,11 +151,11 @@ function ServiceRequestDetailPageContent() {
     : undefined;
 
   const handleFundEscrow = async () => {
-      if (!request || !acceptedClientProposal || !(request.postedBy?.email || request.clientName)) { // Check either for funding
-          toast({title: "Error", description: "Cannot initiate payment. Missing critical details.", variant: "destructive"});
+      if (!request || !acceptedClientProposal || !(clientProfile?.contactEmail || clientProfile?.fullName)) {
+          toast({title: "Error", description: "Cannot initiate payment. Missing critical client details for payment.", variant: "destructive"});
           return;
       }
-      const clientEmailForPayment = request.postedBy?.email || `${request.clientName?.replace(/\s+/g, '.').toLowerCase()}@example.com`; // Construct a mock email if only name
+      const clientEmailForPayment = clientProfile.contactEmail || `${clientProfile.fullName?.replace(/\s+/g, '.').toLowerCase()}@example.com`; 
       
       const result = await handleFundEscrowServerAction(
           request.id, 
@@ -211,12 +165,14 @@ function ServiceRequestDetailPageContent() {
       );
       if (result.success && result.redirectUrl) {
           toast({title: "Success", description: result.message});
-          router.push(result.redirectUrl); 
+          // Need to construct full URL if redirectUrl is path only
+          const redirectBase = typeof window !== "undefined" ? window.location.origin : "";
+          const finalRedirectUrl = result.redirectUrl.startsWith("http") ? result.redirectUrl : `${redirectBase}${result.redirectUrl}`;
+          router.push(finalRedirectUrl); 
       } else {
           toast({title: "Payment Error", description: result.message, variant: "destructive"});
       }
   };
-
 
   if (authLoading || isLoadingPageData || request === undefined) {
     return <ServiceRequestDetailSkeleton />;
@@ -252,6 +208,13 @@ function ServiceRequestDetailPageContent() {
   const isOwnerClient = currentUserRole === 'client' && request.clientId === currentUserId;
   const isAssignedArtisan = currentUserRole === 'artisan' && request.assignedArtisanId === currentUserId;
   
+  const requestClientDetails = request.postedBy || { 
+    name: clientProfile?.fullName || "Client", 
+    avatarUrl: clientProfile?.avatarUrl,
+    memberSince: clientProfile?.createdAt ? format(new Date(clientProfile.createdAt), "MMMM yyyy") : undefined,
+    email: clientProfile?.contactEmail
+  };
+
 
   return (
     <div className="space-y-6">
@@ -312,12 +275,18 @@ function ServiceRequestDetailPageContent() {
                 </div>
               )}
 
-              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && (
+              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !request.escrowFunded && ( // Added !request.escrowFunded
                 <Card className="mt-4 bg-primary/5 border-primary/20">
                   <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleFundEscrow} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow (₦{acceptedClientProposal.proposedAmount.toLocaleString()})</Button></CardContent>
                 </Card>
               )}
+               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && request.escrowFunded && ( // Added request.escrowFunded
+                <Card className="mt-4 bg-green-500/10 border-green-500/30">
+                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-green-600" /> Escrow Funded</CardTitle><CardDescription>Escrow of ₦{acceptedClientProposal.proposedAmount.toLocaleString()} for {request.assignedArtisanName || acceptedClientProposal.artisanName} is funded. Work can begin.</CardDescription></CardHeader>
+                </Card>
+              )}
+
 
               {isOwnerClient && request.status === 'in_progress' && (
                 <Card className="mt-4 bg-green-500/10 border-green-500/30">
@@ -330,7 +299,7 @@ function ServiceRequestDetailPageContent() {
           </Card>
 
           
-          {currentUserRole === 'artisan' && (
+          {currentUserRole === 'artisan' && currentUserId && (
              <ArtisanInteractionDisplay request={request} currentArtisanId={currentUserId} initialProposals={proposalsForThisRequest} myInitialProposal={myProposal} onMarkComplete={handleArtisanMarkComplete} onProposalSubmitSuccess={handleProposalSubmissionSuccess} />
           )}
 
@@ -361,12 +330,7 @@ function ServiceRequestDetailPageContent() {
                                 <div className="flex gap-2 flex-wrap">
                                     <Button asChild size="sm" variant="outline"><Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${proposal.artisanId}`}><MessageCircle className="mr-2 h-4 w-4"/> Message</Link></Button>
                                     {request.status === 'open' && proposal.status === 'pending' && (
-                                        <Button size="sm" onClick={() => {
-                                            console.log(`Client mock: Accepting proposal ${proposal.id} from ${proposal.artisanName}`);
-                                            setRequest(prev => prev ? {...prev, status: 'awarded', assignedArtisanId: proposal.artisanId, assignedArtisanName: proposal.artisanName} : null);
-                                            setProposalsForThisRequest(prev => prev.map(p => p.id === proposal.id ? {...p, status: 'accepted'} : {...p, status: p.status === 'accepted' ? 'pending' : p.status} ));
-                                            toast({title: "Proposal Accepted (Mock)", description: `You've accepted ${proposal.artisanName}'s offer. Please fund escrow.`});
-                                        }}>Accept Proposal</Button>
+                                        <Button size="sm" onClick={() => handleAcceptProposal(proposal)}>Accept Proposal</Button>
                                     )}
                                 </div>
                             </CardContent>
@@ -384,7 +348,7 @@ function ServiceRequestDetailPageContent() {
                              <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png?text=AR"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full object-cover" data-ai-hint="profile avatar" />
                              <div>
                                 <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{request.assignedArtisanName || acceptedClientProposal.artisanName}</Link>
-                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP")}</p>
+                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP")}</p> {/* This should be acceptedAt if available */}
                              </div>
                              <div className="ml-auto text-right"><Badge variant="default" className="font-mono bg-green-600">₦{acceptedClientProposal.proposedAmount.toLocaleString()}</Badge></div>
                         </CardHeader>
@@ -400,8 +364,6 @@ function ServiceRequestDetailPageContent() {
                 </CardContent>
             </Card>
           )}
-
-
         </div>
 
         <div className="lg:col-span-1 space-y-6">
@@ -415,19 +377,19 @@ function ServiceRequestDetailPageContent() {
             </CardContent>
           </Card>
 
-          {request.postedBy && (
+          {requestClientDetails && (
             <Card>
               <CardHeader><CardTitle className="font-headline text-lg">About the Client</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <Image src={request.postedBy.avatarUrl || "https://placehold.co/64x64.png?text=Client"} alt={request.postedBy.name} width={56} height={56} className="rounded-full border object-cover" data-ai-hint="profile avatar"/>
+                  <Image src={requestClientDetails.avatarUrl || "https://placehold.co/64x64.png?text=Client"} alt={requestClientDetails.name} width={56} height={56} className="rounded-full border object-cover" data-ai-hint="profile avatar"/>
                   <div>
-                    <p className="font-semibold text-foreground">{request.postedBy.name}</p>
-                    {request.postedBy.memberSince && <p className="text-xs text-muted-foreground">Member since {request.postedBy.memberSince}</p>}
+                    <p className="font-semibold text-foreground">{requestClientDetails.name}</p>
+                    {requestClientDetails.memberSince && <p className="text-xs text-muted-foreground">Member since {requestClientDetails.memberSince}</p>}
                   </div>
                 </div>
-                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status !== 'awarded' && (
-                     <Button asChild variant="outline" className="w-full" disabled={!myProposal || myProposal.status !== 'accepted'}>
+                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status !== 'awarded' && request.status !== 'completed' && request.status !== 'cancelled' && ( // Condition to show message button
+                     <Button asChild variant="outline" className="w-full">
                         <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
                             <MessageCircle className="mr-2 h-4 w-4" /> Message Client
                         </Link>
@@ -482,7 +444,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
                     <CardContent className="space-y-3">
                         <InfoItem label="Proposed Amount" value={`₦${myProposalDetails.proposedAmount.toLocaleString()}`} icon={Coins} />
                         <InfoItem label="Submitted" value={formatDistanceToNow(new Date(myProposalDetails.submittedAt), { addSuffix: true })} icon={CalendarDays} />
-                        <InfoItem label="Status" value={<Badge variant={myProposalDetails.status === 'accepted' ? "default" : myProposalDetails.status === 'rejected' ? "destructive" : "outline"} className="capitalize">{myProposalDetails.status}</Badge>} icon={Briefcase} />
+                        <InfoItem label="Status" value={<Badge variant={myProposalDetails.status === 'accepted' ? "default" : myProposalDetails.status === 'rejected' || myProposalDetails.status === 'withdrawn' ? "destructive" : "outline"} className="capitalize">{myProposalDetails.status}</Badge>} icon={Briefcase} />
                         <p className="text-sm text-muted-foreground pt-2 border-t mt-3">Cover Letter: <span className="text-foreground whitespace-pre-line">{myProposalDetails.coverLetter}</span></p>
                         {myProposalDetails.portfolioFileNames && myProposalDetails.portfolioFileNames.length > 0 && (
                             <div className="pt-2">
@@ -496,7 +458,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
                 </Card>
             );
         }
-        const artisanIdForForm = authUser?.uid || currentArtisanId; 
+        // Ensure authUser details are passed for the form if needed (already handled by useAuthContext in form)
         return (
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle><CardDescription>Let the client know why you're the best fit.</CardDescription></CardHeader>
@@ -514,7 +476,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
     if (isJobAwardedToMe) {
          return (
             <Card className="bg-green-500/10 border-green-500/30">
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-green-600" /> Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Please coordinate with the client to start the work. You can begin once the client funds the escrow.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-green-600" /> Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Coordinate with the client. Work can begin once escrow is funded (if applicable).</CardDescription></CardHeader>
             </Card>
         );
     }
@@ -535,12 +497,11 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
     }
     
     if (request.status === 'completed' && isAssignedArtisan) {
-        return <Card><CardContent className="p-4 text-sm text-green-600 font-medium">This job was completed by you.</CardContent></Card>;
+        return <Card><CardContent className="p-4 text-sm text-green-600 font-medium">You completed this job.</CardContent></Card>;
     }
     if (request.status === 'cancelled') {
          return <Card><CardContent className="p-4 text-sm text-destructive">This service request has been cancelled by the client.</CardContent></Card>;
     }
-
 
     return null; 
 }
@@ -556,7 +517,13 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
 function ServiceRequestDetailSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <PageHeader title="Loading Service Request..." description="Please wait..." />
+      <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="space-y-1">
+          <Skeleton className="h-8 w-3/4 bg-muted" />
+          <Skeleton className="h-5 w-1/2 bg-muted" />
+        </div>
+        <Skeleton className="h-10 w-32 bg-muted" />
+      </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Card><CardHeader><Skeleton className="h-8 w-3/4 bg-muted" /><Skeleton className="h-5 w-1/2 bg-muted mt-2" /></CardHeader><CardContent><Skeleton className="h-24 w-full bg-muted" /></CardContent></Card>
@@ -579,4 +546,3 @@ export default function ServiceRequestDetailPageWrapper() {
     </Suspense>
   );
 }
-

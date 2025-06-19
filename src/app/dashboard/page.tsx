@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,87 +10,93 @@ import Link from "next/link";
 import {
   Briefcase, MessageSquare, PlusCircle, LayoutDashboard,
   CreditCard, FileText, Award, CheckCircle2, LucideIcon, Settings,
-  Users, MapPin, Search, ClipboardList, UserCog, UserCircle2, Coins, Edit3, // Changed DollarSign to Coins
-  CalendarDays, Edit, Camera, UploadCloud, Loader2, ListChecks
+  Users, MapPin, Search, ClipboardList, UserCog, UserCircle2, Coins, Edit3,
+  CalendarDays, Edit, Camera, UploadCloud, Loader2, ListChecks, Activity
 } from "lucide-react";
-import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ClientProfile, ServiceExperience, UserRole, AuthUser } from "@/types";
+import type { ActivityItem, LucideIconName, ServiceRequest, ArtisanProfile, ClientProfile, UserRole, AuthUser } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { ServiceRequestCard } from "@/components/service-requests/service-request-card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuthContext } from '@/components/providers/auth-provider';
-import { getArtisanProfile, getClientProfile, getServiceRequests } from '@/lib/firestore'; // Assuming getServiceRequests exists
+import { getArtisanProfile, getClientProfile, getServiceRequests, getArtisans, getProposals, getEscrowTransactions } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const iconComponentsMap: Record<LucideIconName, LucideIcon> = {
-  LayoutDashboard, UserCircle: UserCircle2, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, Coins, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks, Activity: Users // Added Coins
+  LayoutDashboard, UserCircle: UserCircle2, Briefcase, MessageSquare, Settings, CreditCard, Users, LogOut: Users, MapPin, PlusCircle, ShieldCheck: Users, FileText, Search, ClipboardList, UserCog, UserCircle2, Award, CheckCircle2, Camera, UploadCloud, Menu: LayoutDashboard, CalendarDays, Edit, Bell: Users, Check:CheckCircle2, Trash2: Users, Coins, Info: Users, ListChecks, Edit3, SlidersHorizontal: ListChecks, AlertTriangle: ListChecks, ShoppingCart: ListChecks, Activity
 };
 
 function DashboardHomePageContent() {
   const { user: authUser, loading: authLoading } = useAuthContext();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<Partial<ArtisanProfile & ClientProfile> | null>(null);
-  const [dashboardData, setDashboardData] = useState<any>({ // Replace 'any' with more specific types
-    stats: {},
-    recentActivities: [],
-    relevantItems: [], // e.g., new jobs for artisan, client's open requests
-  });
+  const [dashboardStats, setDashboardStats] = useState<any>({});
+  const [relevantItems, setRelevantItems] = useState<ServiceRequest[]>([]);
+  const [suggestedArtisans, setSuggestedArtisans] = useState<ArtisanProfile[]>([]);
+  // Removed recentActivities as it requires a dedicated system
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const userRole = authUser?.role || 'client'; // Default to client if role not yet available
+  const userRole = authUser?.role;
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!authUser?.uid || !userRole) return;
+
+    setIsLoadingData(true);
+    try {
+      let userProfile: Partial<ArtisanProfile & ClientProfile> | null = null;
+      let fetchedStats: any = {};
+      let fetchedRelevantItems: ServiceRequest[] = [];
+      let fetchedSuggestedArtisans: ArtisanProfile[] = [];
+
+      if (userRole === 'artisan') {
+        userProfile = await getArtisanProfile(authUser.uid);
+        const artisanProposals = await getProposals({ artisanId: authUser.uid });
+        const artisanJobs = await getServiceRequests({ artisanId: authUser.uid, status: ['awarded', 'in_progress'] });
+        // For "Total Earned", sum of 'released_to_artisan' transactions. Requires fetching EscrowTransactions. More complex.
+        fetchedStats = { totalBidsSent: artisanProposals.length, activeJobs: artisanJobs.length, totalEarned: 0 /* Placeholder */ };
+        
+        const openJobs = await getServiceRequests({ status: 'open', limit: 3 });
+        // Basic filtering for relevant jobs (can be more sophisticated)
+        fetchedRelevantItems = openJobs.filter(job => 
+            (userProfile as ArtisanProfile)?.servicesOffered?.some(s => job.category.toLowerCase().includes(s.toLowerCase()))
+        ).slice(0,3);
+        if(fetchedRelevantItems.length === 0 && openJobs.length > 0) fetchedRelevantItems = openJobs.slice(0,3);
+
+
+      } else if (userRole === 'client') {
+        userProfile = await getClientProfile(authUser.uid);
+        const clientRequests = await getServiceRequests({ clientId: authUser.uid });
+        fetchedStats = {
+          activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded' || r.status === 'in_progress').length,
+          artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length,
+          totalSpent: 0, // Placeholder, sum of client's funded/released escrow transactions
+        };
+        fetchedRelevantItems = clientRequests
+          .filter(r => r.status === 'open' || r.status === 'awarded' || r.status === 'in_progress')
+          .sort((a,b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()).slice(0,3);
+        
+        fetchedSuggestedArtisans = await getArtisans({ limit: 2 }); // Simple fetch for suggestions
+      }
+      setProfile(userProfile);
+      setDashboardStats(fetchedStats);
+      setRelevantItems(fetchedRelevantItems);
+      setSuggestedArtisans(fetchedSuggestedArtisans);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [authUser, userRole, toast]);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!authUser?.uid) return;
-
-      setIsLoadingData(true);
-      try {
-        let userProfile: Partial<ArtisanProfile & ClientProfile> | null = null;
-        let fetchedStats: any = {};
-        let fetchedRelevantItems: ServiceRequest[] = [];
-        // Mock activities for now, can be replaced with real Firestore queries
-        let fetchedRecentActivities: ActivityItem[] = userRole === 'artisan'
-            ? mockRecentActivitiesArtisan.map(a => ({...a, userId: authUser.uid}))
-            : mockRecentActivitiesClient.map(a => ({...a, userId: authUser.uid}));
-
-        if (userRole === 'artisan') {
-          userProfile = await getArtisanProfile(authUser.uid);
-          // Mock stats for artisan
-          fetchedStats = { totalBidsSent: 25, activeJobs: 3, totalEarned: 175000 };
-          // Fetch jobs matching artisan's primary services (mocked here)
-          fetchedRelevantItems = mockNewJobsForArtisan.filter(job =>
-            (userProfile as ArtisanProfile)?.servicesOffered?.some(s => job.category === s)
-          ).slice(0,3);
-        } else if (userRole === 'client') {
-          userProfile = await getClientProfile(authUser.uid);
-          // Mock stats for client
-           const clientRequests = await getServiceRequests({ clientId: authUser.uid, limit: 100 }); // Fetch all for accurate stats
-           fetchedStats = {
-             activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded').length,
-             artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length,
-             totalSpent: 250000 // Still mock, real calculation needed
-           };
-          fetchedRelevantItems = clientRequests.sort((a,b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()).slice(0,3);
-        }
-        setProfile(userProfile);
-        setDashboardData({
-          stats: fetchedStats,
-          recentActivities: fetchedRecentActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 5),
-          relevantItems: fetchedRelevantItems,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        // Handle error state if necessary
-      } finally {
-        setIsLoadingData(false);
-      }
-    }
-
     if (!authLoading && authUser) {
-      fetchData();
+      fetchDashboardData();
     } else if (!authLoading && !authUser) {
-        setIsLoadingData(false); // No user, nothing to load
+        setIsLoadingData(false); 
     }
-  }, [authUser, authLoading, userRole]);
+  }, [authUser, authLoading, fetchDashboardData]);
 
   if (authLoading || isLoadingData) {
     return <DashboardLoadingSkeleton />;
@@ -128,16 +134,16 @@ function DashboardHomePageContent() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {userRole === 'artisan' && (
           <>
-            <StatCard title="Total Bids Sent (Mock)" value={dashboardData.stats.totalBidsSent?.toString() || '0'} icon={Edit3} />
-            <StatCard title="Active Jobs (Mock)" value={dashboardData.stats.activeJobs?.toString() || '0'} icon={Briefcase} />
-            <StatCard title="Total Earned (₦, Mock)" value={`₦${(dashboardData.stats.totalEarned || 0).toLocaleString()}`} icon={Coins} />
+            <StatCard title="Total Bids Sent" value={dashboardStats.totalBidsSent?.toString() || '0'} icon={Edit3} />
+            <StatCard title="Active Jobs" value={dashboardStats.activeJobs?.toString() || '0'} icon={Briefcase} />
+            <StatCard title="Total Earned (₦)" value={`₦${(dashboardStats.totalEarned || 0).toLocaleString()}`} description="Placeholder"/>
           </>
         )}
         {userRole === 'client' && (
           <>
-            <StatCard title="Active Requests" value={dashboardData.stats.activeRequests?.toString() || '0'} icon={ClipboardList} />
-            <StatCard title="Artisans Hired" value={dashboardData.stats.artisansHired?.toString() || '0'} icon={Users} />
-            <StatCard title="Total Spent (₦, Mock)" value={`₦${(dashboardData.stats.totalSpent || 0).toLocaleString()}`} icon={Coins} />
+            <StatCard title="Active Requests" value={dashboardStats.activeRequests?.toString() || '0'} icon={ClipboardList} />
+            <StatCard title="Artisans Hired" value={dashboardStats.artisansHired?.toString() || '0'} icon={Users} />
+            <StatCard title="Total Spent (₦)" value={`₦${(dashboardStats.totalSpent || 0).toLocaleString()}`} description="Placeholder"/>
           </>
         )}
       </div>
@@ -151,12 +157,12 @@ function DashboardHomePageContent() {
                 <CardDescription>Opportunities matching your skills.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {dashboardData.relevantItems.length > 0 ? (
-                  dashboardData.relevantItems.map((job: ServiceRequest) => (
+                {relevantItems.length > 0 ? (
+                  relevantItems.map((job: ServiceRequest) => (
                     <ServiceRequestCard key={job.id} request={job} currentUserRole={userRole} />
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No new jobs matching your services right now. Check back later!</p>
+                  <p className="text-sm text-muted-foreground p-4 text-center">No new jobs matching your services right now. Check back later!</p>
                 )}
                 <Button variant="outline" className="w-full" asChild>
                     <Link href={`/dashboard/jobs?role=${userRole}`}>View All Matching Jobs</Link>
@@ -172,8 +178,8 @@ function DashboardHomePageContent() {
                 <CardDescription>Track and manage the jobs you've posted.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                 {dashboardData.relevantItems.length > 0 ? (
-                  dashboardData.relevantItems.map((request: ServiceRequest) => (
+                 {relevantItems.length > 0 ? (
+                  relevantItems.map((request: ServiceRequest) => (
                     <ServiceRequestCard key={request.id} request={request} currentUserRole={userRole} />
                   ))
                 ) : (
@@ -185,7 +191,7 @@ function DashboardHomePageContent() {
                     </Button>
                   </div>
                 )}
-                {dashboardData.relevantItems.length > 0 && (
+                {relevantItems.length > 0 && (
                     <Button variant="outline" className="w-full" asChild>
                         <Link href={`/dashboard/services/my-requests?role=${userRole}`}>View All My Requests</Link>
                     </Button>
@@ -231,16 +237,16 @@ function DashboardHomePageContent() {
           {userRole === 'client' && (
              <Card>
                 <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans (Mock)</CardTitle>
+                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans</CardTitle>
                   <CardDescription>Find skilled professionals for your needs.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {mockSuggestedArtisansForClient.length > 0 ? (
-                    mockSuggestedArtisansForClient.slice(0,2).map(artisan => (
-                      <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} userRole={userRole} />
+                  {suggestedArtisans.length > 0 ? (
+                    suggestedArtisans.map(artisan => (
+                      <ArtisanSuggestionCard key={artisan.userId} artisan={artisan} userRole={userRole!} />
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">Could not find artisan suggestions at this time.</p>
+                    <p className="text-sm text-muted-foreground p-4 text-center">Could not find artisan suggestions at this time.</p>
                   )}
                   <Button variant="outline" className="w-full" asChild>
                       <Link href={`/dashboard/services/browse?role=${userRole}`}>Browse All Artisans</Link>
@@ -248,56 +254,7 @@ function DashboardHomePageContent() {
                 </CardContent>
             </Card>
           )}
-
-          <Card>
-              <CardHeader>
-              <CardTitle className="font-headline">Recent Activity</CardTitle>
-              <CardDescription>Your latest interactions on Zelo.</CardDescription>
-              </CardHeader>
-              <CardContent>
-              {dashboardData.recentActivities.length > 0 ? (
-                  <ul className="space-y-4">
-                  {dashboardData.recentActivities.map((activity: ActivityItem) => {
-                      const IconComponent = iconComponentsMap[activity.icon] || LayoutDashboard;
-                      const activityLink = activity.link?.includes("?") ? `${activity.link}&role=${userRole}` : `${activity.link}?role=${userRole}`;
-                      const content = (
-                      <div className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0 mt-1">
-                          <IconComponent className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">{activity.title}</p>
-                          {activity.description && <p className="text-xs text-muted-foreground">{activity.description}</p>}
-                          <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                          </p>
-                          </div>
-                      </div>
-                      );
-
-                      return (
-                        <li key={activity.id} className="rounded-md border p-3 hover:bg-secondary/50 transition-colors">
-                          {activity.link ? (
-                            <Link href={activityLink} className="block">
-                              {content}
-                            </Link>
-                          ) : (
-                            content
-                          )}
-                        </li>
-                      );
-                  })}
-                  </ul>
-              ) : (
-                  <div className="py-8 text-center">
-                  <LayoutDashboard className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                      No recent activity to display yet.
-                  </p>
-                  </div>
-              )}
-              </CardContent>
-          </Card>
+          {/* Removed Recent Activity Card as it requires complex backend logging */}
         </div>
       </div>
     </div>
@@ -307,7 +264,7 @@ function DashboardHomePageContent() {
 interface StatCardProps {
   title: string;
   value: string;
-  icon: React.ElementType;
+  icon?: React.ElementType; // Make icon optional
   description?: string;
 }
 
@@ -316,7 +273,7 @@ function StatCard({ title, value, icon: Icon, description }: StatCardProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-primary" />
+        {Icon && <Icon className="h-5 w-5 text-primary" />}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold text-foreground">{value}</div>
@@ -335,7 +292,7 @@ function ArtisanSuggestionCard({ artisan, userRole }: ArtisanSuggestionCardProps
     <Card className="overflow-hidden transition-all hover:shadow-lg">
       <CardContent className="p-4 flex items-start gap-4">
         <Image
-          src={artisan.profilePhotoUrl || `https://placehold.co/64x64.png`}
+          src={artisan.profilePhotoUrl || `https://placehold.co/64x64.png?text=${artisan.username?.charAt(0) || 'A'}`}
           alt={artisan.username || 'Artisan'}
           width={64}
           height={64}
@@ -361,24 +318,6 @@ function ArtisanSuggestionCard({ artisan, userRole }: ArtisanSuggestionCardProps
     </Card>
   );
 }
-
-// Mock data that might still be needed if API calls aren't fully implemented yet
-const mockRecentActivitiesArtisan: ActivityItem[] = [
-  { id: "activity1", type: "new_proposal", icon: "FileText", title: "Proposal submitted for 'Kitchen Renovation'", description: "Waiting for client review.", timestamp: new Date(Date.now() - 3600000 * 1), userId: "mockArtisanId", link: "/dashboard/services/my-offers" },
-  { id: "activity3", type: "job_awarded", icon: "Award", title: "Job 'Catering for Event' awarded!", description: "Client Chioma accepted your proposal.", timestamp: new Date(Date.now() - 86400000 * 0.5), userId: "mockArtisanId", link: "/dashboard/services/my-offers" },
-];
-const mockRecentActivitiesClient: ActivityItem[] = [
-  { id: "activity_c1", type: "request_update", icon: "Briefcase", title: "Plumber Adewale sent a proposal for 'Leaky Faucet'", description: "Review their offer now.", timestamp: new Date(Date.now() - 3600000 * 2), userId: "mockClientId", link: "/dashboard/services/my-requests/req1" },
-];
-const mockNewJobsForArtisan: ServiceRequest[] = [
-  { id: "job1", clientId: "clientNew1", title: "Urgent Plumbing for Bathroom Leak", description: "Main bathroom pipe burst...", category: "Plumbing", location: "Ikeja, Lagos", budget: 15000, postedAt: new Date(Date.now() - 3600000 * 3), status: "open" },
-  { id: "job2", clientId: "clientNew2", title: "Custom Bookshelf Carpentry", description: "Looking for a skilled carpenter...", category: "Carpentry", location: "Lekki Phase 1, Lagos", budget: 80000, postedAt: new Date(Date.now() - 86400000 * 1), status: "open" },
-];
-const mockSuggestedArtisansForClient: (Pick<ArtisanProfile, 'userId' | 'username' | 'profilePhotoUrl' | 'location' | 'servicesOffered' | 'headline'> & { rating?: number })[] = [
-  { userId: "art_pub_1", username: "Adewale Plumbing Masters", profilePhotoUrl: "https://placehold.co/80x80.png?text=AP", location: "Ikeja, Lagos", servicesOffered: ["Plumbing"], headline: "Your Go-To for Quick Plumbing Fixes!", rating: 4.7 },
-  { userId: "art_pub_2", username: "Chioma's Exquisite Catering", profilePhotoUrl: "https://placehold.co/80x80.png?text=CC", location: "Lekki, Lagos", servicesOffered: ["Catering"], headline: "Delicious Meals for Memorable Events.", rating: 4.9 },
-];
-
 
 export default function DashboardPage() {
   return (
@@ -412,10 +351,8 @@ function DashboardLoadingSkeleton() {
         </div>
         <div className="lg:col-span-1 space-y-6">
           <Card><CardHeader><Skeleton className="h-6 w-1/2 rounded-md bg-muted mb-2" /><Skeleton className="h-4 w-3/4 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-40 w-full rounded-md bg-muted" /></CardContent></Card>
-          <Card><CardHeader><Skeleton className="h-6 w-1/2 rounded-md bg-muted mb-2" /><Skeleton className="h-4 w-3/4 rounded-md bg-muted" /></CardHeader><CardContent><Skeleton className="h-48 w-full rounded-md bg-muted" /></CardContent></Card>
         </div>
       </div>
     </div>
   );
 }
-
