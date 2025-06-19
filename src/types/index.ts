@@ -1,4 +1,5 @@
 
+
 export type UserRole = "client" | "artisan" | "admin";
 
 export interface User { // Basic user data, often from Firebase Auth + role from Firestore
@@ -19,9 +20,7 @@ export interface AuthUser {
   displayName: string | null;
   role: UserRole;
   emailVerified: boolean;
-  avatarUrl?: string; // Could be added if useAuth fetches this
-  // Potentially other core profile details if fetched by useAuth directly
-  // For now, keeping it minimal and letting pages fetch detailed profiles.
+  avatarUrl?: string; 
 }
 
 
@@ -38,8 +37,8 @@ export interface ArtisanProfile {
   profilePhotoUrl?: string;
   headline?: string;
   contactPhone?: string;
-  contactEmail?: string; // Often same as auth email, but can be different
-  servicesOffered: string[]; // Primary services
+  contactEmail?: string; 
+  servicesOffered: string[]; 
   serviceExperiences?: ServiceExperience[];
   location?: string;
   locationCoordinates?: { lat: number; lng: number };
@@ -50,9 +49,9 @@ export interface ArtisanProfile {
   onboardingCompleted?: boolean;
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
-  createdAt?: Date | any; // Firestore ServerTimestamp placeholder
-  updatedAt?: Date | any; // Firestore ServerTimestamp placeholder
-  fullName?: string; // Could be denormalized from /users
+  createdAt?: Date | any; 
+  updatedAt?: Date | any; 
+  fullName?: string; 
 }
 
 export interface ClientProfile {
@@ -66,11 +65,11 @@ export interface ClientProfile {
   locationCoordinates?: { lat: number; lng: number };
   isLocationPublic?: boolean;
   onboardingCompleted?: boolean;
-  servicesLookingFor?: string[]; // Services client is interested in
+  servicesLookingFor?: string[]; 
   onboardingStep1Completed?: boolean;
   profileSetupCompleted?: boolean;
-  createdAt?: Date | any; // Firestore ServerTimestamp placeholder
-  updatedAt?: Date | any; // Firestore ServerTimestamp placeholder
+  createdAt?: Date | any; 
+  updatedAt?: Date | any; 
 }
 
 export interface WithdrawalAccount {
@@ -116,17 +115,22 @@ export interface ArtisanProposal {
   status: "pending" | "accepted" | "rejected";
 }
 
-
 export interface ChatMessage {
   id: string;
   chatId: string;
   senderId: string;
   receiverId: string;
   text: string;
-  timestamp: Date;
-  isRead?: boolean;
-  googleMeetLink?: string;
+  timestamp: Date; // Keep as Date on client-side for easier manipulation
+  isRead: boolean;
+  messageType?: 'text' | 'image' | 'file' | 'google_meet_link';
+  metadata?: {
+    fileName?: string;
+    fileUrl?: string;
+    meetingUrl?: string; // Specific for Google Meet links
+  };
 }
+
 
 export interface EscrowTransaction {
   id: string;
@@ -224,7 +228,7 @@ export type LucideIconName =
   | "Bell"
   | "Check"
   | "Trash2"
-  | "Coins" // Added Coins
+  | "Coins" 
   | "Info"
   | "ListChecks"
   | "ShoppingCart"
@@ -256,6 +260,4 @@ export const NIGERIAN_ARTISAN_SERVICES = [
 type ServiceName = typeof NIGERIAN_ARTISAN_SERVICES[number];
 export type NigerianArtisanService = ServiceName;
 
-// Define a more specific User type that combines AuthUser with profile details
 export type AppUser = AuthUser & (ClientProfile | ArtisanProfile | { /* admin profile */ });
-
