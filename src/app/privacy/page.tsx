@@ -21,7 +21,6 @@ export default function PrivacyPolicyPage() {
         <PageHeader
           title="Privacy Policy"
           description="Your privacy is important to us at Zelo."
-          icon={Shield}
         />
         <div className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl mx-auto mt-8 rounded-lg border bg-card p-6 shadow-sm">
           <p>Effective Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>

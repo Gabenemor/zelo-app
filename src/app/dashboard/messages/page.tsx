@@ -8,7 +8,6 @@ export default function MessagesPage() {
       <PageHeader
         title="My Messages"
         description="Communicate directly with clients and service providers on Zelo."
-        icon={MessageSquare}
       />
       <div className="flex-grow">
         <ChatInterface />

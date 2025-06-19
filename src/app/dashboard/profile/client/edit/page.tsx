@@ -22,7 +22,6 @@ export default async function EditClientProfilePage() {
       <PageHeader
         title="Edit Client Profile"
         description="Keep your information up-to-date for a seamless experience on Zelo."
-        icon={UserCog}
       />
       <ClientProfileForm userId={userId} initialData={existingProfileData} />
     </div>

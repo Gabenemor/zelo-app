@@ -62,7 +62,6 @@ function EditArtisanProfilePageContent() {
         <PageHeader
           title="Edit Artisan Profile"
           description="Loading your profile details..."
-          icon={Loader2}
           className="animate-pulse"
         />
         <div className="p-0 sm:p-6 border-0 sm:border rounded-lg sm:shadow-sm sm:bg-card animate-pulse">
@@ -92,7 +91,6 @@ function EditArtisanProfilePageContent() {
             <PageHeader
                 title="Profile Not Found or Error"
                 description="We couldn't load your artisan profile. It might not be fully set up yet."
-                icon={UserCircle2}
             />
              <p className="text-muted-foreground">If you're new, ensure you've completed the onboarding steps.</p>
             {/* Optionally, guide to onboarding or contact support */}
@@ -109,7 +107,6 @@ function EditArtisanProfilePageContent() {
       <PageHeader
         title="Edit Artisan Profile"
         description="Showcase your skills and services to attract clients on Zelo. All amounts are in Naira (₦)."
-        icon={UserCircle2}
       />
       <ArtisanProfileForm
         userId={authUser!.uid} // authUser is guaranteed by checks above
@@ -125,7 +122,7 @@ export default function EditArtisanProfilePage() {
     // Suspense might be useful if ArtisanProfileForm itself uses useSearchParams, but not strictly needed for the page itself now
     <Suspense fallback={
         <div className="space-y-6">
-            <PageHeader title="Edit Profile" description="Loading..." icon={Loader2} className="animate-pulse"/>
+            <PageHeader title="Edit Profile" description="Loading..." className="animate-pulse"/>
             <Skeleton className="h-96 w-full rounded-lg bg-muted"/>
         </div>
     }>

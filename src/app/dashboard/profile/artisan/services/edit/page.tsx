@@ -103,7 +103,6 @@ function EditArtisanServicesContent() {
       <PageHeader
         title="Edit Your Primary Services"
         description={`Update the two primary services you offer. This helps clients find you for the right jobs.`}
-        icon={Briefcase}
       />
 
       <Card className="mb-6">

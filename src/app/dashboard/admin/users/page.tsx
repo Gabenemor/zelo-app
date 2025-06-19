@@ -33,7 +33,6 @@ export default function AdminUserManagementPage() {
       <PageHeader
         title="User Management"
         description="Oversee and manage all users on the Zelo platform."
-        icon={Users}
       />
 
       <Card>

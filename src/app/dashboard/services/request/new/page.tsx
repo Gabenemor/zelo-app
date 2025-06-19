@@ -35,7 +35,6 @@ export default function NewServiceRequestPage() {
         <PageHeader
           title="Post a New Service Request"
           description="Clearly describe the service you need..."
-          icon={PlusCircle}
         />
         <Skeleton className="h-10 w-1/3 mb-4" />
         <Skeleton className="h-24 w-full" />
@@ -51,7 +50,6 @@ export default function NewServiceRequestPage() {
         <PageHeader
           title="Complete Your Profile"
           description="Please complete your profile before posting a service request."
-          icon={AlertTriangle}
         />
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -78,7 +76,6 @@ export default function NewServiceRequestPage() {
       <PageHeader
         title="Post a New Service Request"
         description="Clearly describe the service you need, and let skilled Zelo artisans find you. All amounts are in Naira (₦)."
-        icon={PlusCircle}
       />
       <ServiceRequestForm clientId={MOCK_CLIENT_ID} />
     </div>

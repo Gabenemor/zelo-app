@@ -109,7 +109,7 @@ function ArtisanProfilePageContent() {
     if (authUser && authUser.uid === artisanIdFromUrl && authUser.role === 'artisan') {
       return (
         <div className="container mx-auto py-8 text-center">
-          <PageHeader title="Profile Preview Incomplete" description="Your artisan profile setup is not yet complete." icon={AlertTriangle} />
+          <PageHeader title="Profile Preview Incomplete" description="Your artisan profile setup is not yet complete." />
           <p className="mt-4 text-muted-foreground">
             It looks like you haven't finished setting up your artisan profile.
             Clients won't be able to see your details until it's complete.
@@ -123,7 +123,7 @@ function ArtisanProfilePageContent() {
     // General "Artisan Not Found" for other cases
     return (
       <div className="container mx-auto py-8 text-center">
-        <PageHeader title="Artisan Not Found" description="The requested artisan profile could not be located." icon={UserCircle2} />
+        <PageHeader title="Artisan Not Found" description="The requested artisan profile could not be located." />
         <p className="mt-4 text-muted-foreground">Please check the ID or try again later.</p>
         <Button asChild className="mt-6">
           <Link href={`/dashboard/services/browse?role=${roleFromQuery || 'client'}`}>Back to Browse Artisans</Link>
@@ -139,7 +139,6 @@ function ArtisanProfilePageContent() {
       <PageHeader
         title={isOwnProfile ? "Your Public Artisan Profile" : (artisanProfile.username || `Artisan ${artisanProfile.userId}`)}
         description={isOwnProfile ? "This is how clients will see your profile." : `Public profile for ${artisanProfile.username || 'this artisan'}.`}
-        icon={UserCircle2}
         action={isOwnProfile && (
             <Button asChild variant="outline">
                 <Link href={`/dashboard/profile/artisan/edit?role=artisan`}>
@@ -294,7 +293,7 @@ function InfoItem({ icon: Icon, label, value, isLink }: InfoItemProps) {
 function ArtisanProfileSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <PageHeader title="Loading Artisan Profile..." description="Please wait a moment." icon={Loader2} />
+      <PageHeader title="Loading Artisan Profile..." description="Please wait a moment." />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
           <Card>

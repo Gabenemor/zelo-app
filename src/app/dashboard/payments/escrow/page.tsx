@@ -58,7 +58,6 @@ export default async function EscrowPage({ searchParams }: { searchParams?: { tr
       <PageHeader
         title={specificTransaction ? "Escrow Transaction Details" : "Zelo Secure Escrow"}
         description={specificTransaction ? `Details for transaction ID: ${specificTransaction.id}` : "Understand how Zelo protects your payments."}
-        icon={ShieldCheck}
         action={!specificTransaction && (
             <Button asChild variant="outline">
                 <Link href="/dashboard/payments/history">

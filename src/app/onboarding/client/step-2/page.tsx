@@ -59,7 +59,6 @@ function ClientOnboardingStep2Content() {
       <PageHeader
         title={pageTitle}
         description={pageDescription}
-        icon={UserCog}
       />
       <OnboardingProgressIndicator currentStep={2} totalSteps={2} />
       <div className="p-6 border rounded-lg shadow-sm bg-card">

@@ -95,7 +95,6 @@ function ArtisanOnboardingStep2Content() {
       <PageHeader
         title={pageTitle}
         description={pageDescription}
-        icon={UserCircle2}
       />
       <OnboardingProgressIndicator currentStep={2} totalSteps={2} />
       <div className="p-0 sm:p-6 border-0 sm:border rounded-lg sm:shadow-sm sm:bg-card">

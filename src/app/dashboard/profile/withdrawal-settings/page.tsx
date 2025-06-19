@@ -20,7 +20,6 @@ export default async function WithdrawalSettingsPage() {
       <PageHeader
         title="Withdrawal Account Settings"
         description="Add or update your bank account details to receive payments for your services. All transactions are in Naira (₦)."
-        icon={CreditCard}
       />
       <WithdrawalSettingsForm userId={userId} initialData={existingData} />
     </div>

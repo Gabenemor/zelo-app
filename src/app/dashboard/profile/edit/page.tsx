@@ -48,7 +48,6 @@ function EditProfileRedirectContent() {
             <PageHeader 
               title="Edit Profile" 
               description="Loading your profile editor..." 
-              icon={UserCog}
             />
             <div className="space-y-4 p-4 border rounded-lg bg-card animate-pulse">
                 <div className="flex items-center space-x-4">
@@ -87,7 +86,7 @@ export default function EditProfilePage() {
   return (
     <Suspense fallback={
       <div className="space-y-6">
-        <PageHeader title="Edit Profile" description="Loading..." icon={Loader2} className="animate-pulse"/>
+        <PageHeader title="Edit Profile" description="Loading..." className="animate-pulse"/>
         <Skeleton className="h-64 w-full rounded-lg bg-muted"/>
       </div>
     }>

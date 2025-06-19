@@ -75,7 +75,6 @@ export default function MyJobsAndProposalsPage() {
       <PageHeader
         title="My Jobs & Proposals"
         description="Manage your bids, active jobs, and completed work on Zelo."
-        icon={Briefcase}
         action={
             <Button asChild variant="outline">
                 <Link href={`/dashboard/jobs?role=${currentUserRole}`}>

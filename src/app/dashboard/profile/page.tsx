@@ -58,7 +58,7 @@ function ProfilePageContent() {
   if (authLoading || isLoadingProfile) {
     return (
         <div className="space-y-6">
-            <PageHeader title="My Profile" description="Loading your information..." icon={Loader2} className="animate-pulse" />
+            <PageHeader title="My Profile" description="Loading your information..." className="animate-pulse" />
             <div className="grid gap-6 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
                     <CardHeader className="items-center text-center">
@@ -117,7 +117,6 @@ function ProfilePageContent() {
       <PageHeader
         title="My Profile"
         description="Manage your personal information, settings, and Zelo activities."
-        icon={UserCircle}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -216,7 +215,7 @@ export default function ProfilePage() {
 function ProfileLoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <PageHeader title="My Profile" description="Loading..." icon={Loader2} />
+      <PageHeader title="My Profile" description="Loading..." />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader className="items-center text-center">

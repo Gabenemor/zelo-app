@@ -41,7 +41,6 @@ export default function AdminTransactionLogsPage() {
       <PageHeader
         title="Transaction Log"
         description="View a detailed log of all financial transactions on the Zelo platform."
-        icon={CreditCard}
         action={
              <Button variant="outline" onClick={() => console.log('Mock: Exporting CSV...')}>
                 <Download className="mr-2 h-4 w-4" /> Export CSV (Mock)

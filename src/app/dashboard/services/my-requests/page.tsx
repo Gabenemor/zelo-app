@@ -26,7 +26,6 @@ export default async function MyServiceRequestsPage() {
       <PageHeader
         title="My Service Requests"
         description="Track the status of all service requests you've posted on Zelo."
-        icon={FileText}
         action={
             <Button asChild>
                 <Link href={`/dashboard/services/request/new?role=${currentUserRole}`}>

@@ -57,7 +57,6 @@ export default function AdminJobManagementPage() {
       <PageHeader
         title="Job Management"
         description="Oversee all service requests (jobs) posted on the Zelo platform."
-        icon={Briefcase}
       />
 
       <Card>

@@ -122,7 +122,6 @@ export default function BrowseJobsPage() {
       <PageHeader
         title="Find Job Opportunities"
         description="Browse service requests posted by clients across Nigeria and submit your proposals."
-        icon={Search}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">

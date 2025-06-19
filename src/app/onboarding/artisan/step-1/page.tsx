@@ -110,7 +110,6 @@ function ArtisanOnboardingStep1Content() {
       <PageHeader
         title={pageTitle}
         description={pageDescription}
-        icon={Briefcase}
       />
       <OnboardingProgressIndicator currentStep={1} totalSteps={2} />
 

@@ -14,7 +14,6 @@ export default function SettingsPage() {
       <PageHeader
         title="Account Settings"
         description="Manage your Zelo account preferences and settings."
-        icon={Settings}
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2"> {/* Updated lg:grid-cols-3 to lg:grid-cols-2 */}

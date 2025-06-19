@@ -42,7 +42,6 @@ export default function AdminDisputeCenterPage() {
       <PageHeader
         title="Dispute Resolution Center"
         description="Mediate and resolve disputes between clients and artisans."
-        icon={ShieldAlert}
       />
 
       <Card>

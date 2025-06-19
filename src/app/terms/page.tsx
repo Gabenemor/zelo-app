@@ -21,7 +21,6 @@ export default function TermsPage() {
         <PageHeader
           title="Terms of Service"
           description="Please read these terms carefully before using Zelo."
-          icon={FileText}
         />
         <div className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl mx-auto mt-8 rounded-lg border bg-card p-6 shadow-sm">
           <h2 className="font-headline">1. Acceptance of Terms</h2>

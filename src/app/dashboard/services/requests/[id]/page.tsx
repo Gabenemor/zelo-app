@@ -49,7 +49,7 @@ const mockServiceRequestDetailSpecific: ServiceRequest = {
   description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner. The event will host approximately 100 executives. We require a three-course meal (appetizer, main course, dessert) with options for vegetarian and gluten-free diets. Service staff, cutlery, and crockery should be included. Please provide sample menus and references if available. The event theme is 'Modern Elegance'.",
   category: "Catering", location: "Eko Hotel & Suites, Victoria Island, Lagos", budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), status: "awarded", assignedArtisanId: "artisan_john_bull", assignedArtisanName: "John Bull Catering",
-  attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/400x300.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
+  attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
 };
 const mockServiceRequestInProgressDetailSpecific: ServiceRequest = {
   id: "req_in_progress_456", clientId: "client_jane_doe", clientName: "Jane Doe", // Added
@@ -241,7 +241,7 @@ function ServiceRequestDetailPageContent() {
     return (
         <div className="space-y-6 text-center py-10">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-            <PageHeader title={notFoundTitle} description={notFoundDescription} icon={FileText} />
+            <PageHeader title={notFoundTitle} description={notFoundDescription} />
             <Button asChild variant="outline"><Link href={backButtonLink}>
                 {backButtonText}
             </Link></Button>
@@ -258,7 +258,6 @@ function ServiceRequestDetailPageContent() {
       <PageHeader
         title={isOwnerClient ? "My Service Request" : "Service Request Details"}
         description={`ID: ${request.id}`}
-        icon={FileText}
         action={isOwnerClient && request.status === 'open' && (
           <div className="flex gap-2">
             <Button variant="outline" asChild>
@@ -557,7 +556,7 @@ function InfoItem({ icon: Icon, label, value}: InfoItemProps) {
 function ServiceRequestDetailSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <PageHeader title="Loading Service Request..." description="Please wait..." icon={Loader2} />
+      <PageHeader title="Loading Service Request..." description="Please wait..." />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Card><CardHeader><Skeleton className="h-8 w-3/4 bg-muted" /><Skeleton className="h-5 w-1/2 bg-muted mt-2" /></CardHeader><CardContent><Skeleton className="h-24 w-full bg-muted" /></CardContent></Card>

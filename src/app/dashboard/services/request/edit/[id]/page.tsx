@@ -86,7 +86,6 @@ export default function EditServiceRequestPage() {
         <PageHeader
           title="Edit Service Request"
           description="Loading request details..."
-          icon={Loader2}
           className="animate-pulse"
         />
         <Skeleton className="h-10 w-1/3 mb-4" /> {/* Skeleton for title */}
@@ -109,7 +108,6 @@ export default function EditServiceRequestPage() {
         <PageHeader
           title="Service Request Not Found"
           description="The service request you are trying to edit could not be found or you do not have permission to edit it."
-          icon={Edit}
         />
         <Button onClick={() => router.back()}>Go Back</Button>
       </div>
@@ -127,7 +125,6 @@ export default function EditServiceRequestPage() {
       <PageHeader
         title="Edit Your Service Request"
         description={`Modifying request: "${request.title}"`}
-        icon={Edit}
       />
       <ServiceRequestForm 
         clientId={request.clientId} // Use actual clientId from the request

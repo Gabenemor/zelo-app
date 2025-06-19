@@ -59,7 +59,7 @@ function ClientOnboardingStep1Content() {
       if (uid) queryParams.append('uid', uid); // Pass UID to step 2
       router.push(`/onboarding/client/step-2?${queryParams.toString()}`);
     } else {
-      let errorMsg = "Could not save your preferences. Please try again.";
+        let errorMsg = "Could not save your preferences. Please try again.";
        if (result.error) {
             if (result.error._form && Array.isArray(result.error._form)) {
                 errorMsg = result.error._form.join(' ');
@@ -95,7 +95,6 @@ function ClientOnboardingStep1Content() {
       <PageHeader
         title={pageTitle}
         description={pageDescription}
-        icon={Users}
       />
       <OnboardingProgressIndicator currentStep={1} totalSteps={2} />
       <Card className="mb-6">

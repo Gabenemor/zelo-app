@@ -59,7 +59,6 @@ export default function NotificationsPage() {
       <PageHeader
         title="Notifications"
         description={`You have ${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}.`}
-        icon={Bell}
         action={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>

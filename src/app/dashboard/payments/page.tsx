@@ -45,7 +45,6 @@ function PaymentsOverviewPageContent() {
           ? "Manage your service payments, view transaction history, and track job funding."
           : "Track your earnings, manage withdrawals, and view transaction history."
         }
-        icon={CreditCard}
         action={
             <Button variant="outline" size="sm">
                 <Download className="mr-2 h-4 w-4" /> Download Statement

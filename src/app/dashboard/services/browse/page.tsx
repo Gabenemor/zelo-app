@@ -12,7 +12,6 @@ function BrowseServicesLoadingSkeleton() {
       <PageHeader
         title="Browse Services & Artisans"
         description="Loading available services and artisans..."
-        icon={Briefcase}
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">

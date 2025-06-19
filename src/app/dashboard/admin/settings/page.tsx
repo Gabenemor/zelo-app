@@ -17,7 +17,6 @@ export default function AdminPlatformSettingsPage() {
       <PageHeader
         title="Platform Settings"
         description="Manage global settings, branding, and feature configurations for Zelo."
-        icon={Settings}
       />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">

@@ -27,7 +27,6 @@ export default async function TransactionHistoryPage() {
       <PageHeader
         title="Transaction History"
         description="View all your past and ongoing payment transactions on Zelo."
-        icon={FileText}
         action={
             <Button variant="outline" size="sm">
                 <Download className="mr-2 h-4 w-4" /> Download Statement

@@ -78,7 +78,6 @@ export default function BrowseServicesPublicPage() {
         <PageHeader
           title="Explore Services & Artisans"
           description="Find job opportunities or skilled professionals across Nigeria."
-          icon={Search}
         />
 
         <Card className="mb-8 shadow-md">
