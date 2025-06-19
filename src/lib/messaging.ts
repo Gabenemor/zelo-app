@@ -39,7 +39,8 @@ export interface ChatMessage {
 export interface ChatParticipantDetail {
   name: string;
   avatarUrl?: string;
-  role: UserRole; // Added role
+  role: UserRole;
+  isOnline?: boolean; // Added for indicator
 }
 
 export interface Chat {
