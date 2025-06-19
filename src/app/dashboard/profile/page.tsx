@@ -2,7 +2,7 @@
 "use client"; 
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from "next/navigation"; // Retain for role if useAuth doesn't pass it quickly
+import { useSearchParams } from "next/navigation"; 
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ function ProfilePageContent() {
   const [profileData, setProfileData] = useState<Partial<ClientProfile & ArtisanProfile> | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // Determine role: prioritize authUser.role, then searchParams, then default.
   const role: UserRole = authUser?.role || (searchParams.get('role') as UserRole) || 'client';
 
   useEffect(() => {
@@ -36,7 +35,6 @@ function ProfilePageContent() {
             const artisanData = await getArtisanProfile(authUser.uid);
             setProfileData(artisanData);
           } else {
-            // Handle admin or other roles if necessary, or set profileData to a basic user object
             setProfileData({ 
                 fullName: authUser.displayName,
                 contactEmail: authUser.email,
@@ -44,48 +42,19 @@ function ProfilePageContent() {
           }
         } catch (error) {
           console.error("Error fetching profile data:", error);
-          setProfileData(null); // Or some error state
+          setProfileData(null); 
         } finally {
           setIsLoadingProfile(false);
         }
-      } else if (!authLoading) { // If auth is done loading and still no authUser.uid
-        setIsLoadingProfile(false); // Nothing to fetch
+      } else if (!authLoading) { 
+        setIsLoadingProfile(false); 
       }
     }
     fetchProfile();
-  }, [authUser, authLoading, role]); // Depend on authUser and role to refetch if they change
+  }, [authUser, authLoading, role]); 
 
   if (authLoading || isLoadingProfile) {
-    return (
-        <div className="space-y-6">
-            <PageHeader title="My Profile" description="Loading your information..." className="animate-pulse" />
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-1">
-                    <CardHeader className="items-center text-center">
-                        <Skeleton className="h-32 w-32 rounded-full mb-4 bg-muted" />
-                        <Skeleton className="h-7 w-48 mb-1 bg-muted" />
-                        <Skeleton className="h-5 w-32 bg-muted" />
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Skeleton className="h-4 w-full bg-muted" />
-                        <Skeleton className="h-4 w-3/4 bg-muted" />
-                    </CardContent>
-                </Card>
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <Skeleton className="h-7 w-1/2 bg-muted" />
-                        <Skeleton className="h-5 w-3/4 bg-muted" />
-                    </CardHeader>
-                    <CardContent className="grid gap-4 sm:grid-cols-2">
-                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
-                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
-                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
-                        <Skeleton className="h-20 w-full bg-muted rounded-lg" />
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    );
+    return <ProfileLoadingSkeleton />;
   }
 
   if (!authUser) {
@@ -98,7 +67,6 @@ function ProfilePageContent() {
     );
   }
   
-  // Use fetched profileData if available, otherwise fallback to authUser for basic info
   const displayName = profileData?.fullName || authUser.displayName || "Zelo User";
   const displayEmail = profileData?.contactEmail || authUser.email;
   const displayAvatar = (profileData as ArtisanProfile)?.profilePhotoUrl || (profileData as ClientProfile)?.avatarUrl || `https://placehold.co/128x128.png?text=${displayName.charAt(0).toUpperCase()}`;
@@ -165,7 +133,7 @@ function ProfilePageContent() {
                   title="View My Artisan Profile"
                   description="See how your profile appears to clients."
                   href={viewArtisanProfileLink} 
-                  icon={UserCircle} // Re-using UserCircle icon
+                  icon={UserCircle} 
                 />
               </>
             )}
@@ -203,9 +171,6 @@ function ActionItem({ title, description, href, icon: Icon }: ActionItemProps) {
 
 export default function ProfilePage() {
   return (
-    // Suspense for useSearchParams if it was still used directly for role,
-    // but now role primarily comes from useAuthContext.
-    // Suspense remains useful if any child component uses it for other params.
     <Suspense fallback={<ProfileLoadingSkeleton />}>
       <ProfilePageContent />
     </Suspense>
@@ -243,4 +208,3 @@ function ProfileLoadingSkeleton() {
     </div>
   );
 }
-

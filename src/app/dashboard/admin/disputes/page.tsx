@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShieldAlert, Search, SlidersHorizontal, Eye, MessageSquare, Loader2 } from "lucide-react";
 import type { DisputeItem } from "@/types";
 import { format } from 'date-fns';
-import { getDisputes, updateDispute } from '@/lib/firestore'; // Assuming these functions exist
+import { getDisputes, updateDispute } from '@/lib/firestore'; 
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+
 
 const disputeStatusOptions: DisputeItem['status'][] = ["open", "reviewing", "resolved_client", "resolved_artisan", "resolved_compromise"];
 
@@ -25,11 +27,12 @@ export default function AdminDisputeCenterPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DisputeItem['status'] | "all">("all");
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchDisputes = useCallback(async () => {
     setIsLoading(true);
     try {
-      const disputesFromDb = await getDisputes(); // Fetch all disputes
+      const disputesFromDb = await getDisputes(); 
       setAllDisputes(disputesFromDb);
       setFilteredDisputes(disputesFromDb);
     } catch (error) {
@@ -140,23 +143,4 @@ export default function AdminDisputeCenterPage() {
   );
 }
 
-// Skeleton component for loading state
 const Skeleton = ({ className }: { className: string }) => <div className={`bg-muted animate-pulse rounded ${className}`} />;
-
-// Added router for chat link
-import { useRouter } from 'next/navigation';
-const router = useRouter(); // This needs to be inside the component or passed as prop. For simplicity, it's here, but normally you'd use the hook inside component.
-// Corrected: The router hook should be inside the component. Let's assume it's defined within AdminDisputeCenterPage
-// Or, pass router instance as a prop if this component is part of a larger structure.
-// For this direct fix, let's make a small adjustment in the onClick handler if using the hook inside.
-// If not using the hook, this approach is problematic. Let's assume the hook is used.
-// The above router definition is incorrect. It should be inside the AdminDisputeCenterPage function.
-
-// Correct usage of useRouter:
-// export default function AdminDisputeCenterPage() {
-//   const router = useRouter();
-// ...
-//    <Button onClick={() => router.push(`/dashboard/messages?role=admin&chatWith=${dispute.clientId}&thenChatWith=${dispute.artisanId}`)}>
-// ...
-// For this automated change, I will leave the router.push as is, assuming it will be handled or is illustrative.
-// The primary fix is data fetching.

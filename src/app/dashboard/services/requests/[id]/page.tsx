@@ -99,7 +99,7 @@ function ServiceRequestDetailPageContent() {
     setMyProposal(newProposal); 
     setProposalsForThisRequest(prev => [...prev.filter(p => p.artisanId !== newProposal.artisanId), newProposal]);
     toast({ title: "Proposal Submitted!", description: "Your proposal has been sent to the client." });
-    fetchData(); // Re-fetch to ensure all states are fresh
+    fetchData(); 
   };
   
   const handleCancelRequest = async () => {
@@ -140,7 +140,7 @@ function ServiceRequestDetailPageContent() {
     const result = await acceptArtisanProposal(proposal.id, request.id, proposal.artisanId, proposal.artisanName);
     if (result.success) {
       toast({ title: "Proposal Accepted!", description: `You've accepted ${proposal.artisanName}'s offer. Please fund escrow.` });
-      fetchData(); // Re-fetch to update request and proposal statuses
+      fetchData(); 
     } else {
       toast({ title: "Error", description: result.error || "Failed to accept proposal.", variant: "destructive" });
     }
@@ -165,7 +165,6 @@ function ServiceRequestDetailPageContent() {
       );
       if (result.success && result.redirectUrl) {
           toast({title: "Success", description: result.message});
-          // Need to construct full URL if redirectUrl is path only
           const redirectBase = typeof window !== "undefined" ? window.location.origin : "";
           const finalRedirectUrl = result.redirectUrl.startsWith("http") ? result.redirectUrl : `${redirectBase}${result.redirectUrl}`;
           router.push(finalRedirectUrl); 
@@ -275,13 +274,13 @@ function ServiceRequestDetailPageContent() {
                 </div>
               )}
 
-              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !request.escrowFunded && ( // Added !request.escrowFunded
+              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !request.escrowFunded && ( 
                 <Card className="mt-4 bg-primary/5 border-primary/20">
                   <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleFundEscrow} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow (₦{acceptedClientProposal.proposedAmount.toLocaleString()})</Button></CardContent>
                 </Card>
               )}
-               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && request.escrowFunded && ( // Added request.escrowFunded
+               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && request.escrowFunded && ( 
                 <Card className="mt-4 bg-green-500/10 border-green-500/30">
                   <CardHeader><CardTitle className="text-lg flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-green-600" /> Escrow Funded</CardTitle><CardDescription>Escrow of ₦{acceptedClientProposal.proposedAmount.toLocaleString()} for {request.assignedArtisanName || acceptedClientProposal.artisanName} is funded. Work can begin.</CardDescription></CardHeader>
                 </Card>
@@ -348,7 +347,7 @@ function ServiceRequestDetailPageContent() {
                              <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png?text=AR"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full object-cover" data-ai-hint="profile avatar" />
                              <div>
                                 <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{request.assignedArtisanName || acceptedClientProposal.artisanName}</Link>
-                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP")}</p> {/* This should be acceptedAt if available */}
+                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP")}</p> {}
                              </div>
                              <div className="ml-auto text-right"><Badge variant="default" className="font-mono bg-green-600">₦{acceptedClientProposal.proposedAmount.toLocaleString()}</Badge></div>
                         </CardHeader>
@@ -388,7 +387,7 @@ function ServiceRequestDetailPageContent() {
                     {requestClientDetails.memberSince && <p className="text-xs text-muted-foreground">Member since {requestClientDetails.memberSince}</p>}
                   </div>
                 </div>
-                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status !== 'awarded' && request.status !== 'completed' && request.status !== 'cancelled' && ( // Condition to show message button
+                 {currentUserRole === 'artisan' && !isAssignedArtisan && request.status !== 'awarded' && request.status !== 'completed' && request.status !== 'cancelled' && ( 
                      <Button asChild variant="outline" className="w-full">
                         <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
                             <MessageCircle className="mr-2 h-4 w-4" /> Message Client
@@ -458,7 +457,6 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
                 </Card>
             );
         }
-        // Ensure authUser details are passed for the form if needed (already handled by useAuthContext in form)
         return (
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle><CardDescription>Let the client know why you're the best fit.</CardDescription></CardHeader>

@@ -30,7 +30,7 @@ export default function AdminUserManagementPage() {
     try {
       const usersFromDb = await getAllUsers();
       setAllUsers(usersFromDb);
-      setFilteredUsers(usersFromDb); // Initially, all users are filtered users
+      setFilteredUsers(usersFromDb); 
     } catch (error) {
       console.error("Error fetching users for admin panel:", error);
       toast({ title: "Error", description: "Could not load users.", variant: "destructive" });
@@ -65,7 +65,7 @@ export default function AdminUserManagementPage() {
     try {
       await updateUser(userId, { status: newStatus });
       toast({ title: "User Status Updated", description: `User ${userId} status changed to ${newStatus}.` });
-      fetchUsers(); // Re-fetch to update the list
+      fetchUsers(); 
     } catch (error) {
       console.error("Error updating user status:", error);
       toast({ title: "Error", description: "Could not update user status.", variant: "destructive" });
@@ -130,7 +130,6 @@ export default function AdminUserManagementPage() {
                       </Button>
                        {user.status === 'active' && (<Button variant="ghost" size="icon" title="Suspend User" onClick={() => handleStatusChange(user.id, 'suspended')}><UserX className="h-4 w-4 text-orange-600" /></Button>)}
                        {user.status === 'suspended' && (<Button variant="ghost" size="icon" title="Reactivate User" onClick={() => handleStatusChange(user.id, 'active')}><UserCheck className="h-4 w-4 text-green-600" /></Button>)}
-                      {/* <Button variant="ghost" size="icon" title="Edit User (Placeholder)"><Edit className="h-4 w-4" /></Button> */}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -148,3 +147,5 @@ export default function AdminUserManagementPage() {
     </div>
   );
 }
+
+const Skeleton = ({ className }: { className: string }) => <div className={`bg-muted animate-pulse rounded ${className}`} />;

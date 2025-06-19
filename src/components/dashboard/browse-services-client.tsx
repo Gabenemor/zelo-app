@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PageHeader } from "@/components/ui/page-header";
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
@@ -10,52 +10,92 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Briefcase, MapPin, Search, ListFilter } from "lucide-react";
+import { Briefcase, MapPin, Search, ListFilter, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils"; // Assuming cn is used
+import { cn } from "@/lib/utils"; 
+import type { ArtisanProfile, NigerianArtisanService } from '@/types';
+import { getArtisans } from '@/lib/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
 
-// Mock data (ensure this is defined or imported appropriately if moved from original page)
-const mockServices = [
-  { id: "1", artisanName: "Adewale Plumbing", service: "Plumbing", location: "Ikeja, Lagos", rating: 4.5, priceRange: "₦5,000 - ₦20,000", avatar: "https://placehold.co/80x80.png?text=AP" , "data-ai-hint": "profile avatar"},
-  { id: "2", artisanName: "Chioma's Catering", service: "Catering", location: "Lekki, Lagos", rating: 4.8, priceRange: "₦10,000 per head", avatar: "https://placehold.co/80x80.png?text=CC", "data-ai-hint": "profile avatar" },
-  { id: "3", artisanName: "Musa Electrics", service: "Electrical Repair", location: "Wuse, Abuja", rating: 4.2, priceRange: "By quote", avatar: "https://placehold.co/80x80.png?text=ME", "data-ai-hint": "profile avatar" },
-  { id: "4", artisanName: "Bola Fashion House", service: "Tailoring", location: "Surulere, Lagos", rating: 4.9, priceRange: "From ₦15,000", avatar: "https://placehold.co/80x80.png?text=BFH", "data-ai-hint": "profile avatar" },
-];
-
-const serviceCategories = ["Plumbing", "Catering", "Electrical Repair", "Tailoring", "Carpentry", "Hairdressing"];
 const ALL_CATEGORIES_ITEM_VALUE = "_all_";
 
 export function BrowseServicesClient() {
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const roleFromParams = searchParams.get('role') || 'client';
 
+  const [allArtisans, setAllArtisans] = useState<ArtisanProfile[]>([]);
+  const [filteredArtisans, setFilteredArtisans] = useState<ArtisanProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 50000]);
+  const [selectedCategory, setSelectedCategory] = useState<NigerianArtisanService | typeof ALL_CATEGORIES_ITEM_VALUE>(ALL_CATEGORIES_ITEM_VALUE);
+  const [priceRange, setPriceRange] = useState([0, 1000000]); // Increased max for realism
   const [currentLocation, setCurrentLocation] = useState<{ address: string; lat?: number; lng?: number } | null>(null);
+
+  const fetchArtisans = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const artisansFromDb = await getArtisans({ limit: 50 }); // Fetch initial set
+      setAllArtisans(artisansFromDb);
+      setFilteredArtisans(artisansFromDb); // Initially show all fetched
+    } catch (error) {
+      console.error("Error fetching artisans:", error);
+      toast({ title: "Error", description: "Could not load artisans.", variant: "destructive"});
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchArtisans();
+  }, [fetchArtisans]);
+
+  useEffect(() => {
+    let tempArtisans = allArtisans;
+
+    if (searchTerm) {
+      tempArtisans = tempArtisans.filter(artisan =>
+        (artisan.username?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+        (artisan.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+        (artisan.servicesOffered.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())))
+      );
+    }
+
+    if (selectedCategory !== ALL_CATEGORIES_ITEM_VALUE) {
+      tempArtisans = tempArtisans.filter(artisan => artisan.servicesOffered.includes(selectedCategory));
+    }
+    
+    if (currentLocation?.address) {
+        // Basic location filter (can be improved with geo-queries if lat/lng are reliably available)
+        tempArtisans = tempArtisans.filter(artisan => artisan.location?.toLowerCase().includes(currentLocation.address.split(',')[0].trim().toLowerCase()));
+    }
+    
+    // Placeholder for price range filter if artisan profiles store typical charges
+    // tempArtisans = tempArtisans.filter(artisan => {
+    //    const avgCharge = artisan.serviceExperiences?.[0]?.chargeAmount; // Example
+    //    return avgCharge ? avgCharge >= priceRange[0] && avgCharge <= priceRange[1] : true;
+    // });
+
+    setFilteredArtisans(tempArtisans);
+  }, [searchTerm, selectedCategory, currentLocation, priceRange, allArtisans]);
+
 
   const handleLocationSelect = (location: { address: string; lat?: number; lng?: number }) => {
     setCurrentLocation(location);
-    // console.log("Selected location:", location);
   };
 
-  const filteredServices = mockServices.filter(service =>
-    (service.artisanName.toLowerCase().includes(searchTerm.toLowerCase()) || service.service.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedCategory === "" || selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : service.service === selectedCategory) &&
-    true 
-  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Browse Services & Artisans"
         description="Find skilled professionals near you for any service you need in Nigeria."
-        icon={Briefcase}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Filters Column */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
@@ -80,13 +120,13 @@ export function BrowseServicesClient() {
               </div>
               <div>
                 <label htmlFor="category" className="text-sm font-medium">Service Category</label>
-                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                 <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as NigerianArtisanService | typeof ALL_CATEGORIES_ITEM_VALUE)}>
                   <SelectTrigger id="category" className="w-full mt-1">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={ALL_CATEGORIES_ITEM_VALUE}>All Categories</SelectItem>
-                    {serviceCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                    {NIGERIAN_ARTISAN_SERVICES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -95,8 +135,8 @@ export function BrowseServicesClient() {
                 <Slider
                   id="price"
                   min={0}
-                  max={100000}
-                  step={1000}
+                  max={1000000}
+                  step={10000}
                   value={priceRange}
                   onValueChange={(value) => setPriceRange(value as [number, number])}
                   className="mt-2"
@@ -106,34 +146,46 @@ export function BrowseServicesClient() {
                   <span>₦{priceRange[1].toLocaleString()}</span>
                 </div>
               </div>
-               <Button className="w-full">Apply Filters</Button>
             </CardContent>
           </Card>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="font-headline text-2xl font-semibold">Available Artisans ({filteredServices.length})</h2>
-          {filteredServices.length > 0 ? (
+          <h2 className="font-headline text-2xl font-semibold">Available Artisans ({isLoading ? "..." : filteredArtisans.length})</h2>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : filteredArtisans.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {filteredServices.map(service => (
-                <Card key={service.id} className="overflow-hidden transition-all hover:shadow-lg">
+              {filteredArtisans.map(artisan => (
+                <Card key={artisan.userId} className="overflow-hidden transition-all hover:shadow-lg">
                   <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
-                     <Image src={service.avatar} alt={service.artisanName} width={60} height={60} className="rounded-full border" data-ai-hint={service["data-ai-hint"] || "profile avatar"} />
+                     <Image 
+                        src={artisan.profilePhotoUrl || "https://placehold.co/80x80.png?text=AR"} 
+                        alt={artisan.username || artisan.fullName || "Artisan"} 
+                        width={60} 
+                        height={60} 
+                        className="rounded-full border object-cover" 
+                        data-ai-hint="profile avatar"
+                     />
                     <div className="grid gap-1">
-                      <CardTitle className="font-headline text-lg group-hover:underline">{service.artisanName}</CardTitle>
-                      <CardDescription className="text-primary font-semibold">{service.service}</CardDescription>
+                      <CardTitle className="font-headline text-lg group-hover:underline">{artisan.username || artisan.fullName}</CardTitle>
+                      <CardDescription className="text-primary font-semibold">{artisan.servicesOffered.join(', ')}</CardDescription>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {service.location}
+                        <MapPin className="h-3 w-3" /> {artisan.location || "Nigeria"}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Rating: {service.rating}/5 ⭐</span>
-                        <span className="font-medium text-foreground">{service.priceRange}</span>
+                        {/* Placeholder for rating and price if available */}
+                        {/* <span>Rating: {artisan.rating || 'N/A'}/5 ⭐</span> */}
+                        {/* <span className="font-medium text-foreground">{artisan.priceRange || "By Quote"}</span> */}
                     </div>
+                     <p className="text-xs text-muted-foreground line-clamp-2 h-8 mb-2">{artisan.headline || "Skilled professional ready to serve."}</p>
                     <Button asChild variant="outline" className="mt-3 w-full">
-                        <Link href={`/dashboard/artisans/${service.id}?role=${roleFromParams}`}>View Profile</Link>
+                        <Link href={`/dashboard/artisans/${artisan.userId}?role=${roleFromParams}`}>View Profile</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -147,5 +199,3 @@ export function BrowseServicesClient() {
     </div>
   );
 }
-
-    

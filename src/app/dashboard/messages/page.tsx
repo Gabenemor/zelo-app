@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/ui/page-header";
 import { ChatInterface } from "@/components/messaging/chat-interface";
 import { MessageSquare } from "lucide-react";

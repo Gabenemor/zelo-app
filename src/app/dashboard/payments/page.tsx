@@ -1,33 +1,100 @@
 
 "use client";
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CreditCard, Coins, List, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react"; // Changed DollarSign to Coins
-import type { UserRole } from '@/types';
+import { CreditCard, Coins, List, Download, FileText, ShoppingCart, CheckCircle2, Loader2 } from "lucide-react"; 
+import type { UserRole, EscrowTransaction } from '@/types';
+import { useAuthContext } from '@/components/providers/auth-provider';
+import { getEscrowTransactions } from '@/lib/firestore';
+import { useToast } from '@/hooks/use-toast';
 
-const mockArtisanPaymentSummary = {
-  availableForWithdrawal: 125000,
-  pendingPayouts: 45000,
-  totalEarnedLifetime: 850000,
-};
 
-const mockClientPaymentSummary = {
-  totalSpent: 250000,
-  activeJobsFunded: 2,
-  requestsAwaitingFunding: 1,
-};
+interface PaymentSummary {
+  availableForWithdrawal?: number;
+  pendingPayouts?: number;
+  totalEarnedLifetime?: number;
+  totalSpent?: number;
+  activeJobsFunded?: number;
+  requestsAwaitingFunding?: number;
+}
 
 function PaymentsOverviewPageContent() {
   const searchParams = useSearchParams();
-  const roleFromQuery = searchParams.get("role") as UserRole | null;
-  const userRole: UserRole = roleFromQuery === 'client' ? 'client' : (roleFromQuery === 'artisan' ? 'artisan' : 'client'); // Default to client if role is missing/invalid
+  const { user: authUser, loading: authLoading } = useAuthContext();
+  const { toast } = useToast();
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
 
-  const summary = userRole === 'client' ? mockClientPaymentSummary : mockArtisanPaymentSummary;
+  const roleFromQuery = searchParams.get("role") as UserRole | null;
+  const userRole: UserRole = authUser?.role || roleFromQuery || 'client'; 
+
+  const fetchPaymentSummary = useCallback(async () => {
+    if (!authUser?.uid) {
+      setIsLoadingSummary(false);
+      return;
+    }
+    setIsLoadingSummary(true);
+    try {
+      let userTransactions = await getEscrowTransactions(
+        userRole === 'client' ? { clientId: authUser.uid } : { artisanId: authUser.uid }
+      );
+
+      let calculatedSummary: PaymentSummary = {};
+      if (userRole === 'client') {
+        calculatedSummary.totalSpent = userTransactions
+          .filter(t => t.status === 'funded' || t.status === 'released_to_artisan')
+          .reduce((sum, t) => sum + t.amount, 0);
+        // Placeholder logic for active/awaiting funding - needs ServiceRequest data
+        calculatedSummary.activeJobsFunded = 0; 
+        calculatedSummary.requestsAwaitingFunding = 0; 
+      } else if (userRole === 'artisan') {
+        calculatedSummary.totalEarnedLifetime = userTransactions
+          .filter(t => t.status === 'released_to_artisan')
+          .reduce((sum, t) => sum + (t.amount - t.platformFee), 0);
+        // Placeholder logic for withdrawal/pending
+        calculatedSummary.availableForWithdrawal = 0; 
+        calculatedSummary.pendingPayouts = 0; 
+      }
+      setSummary(calculatedSummary);
+    } catch (error) {
+      console.error("Error fetching payment summary:", error);
+      toast({ title: "Error", description: "Could not load payment summary.", variant: "destructive" });
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  }, [authUser, userRole, toast]);
+
+  useEffect(() => {
+    if (!authLoading && authUser) {
+      fetchPaymentSummary();
+    } else if (!authLoading && !authUser) {
+        setIsLoadingSummary(false);
+    }
+  }, [authLoading, authUser, fetchPaymentSummary]);
+
+
+  if (authLoading || isLoadingSummary) {
+    return <PaymentsLoadingSkeleton />;
+  }
+
+  if (!authUser) {
+     return (
+        <div className="py-12 text-center">
+            <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-lg font-medium text-foreground">Please log in</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Log in to view your payment information.</p>
+             <Button asChild className="mt-6">
+                <Link href={`/login?redirect=/dashboard/payments`}>Login</Link>
+            </Button>
+        </div>
+    );
+  }
+
 
   const addRoleToHref = (href: string, currentRole: UserRole): string => {
     if (href.includes('?')) {
@@ -52,46 +119,46 @@ function PaymentsOverviewPageContent() {
         }
       />
 
-      {userRole === 'artisan' && (
+      {userRole === 'artisan' && summary && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Available for Withdrawal"
-            value={`₦${mockArtisanPaymentSummary.availableForWithdrawal.toLocaleString()}`}
-            icon={Coins} // Changed from DollarSign
+            value={`₦${(summary.availableForWithdrawal || 0).toLocaleString()}`}
+            icon={Coins}
             color="text-green-500"
           />
           <StatCard
             title="Pending Payouts"
-            value={`₦${mockArtisanPaymentSummary.pendingPayouts.toLocaleString()}`}
-            icon={Coins} // Changed from DollarSign
+            value={`₦${(summary.pendingPayouts || 0).toLocaleString()}`}
+            icon={Coins}
             color="text-yellow-500"
             description="From recently completed jobs"
           />
           <StatCard
             title="Lifetime Earnings"
-            value={`₦${mockArtisanPaymentSummary.totalEarnedLifetime.toLocaleString()}`}
+            value={`₦${(summary.totalEarnedLifetime || 0).toLocaleString()}`}
             icon={CreditCard}
           />
         </div>
       )}
 
-      {userRole === 'client' && (
+      {userRole === 'client' && summary && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Total Spent on Zelo"
-            value={`₦${mockClientPaymentSummary.totalSpent.toLocaleString()}`}
+            value={`₦${(summary.totalSpent || 0).toLocaleString()}`}
             icon={ShoppingCart}
           />
           <StatCard
             title="Active Jobs Funded"
-            value={`${mockClientPaymentSummary.activeJobsFunded}`}
+            value={`${summary.activeJobsFunded || 0}`}
             icon={CheckCircle2}
             color="text-green-500"
             description="Services currently in progress"
           />
           <StatCard
             title="Requests Awaiting Funding"
-            value={`${mockClientPaymentSummary.requestsAwaitingFunding}`}
+            value={`${summary.requestsAwaitingFunding || 0}`}
             icon={CreditCard}
             color="text-orange-500"
             description="Awarded jobs that need escrow funding"
@@ -190,10 +257,8 @@ function PaymentsLoadingSkeleton() {
     <div className="space-y-6 animate-pulse">
       <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-muted"></div>
-            <div className="h-8 w-48 rounded-md bg-muted"></div>
-          </div>
+          
+          <div className="h-8 w-48 rounded-md bg-muted"></div>
           <div className="h-4 w-64 rounded-md bg-muted"></div>
         </div>
         <div className="h-9 w-32 rounded-md bg-muted"></div>

@@ -16,8 +16,8 @@ export default function SettingsPage() {
         description="Manage your Zelo account preferences and settings."
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2"> {/* Updated lg:grid-cols-3 to lg:grid-cols-2 */}
-        {/* Account Information Card - could link to profile edit */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2"> {}
+        
         <Card>
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Security</CardTitle>
@@ -48,7 +48,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Notification Settings Card */}
+        
         <Card>
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Notifications</CardTitle>
@@ -62,8 +62,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         
-        {/* Manage Account Card */}
-        <Card className="md:col-span-2 lg:col-span-2"> {/* Updated lg:col-span-3 to lg:col-span-2 */}
+        
+        <Card className="md:col-span-2 lg:col-span-2"> {}
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><UserCog className="h-5 w-5 text-primary" /> Manage Account</CardTitle>
                 <CardDescription>Manage your account status, including suspension or permanent deletion.</CardDescription>

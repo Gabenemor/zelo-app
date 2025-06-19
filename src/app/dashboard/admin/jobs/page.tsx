@@ -29,7 +29,7 @@ export default function AdminJobManagementPage() {
   const fetchJobs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const jobsFromDb = await getServiceRequests({orderByField: 'createdAt'}); // Fetch all, sort by creation
+      const jobsFromDb = await getServiceRequests({orderByField: 'createdAt'}); 
       setAllJobs(jobsFromDb);
       setFilteredJobs(jobsFromDb);
     } catch (error) {
@@ -61,21 +61,38 @@ export default function AdminJobManagementPage() {
   }, [searchTerm, statusFilter, allJobs]);
 
   const handleRemoveJob = async (jobId: string) => {
-    // This is a "soft delete" or policy violation handling - might change status to 'removed_by_admin' or similar
-    // For now, let's simulate removing it by filtering out locally and showing a toast
-    // In a real scenario, you'd update its status in Firestore.
-    console.log(`Admin mock: Removing job ${jobId} due to policy violation`);
+    console.log(`Admin: Flagging job ${jobId} for review/removal.`);
     try {
-        // Example: await updateServiceRequest(jobId, { status: 'cancelled', adminNotes: 'Removed due to policy violation' });
-        toast({ title: "Job Flagged (Mock)", description: `Job ${jobId} has been flagged for review/removal.` });
-        setAllJobs(prev => prev.filter(j => j.id !== jobId)); // Optimistic UI update
+        await updateServiceRequest(jobId, { status: 'cancelled', adminNotes: 'Removed by admin action.' } as any);
+        toast({ title: "Job Cancelled", description: `Job ${jobId} has been cancelled.` });
+        fetchJobs(); 
     } catch (error) {
-        toast({ title: "Error", description: "Could not flag job.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not cancel job.", variant: "destructive" });
     }
   };
 
-  const getStatusBadgeVariant = (status: ServiceRequest["status"]) => { /* ... same as before */ };
-  const getStatusBadgeColor = (status: ServiceRequest["status"]) => { /* ... same as before */ };
+  const getStatusBadgeVariant = (status: ServiceRequest["status"]) => {
+      switch (status) {
+        case 'open': return 'default';
+        case 'awarded': return 'secondary';
+        case 'in_progress': return 'secondary';
+        case 'completed': return 'default'; 
+        case 'cancelled': return 'destructive';
+        case 'disputed': return 'destructive';
+        default: return 'outline';
+    }
+  };
+  const getStatusBadgeColor = (status: ServiceRequest["status"]) => {
+     switch (status) {
+        case 'open': return 'bg-blue-500/20 text-blue-700 border-blue-400';
+        case 'awarded': return 'bg-purple-500/20 text-purple-700 border-purple-400';
+        case 'in_progress': return 'bg-yellow-500/20 text-yellow-700 border-yellow-400';
+        case 'completed': return 'bg-green-500/20 text-green-700 border-green-400';
+        case 'cancelled': return 'bg-gray-500/20 text-gray-700 border-gray-400';
+        case 'disputed': return 'bg-red-500/20 text-red-700 border-red-400';
+        default: return '';
+    }
+  };
 
 
   if (isLoading) {
@@ -142,6 +159,4 @@ export default function AdminJobManagementPage() {
   );
 }
 
-// Skeleton component for loading state
 const Skeleton = ({ className }: { className: string }) => <div className={`bg-muted animate-pulse rounded ${className}`} />;
-

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/components/providers/auth-provider'; 
 import { getProposalsByArtisan } from '@/actions/proposal-actions'; 
 import { getServiceRequests } from '@/lib/firestore'; 
+import { FormDescription } from '@/components/ui/form';
 
 const serviceCategories = ["Plumbing", "Catering", "Painting", "Carpentry", "Photography/Videography", "Electrical Services", "Tailoring", "Web Development", "Other"];
 const ALL_CATEGORIES_ITEM_VALUE = "_all_";
@@ -67,7 +68,7 @@ export default function BrowseJobsPage() {
         setIsLoadingProposals(false);
       }
     } else {
-        setIsLoadingProposals(false); // No artisan ID, so no proposals to load
+        setIsLoadingProposals(false); 
     }
   }, [currentArtisanId, toast]);
 
@@ -119,7 +120,6 @@ export default function BrowseJobsPage() {
     (selectedCategory === ALL_CATEGORIES_ITEM_VALUE ? true : request.category === selectedCategory) &&
     (request.budget ? request.budget >= budgetRange[0] && request.budget <= budgetRange[1] : true) && 
     (currentLocation ? request.location.toLowerCase().includes(currentLocation.address.split('(')[0].trim().toLowerCase()) : true)
-    // TODO: Add radius filter if currentLocation.lat/lng exist
   ).map(request => {
     const proposal = artisanProposals.find(p => p.serviceRequestId === request.id);
     return {
@@ -230,7 +230,6 @@ export default function BrowseJobsPage() {
                   <span>₦{budgetRange[1].toLocaleString()}</span>
                 </div>
               </div>
-               {/* <Button className="w-full">Apply Filters</Button> */} {/* Filter application is instant now */}
             </CardContent>
           </Card>
         </div>
@@ -267,17 +266,3 @@ export default function BrowseJobsPage() {
     </div>
   );
 }
-
-const FormDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => {
-  return (
-    <p
-      ref={ref}
-      className={cn("text-[0.8rem] text-muted-foreground", className)}
-      {...props}
-    />
-  );
-});
-FormDescription.displayName = "FormDescription";

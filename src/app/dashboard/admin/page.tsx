@@ -1,7 +1,7 @@
 
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, Settings, Coins, BarChart3, ShieldAlert } from "lucide-react"; // Changed DollarSign to Coins
+import { Users, Briefcase, Settings, Coins, BarChart3, ShieldAlert } from "lucide-react"; 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <AdminActionLink href="/dashboard/admin/users" icon={Users} label="Manage Users" />
-            <AdminActionLink href="/dashboard/admin/services" icon={Briefcase} label="Manage Services" />
+            <AdminActionLink href="/dashboard/admin/jobs" icon={Briefcase} label="Manage Jobs" />
             <AdminActionLink href="/dashboard/admin/disputes" icon={ShieldAlert} label="Resolve Disputes" badgeCount={3} />
             <AdminActionLink href="/dashboard/admin/settings" icon={Settings} label="Platform Settings" />
           </CardContent>
@@ -48,7 +48,6 @@ export default function AdminDashboardPage() {
             <CardDescription>Overview of platform activity.</CardDescription>
           </CardHeader>
           <CardContent>
-             {/* Placeholder for a chart */}
             <img src="https://placehold.co/600x300.png?text=Platform+Activity+Chart" alt="Platform activity chart" className="w-full rounded-md" data-ai-hint="activity chart" />
             <Button variant="outline" className="mt-4 w-full" asChild>
                 <Link href="/dashboard/admin/reports"><BarChart3 className="mr-2 h-4 w-4" /> View Detailed Reports</Link>
@@ -91,7 +90,7 @@ interface AdminActionLinkProps {
 
 function AdminActionLink({ href, icon: Icon, label, badgeCount }: AdminActionLinkProps) {
     return (
-        <Link href={href} className="group flex flex-col items-center justify-center rounded-lg border bg-background p-4 text-center shadow-sm transition-all hover:shadow-md hover:border-primary">
+        <Link href={href} className="group relative flex flex-col items-center justify-center rounded-lg border bg-background p-4 text-center shadow-sm transition-all hover:shadow-md hover:border-primary">
             <Icon className="h-8 w-8 text-primary mb-2 transition-transform group-hover:scale-110" />
             <span className="text-sm font-medium text-foreground group-hover:text-primary">{label}</span>
             {badgeCount && badgeCount > 0 && (
@@ -102,4 +101,3 @@ function AdminActionLink({ href, icon: Icon, label, badgeCount }: AdminActionLin
         </Link>
     )
 }
-

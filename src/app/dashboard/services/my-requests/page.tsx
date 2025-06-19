@@ -18,7 +18,7 @@ export default function MyServiceRequestsPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const currentUserRole: UserRole = "client"; // This page is specifically for clients
+  const currentUserRole: UserRole = "client"; 
 
   const fetchRequests = useCallback(async (clientId: string) => {
     setIsLoading(true);
@@ -37,8 +37,7 @@ export default function MyServiceRequestsPage() {
     if (authUser?.uid && authUser.role === 'client') {
       fetchRequests(authUser.uid);
     } else if (!authLoading && authUser?.role !== 'client') {
-        // Not a client, or no authUser, or auth still loading
-        setIsLoading(false); // Stop loading if role is not client or no user
+        setIsLoading(false); 
         setRequests([]);
     }
   }, [authUser, authLoading, fetchRequests]);

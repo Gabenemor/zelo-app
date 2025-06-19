@@ -29,7 +29,7 @@ export default function AdminTransactionLogsPage() {
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     try {
-      const transactionsFromDb = await getEscrowTransactions(); // Fetch all
+      const transactionsFromDb = await getEscrowTransactions(); 
       setAllTransactions(transactionsFromDb);
       setFilteredTransactions(transactionsFromDb);
     } catch (error) {
@@ -104,7 +104,6 @@ export default function AdminTransactionLogsPage() {
               <SelectTrigger className="w-full sm:w-[180px]"><SlidersHorizontal className="mr-2 h-4 w-4 text-muted-foreground" /><SelectValue placeholder="Filter by status" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Statuses</SelectItem>{transactionStatusOptions.map(status => (<SelectItem key={status} value={status} className="capitalize">{status.replace(/_/g, ' ')}</SelectItem>))}</SelectContent>
             </Select>
-            {/* <Input type="text" placeholder="Date range (mock)" className="w-full sm:w-[180px]" /> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -143,5 +142,4 @@ export default function AdminTransactionLogsPage() {
   );
 }
 
-// Skeleton component for loading state
 const Skeleton = ({ className }: { className: string }) => <div className={`bg-muted animate-pulse rounded ${className}`} />;

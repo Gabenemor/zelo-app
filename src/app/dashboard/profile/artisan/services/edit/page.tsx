@@ -5,44 +5,63 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ServiceSelectionChips } from '@/components/onboarding/service-selection-chips';
-import { NIGERIAN_ARTISAN_SERVICES } from '@/types';
+import { NIGERIAN_ARTISAN_SERVICES, type ArtisanProfile } from '@/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Briefcase, Loader2, Save, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { updateArtisanPrimaryServices } from '@/actions/onboarding-actions'; // Assuming action is here
+import { updateArtisanPrimaryServices } from '@/actions/onboarding-actions';
+import { getArtisanProfile } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { useAuthContext } from '@/components/providers/auth-provider';
 
-// Mock user ID - in a real app, this would come from authentication context
-const MOCK_ARTISAN_ID = "mockUserId123"; // Same as used in onboarding-actions
 const REQUIRED_SERVICES_COUNT = 2;
-
-// Mock function to get current artisan services - replace with actual data fetching
-async function getArtisanCurrentServices(userId: string): Promise<string[]> {
-  console.log("Fetching current services for (mock)", userId);
-  // Simulate fetching, return a default or previously saved set
-  return ["Plumbing", "Tailoring/Fashion Design"]; // Example
-}
-
 
 function EditArtisanServicesContent() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user: authUser, loading: authLoading } = useAuthContext();
   const [selectedPrimaryServices, setSelectedPrimaryServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingInitial, setIsFetchingInitial] = useState(true);
 
   useEffect(() => {
     async function fetchInitialServices() {
+      if (authLoading || !authUser || authUser.role !== 'artisan') {
+        if (!authLoading && !authUser) {
+          toast({ title: "Unauthorized", description: "Please log in as an artisan.", variant: "destructive" });
+          router.replace('/login');
+        } else if (!authLoading && authUser && authUser.role !== 'artisan') {
+          toast({ title: "Access Denied", description: "This page is for artisans only.", variant: "destructive" });
+          router.replace('/dashboard');
+        }
+        setIsFetchingInitial(false);
+        return;
+      }
       setIsFetchingInitial(true);
-      const currentServices = await getArtisanCurrentServices(MOCK_ARTISAN_ID);
-      setSelectedPrimaryServices(currentServices);
-      setIsFetchingInitial(false);
+      try {
+        const profile = await getArtisanProfile(authUser.uid);
+        if (profile?.servicesOffered) {
+            setSelectedPrimaryServices(profile.servicesOffered);
+        } else {
+            // If no profile or services, default to empty or guide to full profile setup
+            toast({ title: "Profile Incomplete", description: "Please complete your main profile first.", variant: "default"});
+        }
+      } catch (error) {
+        toast({title: "Error", description: "Could not load your current services.", variant: "destructive"});
+        console.error("Error fetching artisan services:", error);
+      } finally {
+        setIsFetchingInitial(false);
+      }
     }
     fetchInitialServices();
-  }, []);
+  }, [authUser, authLoading, router, toast]);
 
   const handleSaveChanges = async () => {
+    if (!authUser?.uid) {
+        toast({title: "Error", description: "User not identified.", variant: "destructive"});
+        return;
+    }
     if (selectedPrimaryServices.length !== REQUIRED_SERVICES_COUNT) {
       toast({
         title: "Selection Required",
@@ -53,13 +72,12 @@ function EditArtisanServicesContent() {
     }
 
     setIsLoading(true);
-    const result = await updateArtisanPrimaryServices(MOCK_ARTISAN_ID, selectedPrimaryServices);
+    const result = await updateArtisanPrimaryServices(authUser.uid, selectedPrimaryServices);
     setIsLoading(false);
 
     if (result.success && result.data) {
       toast({ title: "Services Updated", description: "Your primary services have been updated." });
-      // Optionally redirect or offer to go back
-      router.push('/dashboard/profile/artisan/edit'); // Back to main profile edit
+      router.push('/dashboard/profile/artisan/edit'); 
     } else {
       let errorMessages: string[] = [];
       if (result.error) {
@@ -89,13 +107,17 @@ function EditArtisanServicesContent() {
     }
   };
 
-  if (isFetchingInitial) {
+  if (authLoading || isFetchingInitial) {
      return (
       <div className="container mx-auto max-w-2xl py-8 sm:py-12 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="mt-2 text-muted-foreground">Loading your services...</p>
       </div>
     );
+  }
+  
+  if (!authUser || authUser.role !== 'artisan') {
+      return <div className="container mx-auto max-w-2xl py-8 sm:py-12 text-center"><p>Please log in as an artisan.</p></div>
   }
 
   return (

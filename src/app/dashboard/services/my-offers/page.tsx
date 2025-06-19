@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 
 interface ArtisanJobWithProposal extends ServiceRequest {
-  proposalDetails?: ArtisanProposal; // Entire proposal object
+  proposalDetails?: ArtisanProposal; 
 }
 
 export default function MyJobsAndProposalsPage() {
@@ -36,7 +36,7 @@ export default function MyJobsAndProposalsPage() {
   const fetchData = useCallback(async (artisanId: string) => {
     setIsLoading(true);
     try {
-      const userProposals = await getProposalsByArtisan(artisanId);
+      const userProposals = await getProposals({ artisanId });
       const serviceRequestIds = Array.from(new Set(userProposals.map(p => p.serviceRequestId)));
       
       const serviceRequestDetailsPromises = serviceRequestIds.map(id => getServiceRequest(id));
@@ -48,7 +48,6 @@ export default function MyJobsAndProposalsPage() {
         return serviceRequest ? { ...serviceRequest, proposalDetails: proposal } : null;
       }).filter(Boolean) as ArtisanJobWithProposal[];
 
-      // Now, categorize them
       const sent: ArtisanJobWithProposal[] = [];
       const active: ArtisanJobWithProposal[] = [];
       const completed: ArtisanJobWithProposal[] = [];
@@ -58,17 +57,15 @@ export default function MyJobsAndProposalsPage() {
           completed.push(job);
         } else if ((job.status === 'in_progress' || job.status === 'awarded') && job.assignedArtisanId === artisanId) {
           active.push(job);
-        } else if (job.proposalDetails?.status && job.status === 'open') { // Only show proposals for open jobs
+        } else if (job.proposalDetails?.status && job.status === 'open') { 
           sent.push(job);
         }
       }
       
-      // Also fetch jobs directly assigned to artisan but for which they might not have a "proposal" (e.g. admin assigned)
-      // This might overlap with above logic, ensure no duplicates if that's the case.
       const directlyAssignedJobs = await getServiceRequests({ artisanId, status: ['in_progress', 'awarded'] });
       directlyAssignedJobs.forEach(job => {
         if (!active.find(aj => aj.id === job.id) && !completed.find(cj => cj.id === job.id)) {
-          active.push(job); // Add to active if not already there
+          active.push(job); 
         }
       });
       const directlyCompletedJobs = await getServiceRequests({ artisanId, status: 'completed' });
@@ -95,7 +92,7 @@ export default function MyJobsAndProposalsPage() {
     if (authUser?.uid && authUser.role === 'artisan') {
       fetchData(authUser.uid);
     } else if (!authLoading && authUser?.role !== 'artisan') {
-      setIsLoading(false); // Not an artisan or no authUser
+      setIsLoading(false); 
     }
   }, [authUser, authLoading, fetchData]);
 

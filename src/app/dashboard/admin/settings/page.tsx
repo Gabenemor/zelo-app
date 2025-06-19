@@ -1,5 +1,5 @@
 
-"use client"; // Added to allow client-side interactivity if any button needs it
+"use client"; 
 
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,7 @@ export default function AdminPlatformSettingsPage() {
             </div>
              <div className="space-y-2">
                 <Label htmlFor="platformPrimaryColor">Primary Color (Hex)</Label>
-                <Input id="platformPrimaryColor" defaultValue="#05BA05" />
+                <Input id="platformPrimaryColor" defaultValue="#AAFC01" /> {/* Updated to PRD color */}
                  <p className="text-xs text-muted-foreground">Changes theme color across the platform. Ensure good contrast.</p>
             </div>
             <Button onClick={() => console.log('Mock: Save Branding Changes')}>Save Branding Changes (Mock)</Button>

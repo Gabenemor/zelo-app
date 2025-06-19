@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -52,7 +53,7 @@ export default function NotificationsPage() {
     if (authUser?.uid) {
       fetchNotifications(authUser.uid);
     } else if (!authLoading && !authUser) {
-      setIsLoading(false); // No user, nothing to load
+      setIsLoading(false); 
     }
   }, [authUser, authLoading, fetchNotifications]);
 

@@ -6,52 +6,22 @@ import type { EscrowTransaction, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { List } from "lucide-react";
-
-// Mock transaction data for demonstration
-const mockEscrowTransactions: EscrowTransaction[] = [
-  {
-    id: "txn_123abc",
-    serviceRequestId: "req_catering_xyz",
-    clientId: "client_jane_doe",
-    artisanId: "artisan_john_bull",
-    amount: 50000, // Total amount paid by client
-    platformFee: 5000, // 10% of 50000
-    status: "funded",
-    createdAt: new Date(Date.now() - 86400000 * 3), // 3 days ago
-    updatedAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
-  },
-  {
-    id: "txn_456def",
-    serviceRequestId: "req_plumbing_uvw",
-    clientId: "client_john_doe",
-    artisanId: "artisan_ada_eze",
-    amount: 15000,
-    platformFee: 1500,
-    status: "released_to_artisan",
-    createdAt: new Date(Date.now() - 86400000 * 10), // 10 days ago
-    updatedAt: new Date(Date.now() - 86400000 * 5), // 5 days ago
-  },
-];
-
-// Simulate fetching current user type (replace with actual auth logic)
-const getCurrentUserRole = async (): Promise<UserRole> => {
-  // Change this to 'client' or 'admin' to test different views
-  return 'artisan'; 
-};
+import { getEscrowTransaction } from "@/lib/firestore"; 
+import { useAuthContext } from "@/components/providers/auth-provider"; 
+import { getCurrentUser } from "@/lib/auth";
 
 
 export default async function EscrowPage({ searchParams }: { searchParams?: { transactionId?: string }}) {
   const transactionId = searchParams?.transactionId;
-  let specificTransaction: EscrowTransaction | undefined = undefined;
-  const currentUserRole = await getCurrentUserRole();
+  let specificTransaction: EscrowTransaction | null = null;
+  
+  const currentUser = await getCurrentUser();
+  const currentUserRole = currentUser?.role || 'client';
+
 
   if (transactionId) {
-    // In a real app, fetch the specific transaction by ID
-    specificTransaction = mockEscrowTransactions.find(t => t.id === transactionId);
+    specificTransaction = await getEscrowTransaction(transactionId);
   }
-  // For now, let's pick the first one if no ID is passed but to demonstrate the single view
-  // specificTransaction = mockEscrowTransactions[0]; 
-
 
   return (
     <div className="space-y-6">
@@ -66,7 +36,7 @@ export default async function EscrowPage({ searchParams }: { searchParams?: { tr
             </Button>
         )}
       />
-      <EscrowInfo transaction={specificTransaction} currentUserRole={currentUserRole} />
+      <EscrowInfo transaction={specificTransaction || undefined} currentUserRole={currentUserRole} />
 
       {!specificTransaction && (
         <div className="mt-8 text-center">
