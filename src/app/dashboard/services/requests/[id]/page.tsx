@@ -1,7 +1,7 @@
 
-'use client'; // Main page component becomes client component to manage state
+'use client'; 
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck, Loader2, Edit, AlertTriangle, Send } from "lucide-react"; // Added Loader2, Edit, AlertTriangle, Send
+import { Briefcase, CalendarDays, Coins, FileText, MapPin, MessageCircle, Users, CreditCard, Trash2, CheckCircle2, CheckSquare, ShieldCheck, Loader2, Edit, AlertTriangle, Send, Award } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
-import type { ServiceRequest, ArtisanProposal, UserRole } from "@/types";
+import type { ServiceRequest, ArtisanProposal, UserRole, AuthUser } from "@/types";
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -26,12 +26,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { ArtisanProposalForm } from '@/components/service-requests/artisan-proposal-form';
-import { getProposalsForRequest, getProposalsByArtisan } from '@/actions/proposal-actions'; // Mock actions
+import { getProposalsForRequest, getProposalsByArtisan } from '@/actions/proposal-actions'; 
+import { 
+    handleCancelRequestServerAction, 
+    handleMarkJobAsCompleteArtisanServerAction,
+    handleClientConfirmCompleteAndReleaseFundsServerAction,
+    handleFundEscrowServerAction
+} from '@/actions/service-request-detail-actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
-// --- Mock Data (Retain for fallback or initial state if needed, but prefer dynamic fetching) ---
-const MOCK_ARTISAN_ACTIVE_USER_ID = "artisan_active_user"; // Assume this is our logged-in artisan
+
+const MOCK_ARTISAN_ACTIVE_USER_ID = "artisan_active_user"; 
 
 const mockServiceRequest: ServiceRequest = {
   id: "req_detail_123",
@@ -39,10 +45,10 @@ const mockServiceRequest: ServiceRequest = {
   clientName: "Jane Doe",
   postedBy: { name: "Jane Doe", avatarUrl: "https://placehold.co/80x80.png?text=JD", memberSince: "March 2023", email: "jane.doe@example.com" },
   title: "Professional Catering for Corporate Event (100 Guests)",
-  description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner...",
+  description: "We are seeking a highly skilled and experienced caterer for our annual corporate gala dinner. The event will host approximately 100 executives. We require a three-course meal (appetizer, main course, dessert) with options for vegetarian and gluten-free diets. Service staff, cutlery, and crockery should be included. Please provide sample menus and references if available. The event theme is 'Modern Elegance'.",
   category: "Catering", location: "Eko Hotel & Suites, Victoria Island, Lagos", budget: 750000,
   postedAt: new Date(Date.now() - 86400000 * 7), status: "awarded", assignedArtisanId: "artisan_john_bull", assignedArtisanName: "John Bull Catering",
-  attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/300x200.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
+  attachments: [{ name: "Event_Layout.pdf", url: "#", type: 'document' }, { name: "Sample_Menu_Inspiration.jpg", url: "https://placehold.co/400x300.png?text=Menu+Idea", type: 'image', "data-ai-hint": "event layout" }]
 };
 const mockServiceRequestInProgress: ServiceRequest = {
   id: "req_in_progress_456", clientId: "client_jane_doe", clientName: "Jane Doe",
@@ -58,42 +64,6 @@ const mockOpenServiceRequest: ServiceRequest = {
 
 const allMockRequests = [mockServiceRequest, mockServiceRequestInProgress, mockOpenServiceRequest];
 
-// Initial mock proposals (will be updated by form submission for the active user)
-const mockProposalsReceivedStore: ArtisanProposal[] = [
-    { id: "prop1", serviceRequestId: "req_detail_123", artisanId: "artisan_john_bull", artisanName: "John Bull Catering", artisanAvatarUrl: "https://placehold.co/40x40.png?text=JB", proposedAmount: 720000, coverLetter: "We specialize in corporate events...", submittedAt: new Date(Date.now() - 86400000 * 2), status: "accepted" },
-    { id: "prop2", serviceRequestId: "req_detail_123", artisanId: "artisan_ada_eze", artisanName: "Ada's Kitchen Deluxe", artisanAvatarUrl: "https://placehold.co/40x40.png?text=AKD", proposedAmount: 700000, coverLetter: "With 10 years of experience...", submittedAt: new Date(Date.now() - 86400000 * 1), status: "pending" },
-    { id: "prop_in_progress", serviceRequestId: "req_in_progress_456", artisanId: "artisan_musa_ali", artisanName: "Musa Landscaping", artisanAvatarUrl: "https://placehold.co/40x40.png?text=ML", proposedAmount: 1150000, coverLetter: "Expert landscaping services...", submittedAt: new Date(Date.now() - 86400000 * 10), status: "accepted" },
-];
-// --- End Mock Data ---
-
-
-// Server actions (mocked)
-async function handleCancelRequestServerAction(requestId: string) {
-    'use server'; // Required for server actions
-    console.log("[Server Action] Cancelling request:", requestId);
-    // Simulate DB update
-    return { success: true, message: "Request cancelled successfully (mock)." };
-}
-async function handleMarkJobAsCompleteArtisanServerAction(requestId: string, artisanId: string) {
-    'use server';
-    console.log(`[Server Action] Artisan ${artisanId} marking job ${requestId} as complete.`);
-    return { success: true, message: "Job marked as complete. Client notified (mock)." };
-}
-async function handleClientMarkCompleteAndReleaseFundsServerAction(requestId: string, clientId: string) {
-    'use server';
-    console.log(`[Server Action] Client ${clientId} marking job ${requestId} as complete & releasing funds.`);
-    return { success: true, message: "Job marked complete. Funds released to artisan (mock)." };
-}
-async function handleFundEscrowServerAction(requestId: string, amount: number, clientEmail: string | undefined) {
-  'use server';
-  if (!clientEmail || amount <= 0) {
-    return { success: false, message: "Error: Missing proposal or client email for payment." };
-  }
-  console.log(`[Server Action] Mock initiating NGN ${amount.toLocaleString()} payment for '${requestId}' for ${clientEmail}.`);
-  return { success: true, message: `Mock: Payment for ${requestId} initiated.`, redirectUrl: `/dashboard/payments/escrow?transactionId=mock_txn_${requestId}&status=funded` };
-}
-
-
 function ServiceRequestDetailPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -101,14 +71,13 @@ function ServiceRequestDetailPageContent() {
   const { toast } = useToast();
   const { user: authUser, loading: authLoading } = useAuthContext();
   
-  const [request, setRequest] = useState<ServiceRequest | null | undefined>(undefined); // undefined: loading, null: not found
+  const [request, setRequest] = useState<ServiceRequest | null | undefined>(undefined); 
   const [proposalsForThisRequest, setProposalsForThisRequest] = useState<ArtisanProposal[]>([]);
   const [myProposal, setMyProposal] = useState<ArtisanProposal | null>(null);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
 
   const requestId = typeof params.id === 'string' ? params.id : undefined;
   
-  // Determine role and current user ID (prioritize auth context)
   const roleFromQuery = searchParams.get('role') as UserRole | undefined;
   const currentUserRole = authUser?.role || roleFromQuery || 'client';
   const currentUserId = authUser?.uid || (currentUserRole === 'artisan' ? MOCK_ARTISAN_ACTIVE_USER_ID : "mock_client_id");
@@ -122,18 +91,15 @@ function ServiceRequestDetailPageContent() {
       }
       setIsLoadingPageData(true);
       try {
-        // Simulate fetching request and proposals
         const foundRequest = allMockRequests.find(r => r.id === requestId);
         setRequest(foundRequest || null);
 
         if (foundRequest) {
-          // Simulate fetching all proposals for this request
-          const allProposals = await getProposalsForRequest(foundRequest.id); // Using mock action
+          const allProposals = await getProposalsForRequest(foundRequest.id); 
           setProposalsForThisRequest(allProposals);
 
-          // If current user is an artisan, find their proposal for this request
           if (currentUserRole === 'artisan' && currentUserId) {
-            const artisanSpecificProposals = await getProposalsByArtisan(currentUserId); // Get all proposals by this artisan
+            const artisanSpecificProposals = await getProposalsByArtisan(currentUserId); 
             const specificProposal = artisanSpecificProposals.find(p => p.serviceRequestId === foundRequest.id);
             setMyProposal(specificProposal || null);
           }
@@ -146,14 +112,14 @@ function ServiceRequestDetailPageContent() {
         setIsLoadingPageData(false);
       }
     }
-    if (!authLoading) { // Fetch data once auth state is resolved
+    if (!authLoading) { 
         fetchData();
     }
   }, [requestId, authLoading, currentUserId, currentUserRole, toast]);
 
   const handleProposalSubmissionSuccess = (newProposal: ArtisanProposal) => {
-    setMyProposal(newProposal); // Update local state with the new proposal
-    setProposalsForThisRequest(prev => [...prev, newProposal]); // Add to the list of all proposals
+    setMyProposal(newProposal); 
+    setProposalsForThisRequest(prev => [...prev.filter(p => p.artisanId !== newProposal.artisanId), newProposal]);
     toast({ title: "Proposal Submitted!", description: "Your proposal has been sent to the client." });
   };
   
@@ -173,7 +139,8 @@ function ServiceRequestDetailPageContent() {
     const result = await handleMarkJobAsCompleteArtisanServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Marked Complete", description: result.message });
-        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); // Or a 'pending_client_approval' status
+        // Reflect the status change in the local state for immediate UI update
+        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); // This might need to be 'pending_client_approval'
     } else {
         toast({ title: "Error", description: result.message || "Could not mark job complete.", variant: "destructive" });
     }
@@ -181,7 +148,7 @@ function ServiceRequestDetailPageContent() {
   
   const handleClientConfirmComplete = async () => {
     if (!request || !currentUserId) return;
-    const result = await handleClientMarkCompleteAndReleaseFundsServerAction(request.id, currentUserId);
+    const result = await handleClientConfirmCompleteAndReleaseFundsServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Confirmed & Funds Released", description: result.message });
         setRequest(prev => prev ? { ...prev, status: 'completed' } : null);
@@ -190,15 +157,20 @@ function ServiceRequestDetailPageContent() {
     }
   };
 
+  const acceptedClientProposal = (currentUserRole === 'client' && request && request.assignedArtisanId) 
+    ? proposalsForThisRequest.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId) 
+    : undefined;
+
   const handleFundEscrow = async () => {
       if (!request || !acceptedClientProposal || !request.postedBy?.email) {
           toast({title: "Error", description: "Cannot initiate payment. Missing details.", variant: "destructive"});
           return;
       }
-      const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy.email);
+      // The serviceTitle prop was missing from the call, let's pass request.title
+      const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy.email, request.title);
       if (result.success && result.redirectUrl) {
           toast({title: "Success", description: result.message});
-          router.push(result.redirectUrl); // Redirect to (mock) payment/escrow page
+          router.push(result.redirectUrl); 
       } else {
           toast({title: "Payment Error", description: result.message, variant: "destructive"});
       }
@@ -221,7 +193,7 @@ function ServiceRequestDetailPageContent() {
 
   const isOwnerClient = currentUserRole === 'client' && request.clientId === currentUserId;
   const isAssignedArtisan = currentUserRole === 'artisan' && request.assignedArtisanId === currentUserId;
-  const acceptedClientProposal = isOwnerClient ? proposalsForThisRequest.find(p => p.status === 'accepted' && p.artisanId === request.assignedArtisanId) : undefined;
+  
 
   return (
     <div className="space-y-6">
@@ -285,7 +257,7 @@ function ServiceRequestDetailPageContent() {
 
               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && (
                 <Card className="mt-4 bg-primary/5 border-primary/20">
-                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action: Fund Escrow</CardTitle><CardDescription>Proposal from {acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
+                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleFundEscrow} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow (₦{acceptedClientProposal.proposedAmount.toLocaleString()})</Button></CardContent>
                 </Card>
               )}
@@ -300,13 +272,13 @@ function ServiceRequestDetailPageContent() {
             <CardFooter className="text-xs text-muted-foreground">Posted {formatDistanceToNow(new Date(request.postedAt), { addSuffix: true })}</CardFooter>
           </Card>
 
-          {/* Artisan Interaction Section */}
+          
           {currentUserRole === 'artisan' && (
              <ArtisanInteractionDisplay request={request} currentArtisanId={currentUserId} initialProposals={proposalsForThisRequest} myInitialProposal={myProposal} onMarkComplete={handleArtisanMarkComplete} onProposalSubmitSuccess={handleProposalSubmissionSuccess} />
           )}
 
 
-          {/* Client's View: Proposals Received (if owner and job is open) */}
+          
           {isOwnerClient && request.status === 'open' && proposalsForThisRequest.length > 0 && (
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Proposals Received ({proposalsForThisRequest.length})</CardTitle><CardDescription>Review offers from interested artisans.</CardDescription></CardHeader>
@@ -331,7 +303,14 @@ function ServiceRequestDetailPageContent() {
                                 <p className="text-sm text-foreground line-clamp-3 mb-2">{proposal.coverLetter}</p>
                                 <div className="flex gap-2 flex-wrap">
                                     <Button asChild size="sm" variant="outline"><Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${proposal.artisanId}`}><MessageCircle className="mr-2 h-4 w-4"/> Message</Link></Button>
-                                    {request.status === 'open' && proposal.status === 'pending' && (<Button size="sm" onClick={() => console.log(`Mock: Accepting proposal ${proposal.id}`)}>Accept Proposal</Button>)}
+                                    {request.status === 'open' && proposal.status === 'pending' && (
+                                        <Button size="sm" onClick={() => {
+                                            console.log(`Client mock: Accepting proposal ${proposal.id} from ${proposal.artisanName}`);
+                                            setRequest(prev => prev ? {...prev, status: 'awarded', assignedArtisanId: proposal.artisanId, assignedArtisanName: proposal.artisanName} : null);
+                                            setProposalsForThisRequest(prev => prev.map(p => p.id === proposal.id ? {...p, status: 'accepted'} : {...p, status: p.status === 'accepted' ? 'pending' : p.status} ));
+                                            toast({title: "Proposal Accepted (Mock)", description: `You've accepted ${proposal.artisanName}'s offer. Please fund escrow.`});
+                                        }}>Accept Proposal</Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -341,14 +320,14 @@ function ServiceRequestDetailPageContent() {
           )}
           {isOwnerClient && (request.status === 'awarded' || request.status === 'in_progress') && acceptedClientProposal && (
              <Card>
-                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Accepted Proposal</CardTitle></CardHeader>
-                <CardContent> {/* Content for accepted proposal by client */}
+                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Award className="h-5 w-5 text-green-600"/> Accepted Proposal</CardTitle></CardHeader>
+                <CardContent> 
                     <Card className="bg-green-500/5">
                         <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
                              <Image src={acceptedClientProposal.artisanAvatarUrl || "https://placehold.co/40x40.png?text=AR"} alt={acceptedClientProposal.artisanName} width={40} height={40} className="rounded-full object-cover" data-ai-hint="profile avatar" />
                              <div>
-                                <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{acceptedClientProposal.artisanName}</Link>
-                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP") /* Mock acceptance date */}</p>
+                                <Link href={`/dashboard/artisans/${acceptedClientProposal.artisanId}?role=${currentUserRole}`} className="font-semibold text-primary hover:underline">{request.assignedArtisanName || acceptedClientProposal.artisanName}</Link>
+                                <p className="text-xs text-muted-foreground">Accepted on: {format(new Date(acceptedClientProposal.submittedAt), "PPP")}</p>
                              </div>
                              <div className="ml-auto text-right"><Badge variant="default" className="font-mono bg-green-600">₦{acceptedClientProposal.proposedAmount.toLocaleString()}</Badge></div>
                         </CardHeader>
@@ -356,7 +335,7 @@ function ServiceRequestDetailPageContent() {
                          <CardFooter className="p-4 pt-0">
                             <Button asChild size="sm" variant="outline">
                                 <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${acceptedClientProposal.artisanId}`}>
-                                    <MessageCircle className="mr-2 h-4 w-4"/> Message {acceptedClientProposal.artisanName}
+                                    <MessageCircle className="mr-2 h-4 w-4"/> Message {request.assignedArtisanName || acceptedClientProposal.artisanName}
                                 </Link>
                             </Button>
                         </CardFooter>
@@ -397,7 +376,7 @@ function ServiceRequestDetailPageContent() {
                         </Link>
                     </Button>
                  )}
-                 {isAssignedArtisan && ( // If current user is the assigned artisan
+                 {isAssignedArtisan && ( 
                     <Button asChild variant="outline" className="w-full">
                         <Link href={`/dashboard/messages?role=${currentUserRole}&chatWith=${request.clientId}`}>
                             <MessageCircle className="mr-2 h-4 w-4" /> Message Client
@@ -416,17 +395,17 @@ function ServiceRequestDetailPageContent() {
 interface ArtisanInteractionDisplayProps {
     request: ServiceRequest;
     currentArtisanId: string;
-    initialProposals: ArtisanProposal[]; // All proposals for THIS request
-    myInitialProposal: ArtisanProposal | null; // The current artisan's proposal for THIS request, if any
+    initialProposals: ArtisanProposal[]; 
+    myInitialProposal: ArtisanProposal | null; 
     onMarkComplete: () => Promise<void>;
     onProposalSubmitSuccess: (proposal: ArtisanProposal) => void;
 }
 
-function ArtisanInteractionDisplay({ request, currentArtisanId, initialProposals, myInitialProposal, onMarkComplete, onProposalSubmitSuccess }: ArtisanInteractionDisplayProps) {
+function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposal, onMarkComplete, onProposalSubmitSuccess }: ArtisanInteractionDisplayProps) {
     const [myProposalDetails, setMyProposalDetails] = useState<ArtisanProposal | null>(myInitialProposal);
     const { user: authUser } = useAuthContext();
 
-    useEffect(() => { // Sync with prop changes
+    useEffect(() => { 
         setMyProposalDetails(myInitialProposal);
     }, [myInitialProposal]);
     
@@ -435,7 +414,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, initialProposals
 
     const handleInternalSubmitSuccess = (submittedProposal: ArtisanProposal) => {
         setMyProposalDetails(submittedProposal);
-        onProposalSubmitSuccess(submittedProposal); // Notify parent
+        onProposalSubmitSuccess(submittedProposal); 
     };
 
     if (request.status === 'open') {
@@ -446,7 +425,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, initialProposals
                     <CardContent className="space-y-3">
                         <InfoItem label="Proposed Amount" value={`₦${myProposalDetails.proposedAmount.toLocaleString()}`} icon={Coins} />
                         <InfoItem label="Submitted" value={formatDistanceToNow(new Date(myProposalDetails.submittedAt), { addSuffix: true })} icon={CalendarDays} />
-                        <InfoItem label="Status" value={<Badge variant="outline">{myProposalDetails.status}</Badge>} icon={Briefcase} />
+                        <InfoItem label="Status" value={<Badge variant={myProposalDetails.status === 'accepted' ? "default" : myProposalDetails.status === 'rejected' ? "destructive" : "outline"} className="capitalize">{myProposalDetails.status}</Badge>} icon={Briefcase} />
                         <p className="text-sm text-muted-foreground pt-2 border-t mt-3">Cover Letter: <span className="text-foreground whitespace-pre-line">{myProposalDetails.coverLetter}</span></p>
                         {myProposalDetails.portfolioFileNames && myProposalDetails.portfolioFileNames.length > 0 && (
                             <div className="pt-2">
@@ -460,13 +439,13 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, initialProposals
                 </Card>
             );
         }
+        const artisanIdForForm = authUser?.uid || currentArtisanId; 
         return (
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle><CardDescription>Let the client know why you're the best fit.</CardDescription></CardHeader>
                 <CardContent>
                     <ArtisanProposalForm
                         serviceRequestId={request.id}
-                        artisanId={currentArtisanId}
                         currentBudget={request.budget}
                         onSubmitSuccess={handleInternalSubmitSuccess}
                     />
@@ -478,8 +457,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, initialProposals
     if (isJobAwardedToMe) {
          return (
             <Card className="bg-green-500/10 border-green-500/30">
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-green-600" /> Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Please coordinate with the client to start the work. Once the client funds the escrow, you can begin.</CardDescription></CardHeader>
-                 {/* If status is 'awarded', it means client needs to fund. If 'in_progress', artisan can mark complete. */}
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-green-600" /> Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Please coordinate with the client to start the work. You can begin once the client funds the escrow.</CardDescription></CardHeader>
             </Card>
         );
     }
