@@ -129,7 +129,7 @@
     },
     {
       "collectionGroup": "chats",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "participants",
@@ -144,3 +144,4 @@
   ],
   "fieldOverrides": []
 }
+
