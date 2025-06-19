@@ -139,8 +139,7 @@ function ServiceRequestDetailPageContent() {
     const result = await handleMarkJobAsCompleteArtisanServerAction(request.id, currentUserId);
      if (result.success) {
         toast({ title: "Job Marked Complete", description: result.message });
-        // Reflect the status change in the local state for immediate UI update
-        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); // This might need to be 'pending_client_approval'
+        setRequest(prev => prev ? { ...prev, status: 'completed' } : null); 
     } else {
         toast({ title: "Error", description: result.message || "Could not mark job complete.", variant: "destructive" });
     }
@@ -166,7 +165,6 @@ function ServiceRequestDetailPageContent() {
           toast({title: "Error", description: "Cannot initiate payment. Missing details.", variant: "destructive"});
           return;
       }
-      // The serviceTitle prop was missing from the call, let's pass request.title
       const result = await handleFundEscrowServerAction(request.id, acceptedClientProposal.proposedAmount, request.postedBy.email, request.title);
       if (result.success && result.redirectUrl) {
           toast({title: "Success", description: result.message});
@@ -182,11 +180,28 @@ function ServiceRequestDetailPageContent() {
   }
 
   if (!request) {
+    const notFoundTitle = "Service Request Not Found";
+    let notFoundDescription = "The requested service could not be located or you do not have permission to view it.";
+    let backButtonText = "Go to Dashboard";
+    let backButtonLink = `/dashboard?role=${currentUserRole || 'client'}`;
+
+    if (currentUserRole === 'artisan') {
+      notFoundDescription = "This job post could not be found. It may have been removed, the link is incorrect, or you may not have the necessary permissions to view it. You cannot apply to this job.";
+      backButtonText = "Back to Find Jobs";
+      backButtonLink = `/dashboard/jobs?role=artisan`;
+    } else if (currentUserRole === 'client') {
+      notFoundDescription = "This service request could not be found. It might have been removed or the link is incorrect.";
+      backButtonText = "Back to My Requests";
+      backButtonLink = `/dashboard/services/my-requests?role=client`;
+    }
+    
     return (
         <div className="space-y-6 text-center py-10">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-            <PageHeader title="Service Request Not Found" description="The requested service could not be located." icon={FileText} />
-            <Button asChild variant="outline"><Link href={`/dashboard?role=${currentUserRole}`}>Go to Dashboard</Link></Button>
+            <PageHeader title={notFoundTitle} description={notFoundDescription} icon={FileText} />
+            <Button asChild variant="outline"><Link href={backButtonLink}>
+                {backButtonText}
+            </Link></Button>
         </div>
     );
   }
