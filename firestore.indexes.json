@@ -59,7 +59,7 @@
     },
     {
       "collectionGroup": "proposals",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
           "fieldPath": "artisanId",
@@ -129,11 +129,11 @@
     },
     {
       "collectionGroup": "chats",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
           "fieldPath": "participants",
-          "order": "ASCENDING"
+          "arrayConfig": "CONTAINS"
         },
         {
           "fieldPath": "updatedAt",
@@ -144,4 +144,3 @@
   ],
   "fieldOverrides": []
 }
-
