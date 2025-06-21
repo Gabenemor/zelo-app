@@ -17,6 +17,20 @@
     },
     {
       "collectionGroup": "serviceRequests",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "postedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "serviceRequests",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -129,7 +143,7 @@
     },
     {
       "collectionGroup": "chats",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "participants",
