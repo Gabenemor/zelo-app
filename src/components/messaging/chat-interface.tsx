@@ -15,20 +15,7 @@ import type { AuthUser, UserRole } from '@/types';
 import { messagingService, type ChatMessage, type Chat, type ChatParticipantDetail } from '@/lib/messaging';
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { getArtisanProfile, getClientProfile } from '@/lib/firestore'; // For fetching profile details
-
-
-// Mock users for fetching details if needed initially for creating chats
-const mockArtisanProfilesData: { [key: string]: ChatParticipantDetail } = {
-  "artisan_john_bull": { name: "John Bull Catering", avatarUrl: "https://placehold.co/40x40.png?text=JB", role: "artisan", isOnline: true },
-  "artisan_ada_eze": { name: "Ada's Kitchen Deluxe", avatarUrl: "https://placehold.co/40x40.png?text=AKD", role: "artisan", isOnline: false },
-  "artisan_musa_ali": { name: "Musa Electrics", avatarUrl: "https://placehold.co/40x40.png?text=ME", role: "artisan", isOnline: true },
-};
-
-const mockClientProfilesData: { [key: string]: ChatParticipantDetail } = {
-  "client_jane_doe": { name: "Jane Doe (Event Client)", avatarUrl: "https://placehold.co/40x40.png?text=JD", role: "client", isOnline: false },
-  "client_adewale": { name: "Adewale Plumbing Client", avatarUrl: "https://placehold.co/40x40.png?text=AP", role: "client", isOnline: true },
-};
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 function ChatInterfaceContent() {
   const searchParams = useSearchParams();
@@ -64,12 +51,7 @@ function ChatInterfaceContent() {
           const targetConv = fetchedConversations.find(c => c.participants.includes(chatWithUserId));
           if (targetConv && (!selectedConversation || selectedConversation.id !== targetConv.id)) {
             setSelectedConversation(targetConv);
-          } else if (!targetConv && fetchedConversations.length > 0 && !selectedConversation) {
-             // If chatWith not found, or no selected chat yet, select first
-            // setSelectedConversation(fetchedConversations[0]); 
           }
-        } else if (fetchedConversations.length > 0 && !selectedConversation) {
-            // setSelectedConversation(fetchedConversations[0]);
         }
         setIsInitializing(false);
       });
@@ -78,7 +60,7 @@ function ChatInterfaceContent() {
       setIsInitializing(false); // No user, stop initializing
       setConversations([]);
     }
-  }, [currentUser, searchParams, selectedConversation]); // Added selectedConversation to deps
+  }, [currentUser, searchParams, selectedConversation]);
 
   // Subscribe to messages of the selected conversation
   useEffect(() => {
@@ -103,22 +85,26 @@ function ChatInterfaceContent() {
         console.error("Current user not available to initiate chat.");
         return;
     }
+    
+    const otherUserRole = currentUser.role === 'client' ? 'artisan' : 'client'; // Simple assumption
 
-    // Fetch profile details for both users to pass to getOrCreateChat
     let currentUserDetails: ChatParticipantDetail | undefined;
-    let otherUserDetails: ChatParticipantDetail | undefined;
-
-    // Fetch current user's profile (simplified)
     if (currentUser.role === 'client') {
         const profile = await getClientProfile(currentUser.uid);
-        currentUserDetails = { name: profile?.fullName || currentUser.displayName || "User", avatarUrl: profile?.avatarUrl, role: 'client', isOnline: true }; // Mock isOnline for current user
+        currentUserDetails = { name: profile?.fullName || currentUser.displayName || "User", avatarUrl: profile?.avatarUrl, role: 'client', isOnline: true };
     } else if (currentUser.role === 'artisan') {
         const profile = await getArtisanProfile(currentUser.uid);
-        currentUserDetails = { name: profile?.fullName || currentUser.displayName || "User", avatarUrl: profile?.profilePhotoUrl, role: 'artisan', isOnline: true }; // Mock isOnline
+        currentUserDetails = { name: profile?.fullName || currentUser.displayName || "User", avatarUrl: profile?.profilePhotoUrl, role: 'artisan', isOnline: true };
     }
-     // Fetch other user's profile (this part needs to know other user's role or have a generic fetch)
-    // For mock: assume we know the other user's role or fetch from a combined mock source
-    otherUserDetails = mockArtisanProfilesData[otherUserId] || mockClientProfilesData[otherUserId] || {name: "New User", role: "client", isOnline: false}; // Fallback
+    
+    let otherUserDetails: ChatParticipantDetail | undefined;
+    if (otherUserRole === 'client') {
+        const profile = await getClientProfile(otherUserId);
+        otherUserDetails = { name: profile?.fullName || "Client", avatarUrl: profile?.avatarUrl, role: 'client', isOnline: false };
+    } else { // artisan
+        const profile = await getArtisanProfile(otherUserId);
+        otherUserDetails = { name: profile?.username || profile?.fullName || "Artisan", avatarUrl: profile?.profilePhotoUrl, role: 'artisan', isOnline: false };
+    }
 
     if (!currentUserDetails || !otherUserDetails) {
         console.error("Could not fetch participant details for chat creation.");
@@ -133,10 +119,10 @@ function ChatInterfaceContent() {
     try {
         const chatId = await messagingService.getOrCreateChat(currentUser.uid, otherUserId, participantDetailsMap);
         const chatToSelect = conversations.find(c => c.id === chatId) || 
-                             { id: chatId, participants: [currentUser.uid, otherUserId], participantDetails: participantDetailsMap, unreadCount: {}, createdAt: new Date(), updatedAt: new Date() }; // Basic shape if new
+                             { id: chatId, participants: [currentUser.uid, otherUserId], participantDetails: participantDetailsMap, unreadCount: {}, createdAt: new Date(), updatedAt: new Date() };
         setSelectedConversation(chatToSelect);
          if (router && searchParams.has('chatWith')) {
-           router.replace('/dashboard/messages', undefined); // Clear query param
+           router.replace('/dashboard/messages', undefined);
         }
     } catch (error) {
         console.error("Error initiating chat:", error);
@@ -146,18 +132,17 @@ function ChatInterfaceContent() {
 
   useEffect(() => {
     const chatWithId = searchParams.get('chatWith');
-    if (chatWithId && currentUser && !isInitializing && conversations.length > 0) {
+    if (chatWithId && currentUser && !isInitializing) {
       const existingConv = conversations.find(c => c.participants.includes(chatWithId));
       if (existingConv) {
         if (!selectedConversation || selectedConversation.id !== existingConv.id) {
           setSelectedConversation(existingConv);
         }
       } else {
-        // If no existing conversation, attempt to create/fetch it
-        // handleInitiateChat(chatWithId); // Decided against auto-initiating on load from param for now.
+        handleInitiateChat(chatWithId);
       }
     }
-  }, [searchParams, currentUser, isInitializing, conversations, selectedConversation]);
+  }, [searchParams, currentUser, isInitializing, conversations, selectedConversation, handleInitiateChat]);
 
 
   const handleSendMessage = async () => {
@@ -175,7 +160,6 @@ function ChatInterfaceContent() {
       setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
-      // Optionally show a toast to the user
     } finally {
       setIsSending(false);
     }
@@ -204,11 +188,11 @@ function ChatInterfaceContent() {
     }
   };
 
-  if (authLoading || isInitializing) {
+  if (authLoading) {
     return (
       <div className="flex h-[calc(100vh-12rem)] rounded-lg border bg-card shadow-sm items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-muted-foreground">Loading chats...</p>
+        <p className="ml-2 text-muted-foreground">Loading user session...</p>
       </div>
     );
   }
@@ -240,88 +224,96 @@ function ChatInterfaceContent() {
         </div>
         <Separator />
         <ScrollArea className="flex-grow">
-          {conversations.length > 0 ? conversations.map(conv => {
-            const otherUserId = conv.participants.find(pId => pId !== currentUser.uid);
-            const otherUserDetails = otherUserId ? conv.participantDetails[otherUserId] : { name: "Unknown User", avatarUrl: undefined, role: "client", isOnline: false };
-            const unread = conv.unreadCount[currentUser.uid] || 0;
-            const isActive = selectedConversation?.id === conv.id;
+          {isInitializing ? (
+            <div className="p-2 space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-2 rounded-md animate-pulse">
+                  <Skeleton className="h-10 w-10 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-3/4 rounded bg-muted" />
+                    <Skeleton className="h-3 w-1/2 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : conversations.length > 0 ? (
+            conversations.map(conv => {
+              const otherUserId = conv.participants.find(pId => pId !== currentUser.uid);
+              const otherUserDetails = otherUserId ? conv.participantDetails[otherUserId] : { name: "Unknown User", avatarUrl: undefined, role: "client", isOnline: false };
+              const unread = conv.unreadCount[currentUser.uid] || 0;
+              const isActive = selectedConversation?.id === conv.id;
 
-            return (
-              <div
-                key={conv.id}
-                className={cn(
-                  "group flex cursor-pointer items-start gap-3 p-3 transition-colors rounded-md mx-2 my-1", // items-start, rounded, margin
-                  isActive
-                    ? "bg-primary/10"
-                    : "hover:bg-primary/10"
-                )}
-                onClick={() => {
-                  setSelectedConversation(conv);
-                  if(router && searchParams.has('chatWith')) { 
-                    router.replace('/dashboard/messages', undefined);
-                  }
-                }}
-              >
-                <div className="relative shrink-0">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={otherUserDetails.avatarUrl} 
-                      alt={otherUserDetails.name} 
-                      data-ai-hint="profile avatar" 
-                      className="object-cover"
-                    />
-                    <AvatarFallback>{otherUserDetails.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  {otherUserDetails.isOnline && (
-                    <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-card border border-transparent" title="Online" />
+              return (
+                <div
+                  key={conv.id}
+                  className={cn(
+                    "group flex cursor-pointer items-start gap-3 p-3 transition-colors rounded-md mx-2 my-1",
+                    isActive
+                      ? "bg-primary/10"
+                      : "hover:bg-primary/10"
                   )}
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className={cn(
-                      "truncate font-semibold",
-                       isActive || "group-hover:text-primary"
-                        ? "text-primary"
-                        : "text-foreground"
+                  onClick={() => {
+                    setSelectedConversation(conv);
+                    if(router && searchParams.has('chatWith')) { 
+                      router.replace('/dashboard/messages', undefined);
+                    }
+                  }}
+                >
+                  <div className="relative shrink-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={otherUserDetails.avatarUrl} 
+                        alt={otherUserDetails.name} 
+                        data-ai-hint="profile avatar" 
+                        className="object-cover"
+                      />
+                      <AvatarFallback>{otherUserDetails.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    {otherUserDetails.isOnline && (
+                      <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-card border border-transparent" title="Online" />
                     )}
-                  >
-                    {otherUserDetails.name}
-                  </p>
-                  <p className={cn(
-                      "truncate text-xs",
-                      isActive
-                        ? (unread > 0 ? "font-bold text-primary/90" : "text-primary/80")
-                        : unread > 0
-                          ? "font-bold text-primary group-hover:text-primary"
-                          : "text-muted-foreground group-hover:text-primary/80"
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className={cn(
+                        "truncate font-semibold",
+                        isActive || "group-hover:text-primary" ? "text-primary" : "text-foreground"
+                      )}
+                    >
+                      {otherUserDetails.name}
+                    </p>
+                    <p className={cn(
+                        "truncate text-xs",
+                        isActive
+                          ? (unread > 0 ? "font-bold text-primary/90" : "text-primary/80")
+                          : unread > 0
+                            ? "font-bold text-primary group-hover:text-primary"
+                            : "text-muted-foreground group-hover:text-primary/80"
+                      )}
+                    >
+                      {conv.lastMessage?.text || "No messages yet"}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs space-y-0.5">
+                    <p className={cn(
+                        isActive || "group-hover:text-primary/70" ? "text-primary/70" : "text-muted-foreground"
+                      )}
+                    >
+                      {conv.lastMessage?.timestamp ? new Date(conv.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : ""}
+                    </p>
+                    {unread > 0 && (
+                        <span className={cn(
+                            "inline-flex items-center justify-center rounded-full h-4 min-w-[1rem] px-1.5 py-0.5 text-xs font-semibold leading-none",
+                            isActive ? "bg-primary/20 text-primary" : "bg-primary text-primary-foreground group-hover:bg-primary/90"
+                          )}
+                        >
+                            {unread}
+                        </span>
                     )}
-                  >
-                    {conv.lastMessage?.text || "No messages yet"}
-                  </p>
+                  </div>
                 </div>
-                <div className="text-right text-xs space-y-0.5">
-                  <p className={cn(
-                       isActive || "group-hover:text-primary/70"
-                        ? "text-primary/70"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {conv.lastMessage?.timestamp ? new Date(conv.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : ""}
-                  </p>
-                  {unread > 0 && (
-                      <span className={cn(
-                          "inline-flex items-center justify-center rounded-full h-4 min-w-[1rem] px-1.5 py-0.5 text-xs font-semibold leading-none",
-                           isActive
-                            ? "bg-primary/20 text-primary" 
-                            : "bg-primary text-primary-foreground group-hover:bg-primary/90"
-                        )}
-                      >
-                          {unread}
-                      </span>
-                  )}
-                </div>
-              </div>
-            );
-          }) : (
+              );
+            })
+          ) : (
             <div className="flex flex-col items-center justify-center h-full p-4 text-center">
                  <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-3" />
                  <p className="text-sm font-medium text-muted-foreground">No conversations yet.</p>
@@ -352,7 +344,6 @@ function ChatInterfaceContent() {
               </Avatar>
               <div>
                 <p className="font-semibold">{selectedConversation.participantDetails[selectedConversation.participants.find(p=>p !== currentUser.uid)!]?.name}</p>
-                {/* Online status could be added here */}
               </div>
               <div className="ml-auto">
                 <Button variant="ghost" size="icon" onClick={createGoogleMeetLinkAndSend} title="Create Google Meet Link" disabled={isSending}>
@@ -422,13 +413,18 @@ function ChatInterfaceContent() {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-center p-6 bg-secondary/20">
-             {conversations.length > 0 ? (
+            {isInitializing ? (
+                <>
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <p className="mt-4 text-muted-foreground">Loading conversations...</p>
+                </>
+            ) : conversations.length > 0 ? (
                 <>
                     <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
                     <p className="text-lg font-medium text-muted-foreground">Select a conversation</p>
                     <p className="text-sm text-muted-foreground">Choose a chat from the sidebar to view messages.</p>
                 </>
-             ) : (
+            ) : (
                 <>
                     <Briefcase className="h-16 w-16 text-muted-foreground/30 mb-4" />
                     <p className="text-lg font-medium text-muted-foreground">Welcome to Zelo Messages!</p>
@@ -441,7 +437,7 @@ function ChatInterfaceContent() {
                         </Link>
                     </Button>
                 </>
-             )}
+            )}
           </div>
         )}
       </div>
@@ -461,4 +457,3 @@ export function ChatInterface() {
     </Suspense>
   )
 }
-
