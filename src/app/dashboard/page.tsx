@@ -125,7 +125,6 @@ function DashboardHomePageContent() {
       <PageHeader
         title={pageTitleText}
         description={pageDescriptionText}
-        icon={LayoutDashboard}
         action={userRole === 'client' && (
           <Button asChild size="lg">
             <Link href={`/dashboard/services/request/new?role=${userRole}`}>
