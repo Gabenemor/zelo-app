@@ -34,13 +34,15 @@ function DashboardHomePageContent() {
   const [dashboardStats, setDashboardStats] = useState<any>({});
   const [relevantItems, setRelevantItems] = useState<ServiceRequest[]>([]);
   const [suggestedArtisans, setSuggestedArtisans] = useState<ArtisanProfile[]>([]);
-  // Removed recentActivities as it requires a dedicated system
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const userRole = authUser?.role;
 
   const fetchDashboardData = useCallback(async () => {
-    if (!authUser?.uid || !userRole) return;
+    if (!authUser?.uid || !userRole) {
+      setIsLoadingData(false);
+      return;
+    }
 
     setIsLoadingData(true);
     try {
@@ -53,30 +55,32 @@ function DashboardHomePageContent() {
         userProfile = await getArtisanProfile(authUser.uid);
         const artisanProposals = await getProposals({ artisanId: authUser.uid });
         const artisanJobs = await getServiceRequests({ artisanId: authUser.uid, status: ['awarded', 'in_progress'] });
-        // For "Total Earned", sum of 'released_to_artisan' transactions. Requires fetching EscrowTransactions. More complex.
-        fetchedStats = { totalBidsSent: artisanProposals.length, activeJobs: artisanJobs.length, totalEarned: 0 /* Placeholder */ };
-        
-        const openJobs = await getServiceRequests({ status: 'open', limit: 3 });
-        // Basic filtering for relevant jobs (can be more sophisticated)
-        fetchedRelevantItems = openJobs.filter(job => 
-            (userProfile as ArtisanProfile)?.servicesOffered?.some(s => job.category.toLowerCase().includes(s.toLowerCase()))
-        ).slice(0,3);
-        if(fetchedRelevantItems.length === 0 && openJobs.length > 0) fetchedRelevantItems = openJobs.slice(0,3);
+        fetchedStats = { totalBidsSent: artisanProposals.length, activeJobs: artisanJobs.length, totalEarned: 0 };
 
+        const openJobs = await getServiceRequests({ status: 'open', limit: 3 });
+        const servicesOffered = (userProfile as ArtisanProfile | null)?.servicesOffered;
+        if (servicesOffered && servicesOffered.length > 0) {
+            fetchedRelevantItems = openJobs.filter(job =>
+                servicesOffered.some(s => job.category.toLowerCase().includes(s.toLowerCase()))
+            ).slice(0, 3);
+        }
+        if (fetchedRelevantItems.length === 0) {
+            fetchedRelevantItems = openJobs.slice(0, 3);
+        }
 
       } else if (userRole === 'client') {
         userProfile = await getClientProfile(authUser.uid);
         const clientRequests = await getServiceRequests({ clientId: authUser.uid });
         fetchedStats = {
-          activeRequests: clientRequests.filter(r => r.status === 'open' || r.status === 'awarded' || r.status === 'in_progress').length,
-          artisansHired: clientRequests.filter(r => r.status === 'awarded' || r.status === 'in_progress' || r.status === 'completed').length,
-          totalSpent: 0, // Placeholder, sum of client's funded/released escrow transactions
+          activeRequests: clientRequests.filter(r => ['open', 'awarded', 'in_progress'].includes(r.status)).length,
+          artisansHired: clientRequests.filter(r => ['awarded', 'in_progress', 'completed'].includes(r.status)).length,
+          totalSpent: 0,
         };
         fetchedRelevantItems = clientRequests
-          .filter(r => r.status === 'open' || r.status === 'awarded' || r.status === 'in_progress')
+          .filter(r => ['open', 'awarded', 'in_progress'].includes(r.status))
           .sort((a,b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()).slice(0,3);
         
-        fetchedSuggestedArtisans = await getArtisans({ limit: 2 }); // Simple fetch for suggestions
+        fetchedSuggestedArtisans = await getArtisans({ limit: 2 });
       }
       setProfile(userProfile);
       setDashboardStats(fetchedStats);
@@ -84,7 +88,7 @@ function DashboardHomePageContent() {
       setSuggestedArtisans(fetchedSuggestedArtisans);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      toast({ title: "Error", description: "Could not load dashboard data.", variant: "destructive" });
+      toast({ title: "Error", description: "An error occurred while loading your dashboard.", variant: "destructive" });
     } finally {
       setIsLoadingData(false);
     }
@@ -202,31 +206,38 @@ function DashboardHomePageContent() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-           {userRole === 'artisan' && (profile as ArtisanProfile)?.serviceExperiences && (
+           {userRole === 'artisan' && (
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline">Your Services</CardTitle>
                 <CardDescription>Overview of your offered services and pricing.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(profile as ArtisanProfile).serviceExperiences!.map((exp, index) => (
-                  <div key={index}>
-                    <h4 className="font-semibold text-md text-foreground">{exp.serviceName}</h4>
-                    <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        <span>{exp.years} years experience</span>
-                      </div>
-                      {exp.chargeAmount && (
-                        <div className="flex items-center gap-1.5">
-                          <Coins className="h-3.5 w-3.5" />
-                          <span>₦{exp.chargeAmount.toLocaleString()} {exp.chargeDescription || ''}</span>
+                {profile && (profile as ArtisanProfile).serviceExperiences && (profile as ArtisanProfile).serviceExperiences!.length > 0 ? (
+                    (profile as ArtisanProfile).serviceExperiences!.map((exp, index) => (
+                      <div key={index}>
+                        <h4 className="font-semibold text-md text-foreground">{exp.serviceName}</h4>
+                        <div className="text-sm text-muted-foreground space-y-1 mt-1">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            <span>{exp.years} years experience</span>
+                          </div>
+                          {exp.chargeAmount && (
+                            <div className="flex items-center gap-1.5">
+                              <Coins className="h-3.5 w-3.5" />
+                              <span>₦{exp.chargeAmount.toLocaleString()} {exp.chargeDescription || ''}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                        {index < ((profile as ArtisanProfile).serviceExperiences!.length - 1) && <Separator className="my-3"/>}
+                      </div>
+                    ))
+                ) : (
+                    <div className="text-center text-sm text-muted-foreground py-4">
+                        <p>You haven't detailed your services yet.</p>
+                        <p>Add experience and pricing to attract more clients.</p>
                     </div>
-                    {index < ((profile as ArtisanProfile).serviceExperiences!.length - 1) && <Separator className="my-3"/>}
-                  </div>
-                ))}
+                )}
                  <Button variant="outline" size="sm" className="w-full mt-4" asChild>
                     <Link href={`/dashboard/profile/artisan/edit?role=${userRole}`}><Edit className="mr-2 h-4 w-4" /> Edit Services & Profile</Link>
                 </Button>
@@ -254,7 +265,6 @@ function DashboardHomePageContent() {
                 </CardContent>
             </Card>
           )}
-          {/* Removed Recent Activity Card as it requires complex backend logging */}
         </div>
       </div>
     </div>
@@ -264,7 +274,7 @@ function DashboardHomePageContent() {
 interface StatCardProps {
   title: string;
   value: string;
-  icon?: React.ElementType; // Make icon optional
+  icon?: React.ElementType; 
   description?: string;
 }
 
@@ -356,3 +366,5 @@ function DashboardLoadingSkeleton() {
     </div>
   );
 }
+
+    
