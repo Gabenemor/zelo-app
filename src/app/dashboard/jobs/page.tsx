@@ -148,7 +148,7 @@ export default function BrowseJobsPage() {
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><ListFilter className="h-5 w-5 text-primary" /> Filter Jobs</CardTitle>
+              <CardTitle className="font-headline">Filter Jobs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>

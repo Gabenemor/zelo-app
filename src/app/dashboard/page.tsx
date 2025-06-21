@@ -153,7 +153,7 @@ function DashboardHomePageContent() {
           {userRole === 'artisan' && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> New Jobs For You</CardTitle>
+                <CardTitle className="font-headline">New Jobs For You</CardTitle>
                 <CardDescription>Opportunities matching your skills.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -174,7 +174,7 @@ function DashboardHomePageContent() {
           {userRole === 'client' && (
              <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><ListChecks className="text-primary h-5 w-5"/> My Service Requests</CardTitle>
+                <CardTitle className="font-headline">My Service Requests</CardTitle>
                 <CardDescription>Track and manage the jobs you've posted.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -205,7 +205,7 @@ function DashboardHomePageContent() {
            {userRole === 'artisan' && (profile as ArtisanProfile)?.serviceExperiences && (
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Briefcase className="text-primary h-5 w-5"/> Your Services</CardTitle>
+                <CardTitle className="font-headline">Your Services</CardTitle>
                 <CardDescription>Overview of your offered services and pricing.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -237,7 +237,7 @@ function DashboardHomePageContent() {
           {userRole === 'client' && (
              <Card>
                 <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2"><Search className="text-primary h-5 w-5"/> Discover Artisans</CardTitle>
+                  <CardTitle className="font-headline">Discover Artisans</CardTitle>
                   <CardDescription>Find skilled professionals for your needs.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">

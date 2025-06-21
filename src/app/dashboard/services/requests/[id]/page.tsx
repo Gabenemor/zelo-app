@@ -276,20 +276,20 @@ function ServiceRequestDetailPageContent() {
 
               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !request.escrowFunded && ( 
                 <Card className="mt-4 bg-primary/5 border-primary/20">
-                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
+                  <CardHeader><CardTitle className="text-lg">Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleFundEscrow} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow (₦{acceptedClientProposal.proposedAmount.toLocaleString()})</Button></CardContent>
                 </Card>
               )}
                {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && request.escrowFunded && ( 
                 <Card className="mt-4 bg-green-500/10 border-green-500/30">
-                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-green-600" /> Escrow Funded</CardTitle><CardDescription>Escrow of ₦{acceptedClientProposal.proposedAmount.toLocaleString()} for {request.assignedArtisanName || acceptedClientProposal.artisanName} is funded. Work can begin.</CardDescription></CardHeader>
+                  <CardHeader><CardTitle className="text-lg">Escrow Funded</CardTitle><CardDescription>Escrow of ₦{acceptedClientProposal.proposedAmount.toLocaleString()} for {request.assignedArtisanName || acceptedClientProposal.artisanName} is funded. Work can begin.</CardDescription></CardHeader>
                 </Card>
               )}
 
 
               {isOwnerClient && request.status === 'in_progress' && (
                 <Card className="mt-4 bg-green-500/10 border-green-500/30">
-                  <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CheckSquare className="h-5 w-5 text-green-600" /> Action: Confirm Completion</CardTitle><CardDescription>If service is complete, confirm to release payment.</CardDescription></CardHeader>
+                  <CardHeader><CardTitle className="text-lg">Action: Confirm Completion</CardTitle><CardDescription>If service is complete, confirm to release payment.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleClientConfirmComplete} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Complete & Release Funds</Button></CardContent>
                 </Card>
               )}
@@ -306,7 +306,7 @@ function ServiceRequestDetailPageContent() {
           
           {isOwnerClient && request.status === 'open' && proposalsForThisRequest.length > 0 && (
             <Card>
-                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5 text-primary"/> Proposals Received ({proposalsForThisRequest.length})</CardTitle><CardDescription>Review offers from interested artisans.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline">Proposals Received ({proposalsForThisRequest.length})</CardTitle><CardDescription>Review offers from interested artisans.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
                     {proposalsForThisRequest.map(proposal => (
                         <Card key={proposal.id} className="bg-secondary/30">
@@ -340,7 +340,7 @@ function ServiceRequestDetailPageContent() {
           )}
           {isOwnerClient && (request.status === 'awarded' || request.status === 'in_progress') && acceptedClientProposal && (
              <Card>
-                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Award className="h-5 w-5 text-green-600"/> Accepted Proposal</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-headline">Accepted Proposal</CardTitle></CardHeader>
                 <CardContent> 
                     <Card className="bg-green-500/5">
                         <CardHeader className="flex flex-row items-start gap-3 space-y-0 p-4">
@@ -439,7 +439,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
         if (myProposalDetails) {
             return (
                 <Card>
-                    <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary" /> Your Proposal Submitted</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Your Proposal Submitted</CardTitle></CardHeader>
                     <CardContent className="space-y-3">
                         <InfoItem label="Proposed Amount" value={`₦${myProposalDetails.proposedAmount.toLocaleString()}`} icon={Coins} />
                         <InfoItem label="Submitted" value={formatDistanceToNow(new Date(myProposalDetails.submittedAt), { addSuffix: true })} icon={CalendarDays} />
@@ -459,7 +459,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
         }
         return (
             <Card>
-                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Send className="h-5 w-5 text-primary"/> Submit Your Proposal</CardTitle><CardDescription>Let the client know why you're the best fit.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline">Submit Your Proposal</CardTitle><CardDescription>Let the client know why you're the best fit.</CardDescription></CardHeader>
                 <CardContent>
                     <ArtisanProposalForm
                         serviceRequestId={request.id}
@@ -474,7 +474,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
     if (isJobAwardedToMe) {
          return (
             <Card className="bg-green-500/10 border-green-500/30">
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-green-600" /> Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Coordinate with the client. Work can begin once escrow is funded (if applicable).</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-lg">Congratulations!</CardTitle><CardDescription>This job has been awarded to you. Coordinate with the client. Work can begin once escrow is funded (if applicable).</CardDescription></CardHeader>
             </Card>
         );
     }
@@ -482,7 +482,7 @@ function ArtisanInteractionDisplay({ request, currentArtisanId, myInitialProposa
     if (isJobInProgressByMe) {
         return (
             <Card className="bg-yellow-500/10 border-yellow-500/30">
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Briefcase className="h-5 w-5 text-yellow-600" /> Job In Progress</CardTitle><CardDescription>Once you've completed the service, mark it as complete to notify the client.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-lg">Job In Progress</CardTitle><CardDescription>Once you've completed the service, mark it as complete to notify the client.</CardDescription></CardHeader>
                 <CardContent>
                     <Button onClick={onMarkComplete} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Job as Complete</Button>
                 </CardContent>

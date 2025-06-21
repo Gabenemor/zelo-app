@@ -206,7 +206,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /> Services You're Interested In</CardTitle>
+            <CardTitle>Services You're Interested In</CardTitle>
             <CardDescription>Select the types of services you typically look for. This helps us recommend relevant artisans.</CardDescription>
           </CardHeader>
           <CardContent>

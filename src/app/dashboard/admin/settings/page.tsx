@@ -22,7 +22,7 @@ export default function AdminPlatformSettingsPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/> Branding & Appearance</CardTitle>
+            <CardTitle className="font-headline">Branding & Appearance</CardTitle>
             <CardDescription>Customize the look and feel of the Zelo platform.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -54,7 +54,7 @@ export default function AdminPlatformSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary"/> Onboarding & User Flow</CardTitle>
+            <CardTitle className="font-headline">Onboarding & User Flow</CardTitle>
             <CardDescription>Control steps and requirements for user onboarding.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -79,7 +79,7 @@ export default function AdminPlatformSettingsPage() {
         
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary"/> Service & Platform Fees</CardTitle>
+            <CardTitle className="font-headline">Service & Platform Fees</CardTitle>
             <CardDescription>Manage service categories and platform commission rates.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

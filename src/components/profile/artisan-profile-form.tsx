@@ -311,7 +311,7 @@ export function ArtisanProfileForm({
         )}
         {fields.length > 0 && (
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Service Details</CardTitle><CardDescription>For each of your selected primary services, specify years of experience and optionally, your typical charge.</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Service Details</CardTitle><CardDescription>For each of your selected primary services, specify years of experience and optionally, your typical charge.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
             {fields.map((item, index) => (
               <div key={item.id} className="space-y-4 rounded-md border bg-secondary/30 p-4">
@@ -390,7 +390,7 @@ export function ArtisanProfileForm({
             </FormItem>
         )}/>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Portfolio Images (Optional)</CardTitle><CardDescription>Showcase your best work. Upload up to 5 images.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Portfolio Images (Optional)</CardTitle><CardDescription>Showcase your best work. Upload up to 5 images.</CardDescription></CardHeader>
           <CardContent>
             <FormItem>
                <FormControl>
