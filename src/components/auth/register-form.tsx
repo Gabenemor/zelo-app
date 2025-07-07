@@ -141,6 +141,7 @@ export function RegisterForm() {
         const onboardingQueryParams = new URLSearchParams({
           firstName: values.firstName,
           uid: result.user.uid,
+          email: values.email,
         });
         router.push(`/onboarding/${values.userType}/step-1?${onboardingQueryParams.toString()}`);
       }

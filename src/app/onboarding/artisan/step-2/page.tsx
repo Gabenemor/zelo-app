@@ -19,6 +19,7 @@ function ArtisanOnboardingStep2Content() {
   const [uid, setUid] = useState<string | null>(null);
   
   const firstName = searchParams ? searchParams.get('firstName') : null;
+  const email = searchParams ? searchParams.get('email') : null;
 
   useEffect(() => {
     if (searchParams) {
@@ -45,9 +46,10 @@ function ArtisanOnboardingStep2Content() {
       
       setInitialFormValues(prev => ({
         ...prev,
-        username: firstName || prev.username, // Prefer firstName from params if available for username
+        username: firstName || prev.username,
+        contactEmail: email || prev.contactEmail,
         servicesOffered, 
-        serviceExperiences: servicesOffered.map(serviceName => ({ // Initialize experiences for selected services
+        serviceExperiences: servicesOffered.map(serviceName => ({
             serviceName: serviceName,
             years: 0,
             chargeAmount: undefined,
@@ -56,7 +58,7 @@ function ArtisanOnboardingStep2Content() {
       }));
       setIsLoadingPage(false);
     }
-  }, [searchParams, toast, firstName, router]);
+  }, [searchParams, toast, firstName, router, email]);
 
   const handleFormSaveSuccess = () => {
     toast({ title: "Profile Setup Complete", description: "Your artisan profile is set up!" });
@@ -88,6 +90,7 @@ function ArtisanOnboardingStep2Content() {
   const backHrefQuery = new URLSearchParams();
   if (firstName) backHrefQuery.append('firstName', firstName);
   if (uid) backHrefQuery.append('uid', uid);
+  if (email) backHrefQuery.append('email', email);
   const backHref = `/onboarding/artisan/step-1?${backHrefQuery.toString()}`;
 
   return (
@@ -104,7 +107,7 @@ function ArtisanOnboardingStep2Content() {
           onSaveSuccess={handleFormSaveSuccess}
           submitButtonText={<><Save className="mr-2 h-4 w-4" /> Save and Go to Dashboard</>}
           backButtonHref={backHref}
-          backButtonText={<><ArrowLeft className="mr-2 h-4 w-4" /> Back to Step 1</>}
+          backButtonText="Back to Step 1"
           isOnboarding={true} 
         />
       </div>

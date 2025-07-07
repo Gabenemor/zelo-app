@@ -20,6 +20,7 @@ function ArtisanOnboardingStep1Content() {
   const [selectedPrimaryServices, setSelectedPrimaryServices] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const REQUIRED_SERVICES_COUNT = 2;
 
   const firstName = searchParams ? searchParams.get('firstName') : null;
@@ -27,11 +28,15 @@ function ArtisanOnboardingStep1Content() {
   useEffect(() => {
     if (searchParams) {
       const userIdFromParams = searchParams.get('uid');
+      const emailFromParams = searchParams.get('email');
       if (userIdFromParams) {
         setUid(userIdFromParams);
       } else {
         toast({ title: "Error", description: "User ID missing. Cannot proceed with onboarding.", variant: "destructive" });
         router.replace('/login'); 
+      }
+      if (emailFromParams) {
+        setEmail(emailFromParams);
       }
     }
   }, [searchParams, router, toast]);
@@ -58,7 +63,8 @@ function ArtisanOnboardingStep1Content() {
       toast({ title: "Services Saved", description: "Your primary services have been noted." });
       const queryParams = new URLSearchParams();
       if (firstName) queryParams.append('firstName', firstName);
-      if (uid) queryParams.append('uid', uid); // Pass UID to step 2
+      if (uid) queryParams.append('uid', uid);
+      if (email) queryParams.append('email', email);
       queryParams.append('servicesOffered', JSON.stringify(result.data.servicesOffered));
       router.push(`/onboarding/artisan/step-2?${queryParams.toString()}`);
     } else {
