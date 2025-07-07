@@ -126,15 +126,15 @@ export async function saveArtisanStep1Services(userId: string, servicesOffered: 
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", JSON.stringify(flattenedErrors, null, 2));
       const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = {};
-        for (const key in flattenedErrors.fieldErrors) {
-          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
-          if (flattenedErrors.fieldErrors[fieldKey]) clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
-        }
+      if (flattenedErrors.formErrors.length > 0) {
+        clientErrorObject._form = flattenedErrors.formErrors;
       }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) clientErrorObject._server_error = ["Validation failed for step 1 services."];
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = flattenedErrors.fieldErrors;
+      }
+      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
+        clientErrorObject._form = ["Validation failed. Please check your inputs."];
+      }
       return { success: false, error: clientErrorObject };
     }
 
@@ -155,7 +155,9 @@ export async function saveArtisanStep1Services(userId: string, servicesOffered: 
 
   } catch (e: any) {
     console.error(`[SERVER ACTION UNEXPECTED ERROR] saveArtisanStep1Services for user ${userId}:`, e);
-    const errorPayload: Record<string, any> = { _server_error: ["An unexpected error occurred."] };
+    const errorPayload: Record<string, any> = { 
+      _server_error: ["An unexpected error occurred."] 
+    };
     if (e instanceof Error && e.message) (errorPayload._server_error as string[]).push(e.message);
     return { success: false, error: errorPayload };
   }
@@ -173,15 +175,15 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", JSON.stringify(flattenedErrors, null, 2));
       const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = {};
-        for (const key in flattenedErrors.fieldErrors) {
-          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
-          if (flattenedErrors.fieldErrors[fieldKey]) clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
-        }
+      if (flattenedErrors.formErrors.length > 0) {
+        clientErrorObject._form = flattenedErrors.formErrors;
       }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) clientErrorObject._server_error = ["Validation failed for primary services update."];
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = flattenedErrors.fieldErrors;
+      }
+      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
+        clientErrorObject._form = ["Validation failed. Please check your inputs."];
+      }
       return { success: false, error: clientErrorObject };
     }
 
@@ -262,15 +264,15 @@ export async function saveArtisanOnboardingProfile(
       const flattenedErrors = validation.error.flatten();
       console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", JSON.stringify(flattenedErrors, null, 2));
       const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) clientErrorObject._form = flattenedErrors.formErrors;
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = {};
-        for (const key in flattenedErrors.fieldErrors) {
-          const fieldKey = key as keyof typeof flattenedErrors.fieldErrors;
-          if (flattenedErrors.fieldErrors[fieldKey]) clientErrorObject.fields[fieldKey] = flattenedErrors.fieldErrors[fieldKey];
-        }
+      if (flattenedErrors.formErrors.length > 0) {
+        clientErrorObject._form = flattenedErrors.formErrors;
       }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) clientErrorObject._server_error = ["Validation failed for artisan profile."];
+      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
+        clientErrorObject.fields = flattenedErrors.fieldErrors;
+      }
+      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
+        clientErrorObject._form = ["Validation failed. Please check your inputs."];
+      }
       return { success: false, error: clientErrorObject };
     }
 
