@@ -294,7 +294,7 @@ export function ArtisanProfileForm({
                 <FormLabel>Contact Email (Public)</FormLabel>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <FormControl><Input type="email" placeholder="yourpublic@email.com" {...field} className="pl-10" disabled={isSubmitting || !initialData?.contactEmail}/></FormControl>
+                  <FormControl><Input type="email" placeholder="yourpublic@email.com" {...field} className="pl-10" disabled={isSubmitting || (isOnboarding && !!initialData?.contactEmail)}/></FormControl>
                 </div>
                 <FormMessage />
               </FormItem>

@@ -48,6 +48,9 @@ function ChooseRoleContent() {
         firstName: displayName.split(' ')[0] || "User",
         uid: uid, // Pass UID for onboarding context
       });
+      if (email) {
+        queryParams.append('email', email);
+      }
       router.push(`/onboarding/${result.role}/step-1?${queryParams.toString()}`);
     } else {
       toast({
