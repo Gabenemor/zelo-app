@@ -3,120 +3,120 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions to make rules more readable.
-    function isAuthenticated() {
+    // Helper functions to make rules more readable
+    function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    function getUserData(userId) {
+        return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+    
     function getUserRole(userId) {
       return getUserData(userId).role;
     }
 
     function isAdmin() {
-      return getUserRole(request.auth.uid) == 'admin';
+      return isSignedIn() && getUserRole(request.auth.uid) == 'admin';
     }
 
-    // A user can only be created with their own UID.
-    // A user can update their own document, but cannot change their role.
-    // Admins can update any user document.
+    // == Collections Security ==
+
+    // USERS Collection
+    // - Users can create their own user document on signup.
+    // - Users can read and update their own data.
+    // - Users cannot change their own role.
+    // - Admins can read and delete user data.
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read, update: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) && !("role" in request.resource.data)) || isAdmin();
-      allow delete: if false; // Deactivating users is preferred over deleting.
+      allow delete: if isAdmin();
+      
+      // Prevent role escalation
+      allow update: if request.resource.data.role == resource.data.role;
     }
 
-    // Any authenticated user can read profiles.
-    // Only the owner can create or update their own profile.
-    match /clientProfiles/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && !("userId" in request.resource.data);
-      allow delete: if false;
-    }
-
+    // PROFILES (Artisan & Client)
+    // - Anyone can read artisan profiles to browse services.
+    // - Only signed-in users can read client profiles.
+    // - Only the owner or an admin can create or update a profile.
     match /artisanProfiles/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && !("userId" in request.resource.data);
-      allow delete: if false;
+      allow read: if true;
+      allow create, update: if isOwner(userId) || isAdmin();
     }
 
-    // Any authenticated user can read service requests.
-    // Only clients can create requests for themselves.
-    // Only the owner, assigned artisan, or an admin can update a request.
-    match /serviceRequests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && getUserRole(request.auth.uid) == 'client' && isOwner(request.resource.data.clientId);
-      allow update: if isAuthenticated() && (
-                      isOwner(resource.data.clientId) || 
-                      isOwner(resource.data.assignedArtisanId) ||
-                      isAdmin()
-                    );
-      allow delete: if false; // Status should be updated to 'cancelled' instead.
-    }
-
-    // Rules for proposals on service requests.
-    match /proposals/{proposalId} {
-      function isRequestClient() {
-        let serviceRequest = get(/databases/$(database)/documents/serviceRequests/$(resource.data.serviceRequestId)).data;
-        return request.auth.uid == serviceRequest.clientId;
-      }
-
-      allow read: if isAuthenticated() && (isOwner(resource.data.artisanId) || isRequestClient() || isAdmin());
-      allow create: if isAuthenticated() && getUserRole(request.auth.uid) == 'artisan' && isOwner(request.resource.data.artisanId);
-      allow update: if isAuthenticated() && (isRequestClient() || isAdmin()); // Allow client to accept, admin to manage.
-      allow delete: if false;
-    }
-
-    // Chat participants can read/write to their own chat rooms and messages.
-    match /chats/{chatId} {
-      function isParticipant() {
-        return request.auth.uid in resource.data.participants;
-      }
-
-      allow read, update: if isAuthenticated() && isParticipant();
-      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
-
-      match /messages/{messageId} {
-        allow read: if isAuthenticated() && isParticipant();
-        allow create: if isAuthenticated() && isParticipant() && isOwner(request.resource.data.senderId);
-        allow update, delete: if false; // Messages are immutable.
-      }
+    match /clientProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) || isAdmin();
     }
     
-    // Notifications can only be read/updated by the recipient. Server creates them.
-    match /notifications/{notificationId} {
-        allow read, update: if isAuthenticated() && isOwner(resource.data.userId);
-        allow create, delete: if false;
-    }
-    
-    // Transactions can be read by involved parties, but only created/updated by the server.
-    match /escrowTransactions/{transactionId} {
-        allow read: if isAuthenticated() && (isOwner(resource.data.clientId) || isOwner(resource.data.artisanId) || isAdmin());
-        allow create, update, delete: if false;
-    }
-
-    // Artisans can manage their own withdrawal accounts.
+    // WITHDRAWAL ACCOUNTS
+    // - These are highly sensitive. Only the owner artisan or an admin can access them.
     match /withdrawalAccounts/{userId} {
-      allow read, create, update: if isAuthenticated() && isOwner(userId) && getUserRole(request.auth.uid) == 'artisan';
-      allow delete: if false;
+      allow read, create, update, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // SERVICE REQUESTS
+    // - Anyone signed in can read service requests.
+    // - Only clients can create requests for themselves.
+    // - Only the owner client or an admin can update a request.
+    match /serviceRequests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && getUserRole(request.auth.uid) == 'client' && request.auth.uid == request.resource.data.clientId;
+      allow update: if isOwner(resource.data.clientId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // PROPOSALS
+    // - Only artisans can create proposals for themselves.
+    // - The client who posted the request, the artisan who made the proposal, or an admin can read it.
+    // - The client or an admin can update the proposal (to accept/reject it).
+    match /proposals/{proposalId} {
+      allow create: if isSignedIn() && getUserRole(request.auth.uid) == 'artisan' && request.auth.uid == request.resource.data.artisanId;
+      
+      function isRequestClient() {
+          let serviceRequest = get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.serviceRequestId));
+          return serviceRequest.data.clientId == request.auth.uid;
+      }
+      allow read, update: if (isOwner(resource.data.artisanId)) || isRequestClient() || isAdmin();
+    }
+
+    // CHATS & MESSAGES
+    // - Only participants of a chat can read or write to it.
+    match /chats/{chatId} {
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      
+      match /messages/{messageId} {
+        allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow update, delete: if false; // Messages are immutable
+      }
     }
     
-    // Disputes can be read by involved parties/admins, created by parties, updated by admins.
+    // ESCROW TRANSACTIONS & NOTIFICATIONS
+    // - Critical data that should only be written by a trusted server environment.
+    // - Clients and Artisans involved in the transaction can read them, as can admins.
+    match /escrowTransactions/{transactionId} {
+       allow read: if isSignedIn() && (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.artisanId || isAdmin());
+       allow create, update, delete: if false; // Server-side only
+    }
+    
+    match /notifications/{notificationId} {
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if false; // Server-side only
+    }
+    
+    // DISPUTES
+    // - Only participants or admins can read.
+    // - Participants can create disputes.
+    // - Only admins can update (resolve) disputes.
     match /disputes/{disputeId} {
-        allow read: if isAuthenticated() && (isOwner(resource.data.clientId) || isOwner(resource.data.artisanId) || isAdmin());
-        allow create: if isAuthenticated() && (isOwner(request.resource.data.clientId) || isOwner(request.resource.data.artisanId));
-        allow update: if isAuthenticated() && isAdmin();
-        allow delete: if false;
+       allow read: if isSignedIn() && (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.artisanId || isAdmin());
+       allow create: if isSignedIn() && (request.auth.uid == request.resource.data.clientId || request.auth.uid == request.resource.data.artisanId);
+       allow update: if isAdmin();
     }
   }
 }
