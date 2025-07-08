@@ -89,8 +89,7 @@ export async function saveClientStep2Profile(data: {
     }
     const clientProfileRef = doc(db, 'clientProfiles', validation.data.userId); 
     
-    const profileDataToSave: Partial<ClientProfile> = {
-      userId: validation.data.userId, 
+    const profileDataToSave: Partial<Omit<ClientProfile, 'userId'>> = {
       location: validation.data.location,
       username: validation.data.username || undefined, 
       fullName: validation.data.fullName || undefined,
@@ -106,6 +105,7 @@ export async function saveClientStep2Profile(data: {
     const profileSnap = await getDoc(clientProfileRef);
     if (!profileSnap.exists()) {
       (profileDataToSave as ClientProfile).createdAt = serverTimestamp() as any;
+      (profileDataToSave as ClientProfile).userId = validation.data.userId;
     }
 
     await setDoc(clientProfileRef, profileDataToSave, { merge: true });
@@ -276,8 +276,7 @@ export async function saveArtisanOnboardingProfile(
 
     const artisanProfileRef = doc(db, 'artisanProfiles', validation.data.userId);
     
-    const dataToSave: Partial<ArtisanProfile> = { 
-      userId: validation.data.userId,
+    const dataToSave: Partial<Omit<ArtisanProfile, 'userId'>> = { 
       username: validation.data.username || undefined,
       profilePhotoUrl: validation.data.profilePhotoUrl || undefined,
       headline: validation.data.headline || undefined,
@@ -298,6 +297,7 @@ export async function saveArtisanOnboardingProfile(
     const userProfileSnap = await getDoc(artisanProfileRef);
     if (!userProfileSnap.exists()) {
       (dataToSave as ArtisanProfile).createdAt = serverTimestamp() as any; 
+      (dataToSave as ArtisanProfile).userId = validation.data.userId;
     }
     
     await setDoc(artisanProfileRef, dataToSave, { merge: true });
