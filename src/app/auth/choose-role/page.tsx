@@ -17,6 +17,7 @@ function ChooseRoleContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPageLoader, setShowPageLoader] = useState(false);
 
   const uid = searchParams.get('uid');
   const email = searchParams.get('email');
@@ -40,19 +41,18 @@ function ChooseRoleContent() {
     }
     setIsLoading(true);
     const result = await completeGoogleSignInWithRole({ uid, email, displayName, role });
-    setIsLoading(false);
 
     if (result.success && result.role) {
       toast({ title: "Role Selected!", description: `You've registered as a ${result.role}. Let's get you set up.` });
+      setShowPageLoader(true);
       const queryParams = new URLSearchParams({
         firstName: displayName.split(' ')[0] || "User",
-        uid: uid, // Pass UID for onboarding context
+        uid: uid,
+        email: email,
       });
-      if (email) {
-        queryParams.append('email', email);
-      }
       router.push(`/onboarding/${result.role}/step-1?${queryParams.toString()}`);
     } else {
+      setIsLoading(false);
       toast({
         title: "Error Completing Registration",
         description: result.error || "Could not save your role. Please try again.",
@@ -60,6 +60,16 @@ function ChooseRoleContent() {
       });
     }
   };
+
+  if (showPageLoader) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium text-foreground">Finalizing your setup...</p>
+        <p className="text-muted-foreground">Redirecting you to the next step.</p>
+      </div>
+    );
+  }
 
   if (!uid || !email || !displayName) {
     // This will be shown briefly if redirect in useEffect is triggered or if params are truly missing

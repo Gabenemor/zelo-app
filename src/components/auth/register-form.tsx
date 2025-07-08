@@ -97,6 +97,7 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrengthResult>({ strength: '', suggestions: [], score: 0 });
+  const [showPageLoader, setShowPageLoader] = React.useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -138,6 +139,7 @@ export function RegisterForm() {
         });
       } else if (result.user) {
         toast({ title: "Registration Successful", description: "Welcome! Let's set up your profile." });
+        setShowPageLoader(true);
         const onboardingQueryParams = new URLSearchParams({
           firstName: values.firstName,
           uid: result.user.uid,
@@ -189,6 +191,16 @@ export function RegisterForm() {
       router.push(redirectPath);
     }
   };
+
+  if (showPageLoader) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium text-foreground">Creating Your Account...</p>
+        <p className="text-sm text-muted-foreground mt-1">Please wait while we prepare your dashboard.</p>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
