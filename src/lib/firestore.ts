@@ -227,20 +227,25 @@ export async function getServiceRequests(filters?: {
   orderDirection?: 'asc' | 'desc';
 }): Promise<ServiceRequest[]> {
   const queryConstraints: QueryConstraint[] = [];
+  
   if (filters?.orderByField) {
     queryConstraints.push(orderBy(filters.orderByField, filters.orderDirection || 'desc'));
-  } else {
+  } else if (!filters?.clientId && !filters?.artisanId) {
+    // Only apply the default sort order if not filtering by a specific user.
+    // This avoids the composite index requirement for user-specific queries if the index is not deployed.
+    // The client-side code will handle sorting for these cases.
     queryConstraints.push(orderBy('postedAt', 'desc'));
   }
+
   if (filters?.clientId) {
     queryConstraints.push(where('clientId', '==', filters.clientId));
   }
   if (filters?.status) {
     if (Array.isArray(filters.status)) {
-      if (filters.status.length > 0) { // Firestore 'in' queries require a non-empty array
+      if (filters.status.length > 0) {
         queryConstraints.push(where('status', 'in', filters.status));
       } else {
-        return []; // No status to filter by, effectively no results for this filter
+        return [];
       }
     } else {
       queryConstraints.push(where('status', '==', filters.status));
