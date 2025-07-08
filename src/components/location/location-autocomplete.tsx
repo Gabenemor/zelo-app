@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -12,17 +13,42 @@ interface LocationAutocompleteProps {
   className?: string;
 }
 
-// Mock Nigerian locations for autocomplete
+// Expanded mock Nigerian locations for autocomplete
 const mockNigerianLocations = [
-  "Lagos, Ikeja", "Lagos, Victoria Island", "Lagos, Surulere", "Lagos, Lekki",
-  "Abuja, Garki", "Abuja, Wuse", "Abuja, Maitama", "Abuja, Asokoro",
-  "Port Harcourt, GRA", "Port Harcourt, Rumuokoro",
-  "Ibadan, Bodija", "Ibadan, Challenge",
-  "Kano, Fagge", "Kano, Nassarawa",
-  "Enugu, Independence Layout",
-  "Kaduna, Tudun Wada",
-  // Add more common Nigerian towns/areas
+  // Lagos
+  "Lagos, Ikeja", "Lagos, Victoria Island", "Lagos, Surulere", "Lagos, Lekki", "Lagos, Ajah", "Lagos, Yaba", "Lagos, Apapa", "Lagos, Festac", "Lagos, Maryland", "Lagos, Ikorodu",
+  // Abuja
+  "Abuja, Garki", "Abuja, Wuse", "Abuja, Maitama", "Abuja, Asokoro", "Abuja, Gwarinpa", "Abuja, Kubwa", "Abuja, Jabi", "Abuja, Utako",
+  // Rivers
+  "Port Harcourt, GRA", "Port Harcourt, Rumuokoro", "Port Harcourt, D-Line", "Port Harcourt, Eleme",
+  // Oyo
+  "Ibadan, Bodija", "Ibadan, Challenge", "Ibadan, Ring Road", "Ibadan, Agodi", "Ibadan, Mokola",
+  // Kano
+  "Kano, Fagge", "Kano, Nassarawa", "Kano, Sabon Gari", "Kano, Tarauni",
+  // Enugu
+  "Enugu, Independence Layout", "Enugu, New Haven", "Enugu, Trans Ekulu",
+  // Kaduna
+  "Kaduna, Tudun Wada", "Kaduna, Ungwan Rimi", "Kaduna, Kawo",
+  // Other Major Cities
+  "Abeokuta, Ogun",
+  "Onitsha, Anambra",
+  "Aba, Abia",
+  "Uyo, Akwa Ibom",
+  "Calabar, Cross River",
+  "Benin City, Edo",
+  "Warri, Delta",
+  "Asaba, Delta",
+  "Jos, Plateau",
+  "Maiduguri, Borno",
+  "Sokoto, Sokoto",
+  "Zaria, Kaduna",
+  "Owerri, Imo",
+  "Akure, Ondo",
+  "Ado-Ekiti, Ekiti",
+  "Ilorin, Kwara",
+  "Osogbo, Osun",
 ];
+
 
 export function LocationAutocomplete({ 
   onLocationSelect, 
@@ -59,6 +85,10 @@ export function LocationAutocomplete({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [wrapperRef]);
+  
+  useEffect(() => {
+    setQuery(initialValue);
+  }, [initialValue]);
 
   const handleSelect = (location: string) => {
     setQuery(location);

@@ -15,6 +15,7 @@ import { ArrowRight, Briefcase, Coins, MapPin, Search, Star, CalendarDays, Users
 import type { ServiceRequest, ArtisanProfile } from '@/types'; // Assuming types exist
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
+import { LocationAutocomplete } from '@/components/location/location-autocomplete';
 
 const NIGERIAN_ARTISAN_SERVICES_PUBLIC = [
   "All Services", "Tailoring/Fashion Design", "Plumbing", "Electrical Services", "Carpentry",
@@ -102,10 +103,12 @@ export default function BrowseServicesPublicPage() {
             </div>
             <div className="flex-grow md:w-1/3">
               <label htmlFor="location-filter" className="text-sm font-medium text-muted-foreground">Location</label>
-               <div className="relative mt-1">
-                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input id="location-filter" placeholder="e.g., Lagos, Abuja" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="pl-10" />
-              </div>
+               <LocationAutocomplete
+                onLocationSelect={(loc) => setLocationFilter(loc.address)}
+                initialValue={locationFilter}
+                placeholder="e.g., Lagos, Abuja"
+                className="mt-1"
+              />
             </div>
             {/* <Button className="w-full md:w-auto md:self-end">Apply Filters</Button> */}
           </CardContent>
