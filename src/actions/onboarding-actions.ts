@@ -18,9 +18,13 @@ export async function saveClientStep1Preferences(userId: string, services: strin
   }
   const validation = ClientPreferencesSchema.safeParse({ userId, servicesLookingFor: services });
   if (!validation.success) {
-    const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
-    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 1 Prefs:", errorMsg);
-    return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
+    const flattenedErrors = validation.error.flatten();
+    const errorMessages = Object.values(flattenedErrors.fieldErrors).flat();
+    const formError = flattenedErrors.formErrors.join(', ');
+    const allErrors = [...errorMessages, formError].filter(Boolean).join(', ');
+
+    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 1 Prefs:", allErrors);
+    return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
   }
 
   try {
@@ -69,9 +73,13 @@ export async function saveClientStep2Profile(data: {
   }
   const validation = ClientProfileSetupSchema.safeParse(data); 
   if (!validation.success) {
-    const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
-    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 2 Profile:", errorMsg);
-    return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
+    const flattenedErrors = validation.error.flatten();
+    const errorMessages = Object.values(flattenedErrors.fieldErrors).flat();
+    const formError = flattenedErrors.formErrors.join(', ');
+    const allErrors = [...errorMessages, formError].filter(Boolean).join(', ');
+
+    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 2 Profile:", allErrors);
+    return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
   }
 
   try {
@@ -126,9 +134,13 @@ export async function saveArtisanStep1Services(userId: string, servicesOffered: 
 
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
     if (!validation.success) {
-      const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
-      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", errorMsg);
-      return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
+      const flattenedErrors = validation.error.flatten();
+      const errorMessages = Object.values(flattenedErrors.fieldErrors).flat();
+      const formError = flattenedErrors.formErrors.join(', ');
+      const allErrors = [...errorMessages, formError].filter(Boolean).join(', ');
+
+      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", allErrors);
+      return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
@@ -165,9 +177,13 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
     const dataToValidate = { userId, servicesOffered };
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); 
     if (!validation.success) {
-      const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
-      console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", errorMsg);
-      return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
+      const flattenedErrors = validation.error.flatten();
+      const errorMessages = Object.values(flattenedErrors.fieldErrors).flat();
+      const formError = flattenedErrors.formErrors.join(', ');
+      const allErrors = [...errorMessages, formError].filter(Boolean).join(', ');
+      
+      console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", allErrors);
+      return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
@@ -244,9 +260,13 @@ export async function saveArtisanOnboardingProfile(
     const validation = ArtisanOnboardingProfileSchema.safeParse(dataToValidate);
 
     if (!validation.success) {
-        const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
-        console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", errorMsg);
-        return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
+        const flattenedErrors = validation.error.flatten();
+        const errorMessages = Object.values(flattenedErrors.fieldErrors).flat();
+        const formError = flattenedErrors.formErrors.join(', ');
+        const allErrors = [...errorMessages, formError].filter(Boolean).join(', ');
+
+        console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", allErrors);
+        return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
@@ -288,11 +308,11 @@ export async function saveArtisanOnboardingProfile(
   } catch (e: any) {
     console.error(`[SERVER ACTION UNEXPECTED ERROR] saveArtisanOnboardingProfile for user ${profileData.userId}:`, e);
     const errorPayload: Record<string, any> = { 
-      _server_error: ["An unexpected error occurred on the server while saving the profile. Please try again later."] 
+      _form: ["An unexpected error occurred on the server while saving the profile. Please try again later."] 
     };
-    if (e instanceof Error && e.message) (errorPayload._server_error as string[]).push(e.message);
-    else if (typeof e === 'string') (errorPayload._server_error as string[]).push(e);
-    else (errorPayload._server_error as string[]).push("No specific error message available.");
+    if (e instanceof Error && e.message) (errorPayload._form as string[]).push(e.message);
+    else if (typeof e === 'string') (errorPayload._form as string[]).push(e);
+    else (errorPayload._form as string[]).push("No specific error message available.");
     return { success: false, error: errorPayload };
   }
 }

@@ -70,22 +70,16 @@ function ClientOnboardingStep1Content() {
       if (email) queryParams.append('email', email); // Pass email to step 2
       router.push(`/onboarding/client/step-2?${queryParams.toString()}`);
     } else {
-        let errorMsg = "Could not save your preferences. Please try again.";
-       if (result.error) {
-            if (result.error._form && Array.isArray(result.error._form)) {
-                errorMsg = result.error._form.join(' ');
-            } else if (typeof result.error.servicesLookingFor === 'string') {
-                errorMsg = result.error.servicesLookingFor;
-            } else if (Array.isArray(result.error.servicesLookingFor)) {
-                errorMsg = result.error.servicesLookingFor.join(' ');
-            }
-        }
+      let errorMsg = "Could not save your preferences. Please try again.";
+      if (result.error && result.error._form && Array.isArray(result.error._form) && result.error._form.length > 0) {
+          errorMsg = result.error._form.join(' ');
+      }
       toast({
         title: "Error",
         description: errorMsg,
         variant: "destructive",
       });
-      console.error("Error saving client preferences:", result.error);
+      console.error("Error saving client preferences:", result.error || "Unknown error object");
     }
   };
 
