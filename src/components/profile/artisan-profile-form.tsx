@@ -84,7 +84,7 @@ export function ArtisanProfileForm({
   const form = useForm<ArtisanProfileFormValues>({
     resolver: zodResolver(artisanProfileFormSchema),
     defaultValues: {
-      username: initialData?.username || initialData?.fullName?.split(' ')[0] || "", // Default username from first name
+      username: initialData?.username || initialData?.fullName?.split(' ')[0] || "",
       headline: initialData?.headline || "",
       contactPhone: initialData?.contactPhone || "",
       contactEmail: initialData?.contactEmail || "",
@@ -92,16 +92,7 @@ export function ArtisanProfileForm({
       isLocationPublic: initialData?.isLocationPublic || false,
       bio: initialData?.bio || "",
       availabilityStatus: initialData?.availabilityStatus || 'available',
-      serviceExperiences: initialData?.servicesOffered
-        ?.map(serviceName => {
-          const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
-          return {
-            serviceName: serviceName,
-            years: existingExperience?.years ?? 0,
-            chargeAmount: existingExperience?.chargeAmount ?? undefined,
-            chargeDescription: existingExperience?.chargeDescription ?? '',
-          };
-        }) || [],
+      serviceExperiences: initialData?.serviceExperiences || [],
     },
   });
 
@@ -112,34 +103,36 @@ export function ArtisanProfileForm({
 
   useEffect(() => {
     if (initialData) {
-        form.reset({
-            username: initialData.username || initialData.fullName?.split(' ')[0] || "",
-            headline: initialData.headline || "",
-            contactPhone: initialData.contactPhone || "",
-            contactEmail: initialData.contactEmail || "",
-            location: initialData.location || "",
-            isLocationPublic: initialData.isLocationPublic || false,
-            bio: initialData.bio || "",
-            availabilityStatus: initialData.availabilityStatus || 'available',
-            serviceExperiences: initialData.servicesOffered
-            ?.map(serviceName => {
-                const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
-                return {
-                serviceName: serviceName,
-                years: existingExperience?.years ?? 0,
-                chargeAmount: existingExperience?.chargeAmount ?? undefined,
-                chargeDescription: existingExperience?.chargeDescription ?? '',
-                };
-            }) || [],
-        });
-        if (initialData.profilePhotoUrl) {
-            setProfilePhotoPreview(initialData.profilePhotoUrl);
-            setUploadedProfilePhotoUrl(initialData.profilePhotoUrl);
-        }
-        if (initialData.portfolioImageUrls) {
-            setPortfolioPreviews(initialData.portfolioImageUrls);
-            setUploadedPortfolioImageUrls(initialData.portfolioImageUrls);
-        }
+      // Use form.reset to update the form with new initialData when it changes
+      form.reset({
+        username: initialData.username || initialData.fullName?.split(' ')[0] || "",
+        headline: initialData.headline || "",
+        contactPhone: initialData.contactPhone || "",
+        contactEmail: initialData.contactEmail || "",
+        location: initialData.location || "",
+        isLocationPublic: initialData.isLocationPublic || false,
+        bio: initialData.bio || "",
+        availabilityStatus: initialData.availabilityStatus || 'available',
+        serviceExperiences: initialData.servicesOffered
+          ?.map(serviceName => {
+            const existingExperience = initialData.serviceExperiences?.find(exp => exp.serviceName === serviceName);
+            return {
+              serviceName: serviceName,
+              years: existingExperience?.years ?? 0,
+              chargeAmount: existingExperience?.chargeAmount ?? undefined,
+              chargeDescription: existingExperience?.chargeDescription ?? '',
+            };
+          }) || [],
+      });
+      // Also update the image previews and uploaded URLs state from initialData
+      if (initialData.profilePhotoUrl) {
+        setProfilePhotoPreview(initialData.profilePhotoUrl);
+        setUploadedProfilePhotoUrl(initialData.profilePhotoUrl);
+      }
+      if (initialData.portfolioImageUrls) {
+        setPortfolioPreviews(initialData.portfolioImageUrls);
+        setUploadedPortfolioImageUrls(initialData.portfolioImageUrls);
+      }
     }
   }, [initialData, form]);
 
@@ -203,7 +196,7 @@ export function ArtisanProfileForm({
       profilePhotoUrl: uploadedProfilePhotoUrl || undefined,
       portfolioImageUrls: uploadedPortfolioImageUrls.filter(url => url && !url.startsWith('blob:')),
       servicesOffered: initialData?.servicesOffered || [],
-      fullName: initialData?.fullName, // Preserve fullName if it was set during signup
+      fullName: initialData?.fullName,
       onboardingCompleted: true,
       profileSetupCompleted: true,
     };
@@ -216,15 +209,7 @@ export function ArtisanProfileForm({
       toast({ title: "Profile Saved", description: "Your artisan profile has been successfully updated." });
       if (onSaveSuccess) onSaveSuccess();
     } else {
-      let errorMessages: string[] = [];
-      if (result.error) {
-        if (result.error._form && Array.isArray(result.error._form)) errorMessages = errorMessages.concat(result.error._form);
-        if (result.error.fields) Object.entries(result.error.fields).forEach(([key, fieldErrorArray]) => {
-          if (Array.isArray(fieldErrorArray)) errorMessages = errorMessages.concat((fieldErrorArray as string[]).map(msg => `${key}: ${msg}`));
-        });
-        if (result.error._server_error && Array.isArray(result.error._server_error)) errorMessages = errorMessages.concat(result.error._server_error);
-      }
-      const errorMsg = errorMessages.length > 0 ? errorMessages.join('; ') : "Could not save profile. Please check your input or try again.";
+      const errorMsg = result.error?._form?.[0] || "Could not save profile. Please check your input or try again.";
       toast({ title: "Update Failed", description: errorMsg, variant: "destructive" });
       console.error("Artisan profile save error (client error object):", result.error);
     }
