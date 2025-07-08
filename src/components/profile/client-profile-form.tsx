@@ -127,21 +127,25 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
-            <div className="relative w-32 h-32 rounded-full border-2 border-muted overflow-hidden">
-                <Image 
-                    src={avatarPreview || "https://placehold.co/128x128.png?text=Avatar"} 
-                    alt="Profile Avatar" 
-                    width={128}
-                    height={128}
-                    className="object-cover w-full h-full"
-                    data-ai-hint="profile avatar"
-                />
-                <label htmlFor="avatarUpload" className="absolute bottom-1 right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                    {isUploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                    <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
-                </label>
-            </div>
-            <div className="flex-grow">
+            <FormItem className="flex flex-col items-center md:items-start">
+              <FormLabel>Profile Photo</FormLabel>
+              <Image 
+                  src={avatarPreview || "https://placehold.co/128x128.png?text=Avatar"} 
+                  alt="Profile Avatar" 
+                  width={128}
+                  height={128}
+                  className="object-cover w-32 h-32 rounded-full border-2 border-muted"
+                  data-ai-hint="profile avatar"
+              />
+              <Button asChild variant="outline" size="sm" className="mt-2" disabled={isUploadingAvatar || isSubmitting}>
+                  <label htmlFor="avatarUpload" className="cursor-pointer">
+                      {isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                      {isUploadingAvatar ? "Uploading..." : "Change Photo"}
+                  </label>
+              </Button>
+              <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
+            </FormItem>
+            <div className="flex-grow w-full">
                 <FormField
                 control={form.control}
                 name="fullName"
