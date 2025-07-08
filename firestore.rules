@@ -1,122 +1,112 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions to make rules more readable
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function getUserData(userId) {
-        return get(/databases/$(database)/documents/users/$(userId)).data;
+    
+    // Default deny all access unless explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
     }
     
-    function getUserRole(userId) {
-      return getUserData(userId).role;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && getUserRole(request.auth.uid) == 'admin';
-    }
-
-    // == Collections Security ==
-
-    // USERS Collection
-    // - Users can create their own user document on signup.
-    // - Users can read and update their own data.
-    // - Users cannot change their own role.
-    // - Admins can read and delete user data.
+    // USER DATA: /users/{userId}
+    // This collection stores auth-related info and role.
     match /users/{userId} {
-      allow read, update: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow delete: if isAdmin();
-      
-      // Prevent role escalation
-      allow update: if request.resource.data.role == resource.data.role;
-    }
+      // Any authenticated user can read basic user info (needed for profiles, etc.)
+      allow read: if request.auth != null;
 
-    // PROFILES (Artisan & Client)
-    // - Anyone can read artisan profiles to browse services.
-    // - Only signed-in users can read client profiles.
-    // - Only the owner or an admin can create or update a profile.
-    match /artisanProfiles/{userId} {
-      allow read: if true;
-      allow create, update: if isOwner(userId) || isAdmin();
-    }
+      // Only the user themselves can create their own user document.
+      allow create: if request.auth.uid == userId
+                    // Ensure they aren't trying to give themselves an admin role.
+                    && request.resource.data.role != 'admin'; 
 
-    match /clientProfiles/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isOwner(userId) || isAdmin();
+      // Only the user can update their own document, and they cannot change their role. Admins can update any.
+      allow update: if (request.auth.uid == userId && request.resource.data.role == resource.data.role)
+                    || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // No user can delete their auth record document.
+      allow delete: if false;
     }
     
-    // WITHDRAWAL ACCOUNTS
-    // - These are highly sensitive. Only the owner artisan or an admin can access them.
-    match /withdrawalAccounts/{userId} {
-      allow read, create, update, delete: if isOwner(userId) || isAdmin();
+    // CLIENT PROFILES: /clientProfiles/{userId}
+    match /clientProfiles/{userId} {
+      allow read: if request.auth != null; // Anyone logged in can read a client profile
+      // Allow a user to create their own profile document.
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId; // User can only update their own profile
+      allow delete: if false; // Disallow deleting profiles
     }
 
-    // SERVICE REQUESTS
-    // - Anyone signed in can read service requests.
-    // - Only clients can create requests for themselves.
-    // - Only the owner client or an admin can update a request.
+    // ARTISAN PROFILES: /artisanProfiles/{userId}
+    match /artisanProfiles/{userId} {
+      allow read: if request.auth != null; // Anyone logged in can read an artisan profile
+      // Allow a user to create their own profile document.
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId; // User can only update their own profile
+      allow delete: if false; // Disallow deleting profiles
+    }
+
+    // SERVICE REQUESTS: /serviceRequests/{requestId}
     match /serviceRequests/{requestId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && getUserRole(request.auth.uid) == 'client' && request.auth.uid == request.resource.data.clientId;
-      allow update: if isOwner(resource.data.clientId) || isAdmin();
-      allow delete: if isAdmin();
+      allow read: if request.auth != null; // Any logged-in user can browse jobs
+      allow create: if request.auth.uid == request.resource.data.clientId; // Only the client can create it
+      allow update: if request.auth.uid == resource.data.clientId // Client can update/cancel
+                    || request.auth.uid == resource.data.assignedArtisanId; // Assigned artisan can update status
+      allow delete: if false; // Use a 'cancelled' status instead
     }
-
-    // PROPOSALS
-    // - Only artisans can create proposals for themselves.
-    // - The client who posted the request, the artisan who made the proposal, or an admin can read it.
-    // - The client or an admin can update the proposal (to accept/reject it).
+    
+    // PROPOSALS: /proposals/{proposalId}
     match /proposals/{proposalId} {
-      allow create: if isSignedIn() && getUserRole(request.auth.uid) == 'artisan' && request.auth.uid == request.resource.data.artisanId;
-      
-      function isRequestClient() {
-          let serviceRequest = get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.serviceRequestId));
-          return serviceRequest.data.clientId == request.auth.uid;
-      }
-      allow read, update: if (isOwner(resource.data.artisanId)) || isRequestClient() || isAdmin();
+      // Client who owns the request and the artisan who owns the proposal can read it
+      allow read: if request.auth.uid == resource.data.artisanId 
+                   || get(/databases/$(database)/documents/serviceRequests/$(resource.data.serviceRequestId)).data.clientId == request.auth.uid;
+      allow create: if request.auth.uid == request.resource.data.artisanId; // Only artisans can create proposals for themselves
+      allow update: if get(/databases/$(database)/documents/serviceRequests/$(resource.data.serviceRequestId)).data.clientId == request.auth.uid; // Client can update status (accept/reject)
+      allow delete: if request.auth.uid == resource.data.artisanId; // Artisan can withdraw their proposal
     }
 
     // CHATS & MESSAGES
-    // - Only participants of a chat can read or write to it.
     match /chats/{chatId} {
-      allow read, update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      // Only participants can read/write to a chat document and its subcollection
+      allow read, write: if request.auth.uid in resource.data.participants;
       
       match /messages/{messageId} {
-        allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-        allow update, delete: if false; // Messages are immutable
+        allow read, write: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       }
     }
     
-    // ESCROW TRANSACTIONS & NOTIFICATIONS
-    // - Critical data that should only be written by a trusted server environment.
-    // - Clients and Artisans involved in the transaction can read them, as can admins.
+    // ESCROW & PAYMENTS: Server-only access recommended
+    // These rules assume creation/updates are handled by secure backend functions (e.g., Cloud Functions with Paystack webhooks)
+    // and not directly by the client SDK.
     match /escrowTransactions/{transactionId} {
-       allow read: if isSignedIn() && (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.artisanId || isAdmin());
-       allow create, update, delete: if false; // Server-side only
+      // Only participants of the transaction can view it. Admin can view.
+      allow read: if request.auth.uid == resource.data.clientId 
+                   || request.auth.uid == resource.data.artisanId
+                   || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if false; // No direct client writes
     }
     
+    // WITHDRAWAL ACCOUNTS: Artisan-only access
+    match /withdrawalAccounts/{userId} {
+      allow read, write: if request.auth.uid == userId; // Only the artisan can manage their own account details
+    }
+    
+    // NOTIFICATIONS: Server-only creation, user-only read/update
     match /notifications/{notificationId} {
-      allow read, update, delete: if isOwner(resource.data.userId);
-      allow create: if false; // Server-side only
+      allow read, update: if request.auth.uid == resource.data.userId; // User can read/update (mark as read) their own notifications
+      allow create, delete: if false; // Created by server logic only
     }
-    
-    // DISPUTES
-    // - Only participants or admins can read.
-    // - Participants can create disputes.
-    // - Only admins can update (resolve) disputes.
+
+    // DISPUTES: Admin and participant access
     match /disputes/{disputeId} {
-       allow read: if isSignedIn() && (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.artisanId || isAdmin());
-       allow create: if isSignedIn() && (request.auth.uid == request.resource.data.clientId || request.auth.uid == request.resource.data.artisanId);
-       allow update: if isAdmin();
+        allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+                     || request.auth.uid == resource.data.clientId
+                     || request.auth.uid == resource.data.artisanId;
+        allow create: if request.auth.uid == request.resource.data.clientId || request.auth.uid == request.resource.data.artisanId;
+        allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        allow delete: if false;
     }
   }
 }
