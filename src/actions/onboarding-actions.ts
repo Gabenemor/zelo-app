@@ -18,7 +18,9 @@ export async function saveClientStep1Preferences(userId: string, services: strin
   }
   const validation = ClientPreferencesSchema.safeParse({ userId, servicesLookingFor: services });
   if (!validation.success) {
-    return { success: false, error: validation.error.flatten().fieldErrors };
+    const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
+    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 1 Prefs:", errorMsg);
+    return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
   }
 
   try {
@@ -67,8 +69,9 @@ export async function saveClientStep2Profile(data: {
   }
   const validation = ClientProfileSetupSchema.safeParse(data); 
   if (!validation.success) {
-    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 2 Profile:", JSON.stringify(validation.error.flatten(), null, 2));
-    return { success: false, error: validation.error.flatten().fieldErrors };
+    const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
+    console.error("[SERVER ACTION VALIDATION ERROR] Client Step 2 Profile:", errorMsg);
+    return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
   }
 
   try {
@@ -123,19 +126,9 @@ export async function saveArtisanStep1Services(userId: string, servicesOffered: 
 
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate);
     if (!validation.success) {
-      const flattenedErrors = validation.error.flatten();
-      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", JSON.stringify(flattenedErrors, null, 2));
-      const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) {
-        clientErrorObject._form = flattenedErrors.formErrors;
-      }
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = flattenedErrors.fieldErrors;
-      }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
-        clientErrorObject._form = ["Validation failed. Please check your inputs."];
-      }
-      return { success: false, error: clientErrorObject };
+      const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
+      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Step 1 Services:", errorMsg);
+      return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
@@ -172,19 +165,9 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
     const dataToValidate = { userId, servicesOffered };
     const validation = ArtisanStep1ServicesSchema.safeParse(dataToValidate); 
     if (!validation.success) {
-      const flattenedErrors = validation.error.flatten();
-      console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", JSON.stringify(flattenedErrors, null, 2));
-      const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) {
-        clientErrorObject._form = flattenedErrors.formErrors;
-      }
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = flattenedErrors.fieldErrors;
-      }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
-        clientErrorObject._form = ["Validation failed. Please check your inputs."];
-      }
-      return { success: false, error: clientErrorObject };
+      const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
+      console.error("[SERVER ACTION VALIDATION ERROR] Update Artisan Primary Services:", errorMsg);
+      return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
@@ -261,19 +244,9 @@ export async function saveArtisanOnboardingProfile(
     const validation = ArtisanOnboardingProfileSchema.safeParse(dataToValidate);
 
     if (!validation.success) {
-      const flattenedErrors = validation.error.flatten();
-      console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", JSON.stringify(flattenedErrors, null, 2));
-      const clientErrorObject: Record<string, any> = {};
-      if (flattenedErrors.formErrors.length > 0) {
-        clientErrorObject._form = flattenedErrors.formErrors;
-      }
-      if (Object.keys(flattenedErrors.fieldErrors).length > 0) {
-        clientErrorObject.fields = flattenedErrors.fieldErrors;
-      }
-      if (Object.keys(clientErrorObject).length === 0 && validation.error) {
-        clientErrorObject._form = ["Validation failed. Please check your inputs."];
-      }
-      return { success: false, error: clientErrorObject };
+        const errorMsg = validation.error.errors.map((e) => e.message).join(', ');
+        console.error("[SERVER ACTION VALIDATION ERROR] Artisan Onboarding Profile:", errorMsg);
+        return { success: false, error: { _form: [errorMsg || "Validation failed. Please check your inputs."] } };
     }
 
     if (!db || Object.keys(db).length === 0) {
