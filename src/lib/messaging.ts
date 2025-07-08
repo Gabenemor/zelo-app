@@ -165,8 +165,8 @@ export class MessagingService {
   ): Unsubscribe {
     const q = query(
       collection(db, 'chats'),
-      where('participants', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
+      where('participants', 'array-contains', userId)
+      // Removed orderBy('updatedAt', 'desc') to prevent index error
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -183,6 +183,14 @@ export class MessagingService {
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
         } as Chat;
       });
+
+      // Sort the chats array on the client side
+      chats.sort((a, b) => {
+          const timeA = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+          const timeB = b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0;
+          return timeB - timeA;
+      });
+
       callback(chats);
     });
   }
