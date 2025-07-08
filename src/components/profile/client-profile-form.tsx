@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,21 +17,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import React from "react";
-import { Phone, Home, Save, User, Mail, Edit3, Camera, Search } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Phone, Home, Save, User, Mail, Edit3, Camera, Search, Loader2 } from "lucide-react";
 import type { ClientProfile, NigerianArtisanService } from "@/types";
 import { NIGERIAN_ARTISAN_SERVICES } from "@/types";
 import Image from "next/image";
 import { ServiceSelectionChips } from "@/components/onboarding/service-selection-chips";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
+import { uploadClientAvatar } from "@/lib/storage";
+import { saveClientStep2Profile } from "@/actions/onboarding-actions";
+import { useRouter } from "next/navigation";
+import { LocationAutocomplete } from "@/components/location/location-autocomplete";
 
 const clientProfileSchema = z.object({
   fullName: z.string().min(2, { message: "Full name is required." }),
   contactEmail: z.string().email({ message: "A valid contact email is required." }),
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), {
     message: "Invalid phone number format."
-  }),
+  }).or(z.literal('')),
   location: z.string().min(3, { message: "Location is required." }).optional(),
   isLocationPublic: z.boolean().default(false).optional(),
   servicesLookingFor: z.array(z.string()).min(1, "Please select at least one service you're interested in.").optional(),
@@ -46,8 +49,11 @@ interface ClientProfileFormProps {
 
 export function ClientProfileForm({ initialData, userId }: ClientProfileFormProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [avatarPreview, setAvatarPreview] = React.useState<string | null>(initialData?.avatarUrl || null);
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(initialData?.avatarUrl || null);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(initialData?.avatarUrl || null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const form = useForm<ClientProfileFormValues>({
     resolver: zodResolver(clientProfileSchema),
@@ -61,32 +67,60 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     },
   });
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+      if (initialData.avatarUrl) {
+        setAvatarPreview(initialData.avatarUrl);
+        setUploadedAvatarUrl(initialData.avatarUrl);
+      }
+    }
+  }, [initialData, form]);
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file && userId) {
+      setIsUploadingAvatar(true);
+      setAvatarPreview(URL.createObjectURL(file)); 
+      try {
+        const downloadURL = await uploadClientAvatar(userId, file);
+        setUploadedAvatarUrl(downloadURL);
+        setAvatarPreview(downloadURL);
+        toast({ title: "Avatar uploaded!" });
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+        toast({ title: "Upload failed", description: "Could not upload avatar.", variant: "destructive" });
+        setAvatarPreview(uploadedAvatarUrl);
+      } finally {
+        setIsUploadingAvatar(false);
+      }
     }
   };
 
   async function onSubmit(values: ClientProfileFormValues) {
-    setIsLoading(true);
-    const submissionData = { 
-        ...values, 
-        userId, // Add userId to submission
-        avatarUrl: avatarPreview, // Include current avatar preview
-        locationCoordinates: initialData?.locationCoordinates, // Preserve existing or derived coords
-        servicesLookingFor: values.servicesLookingFor || [] // Ensure it's an array
-    };
-    console.log("Client profile submission for user:", userId, submissionData);
-    
-    setTimeout(() => {
-      toast({ title: "Profile Updated (Mock)", description: "Your client profile has been saved." });
-      setIsLoading(false);
-    }, 1000);
+    setIsSubmitting(true);
+    const result = await saveClientStep2Profile({
+      userId,
+      location: values.location || "",
+      fullName: values.fullName,
+      contactEmail: values.contactEmail,
+      avatarUrl: uploadedAvatarUrl || undefined,
+      isLocationPublic: values.isLocationPublic,
+    });
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({ title: "Profile Updated", description: "Your client profile has been saved." });
+      router.refresh(); // Refresh the page to show new data
+    } else {
+      let errorMsg = "Could not save your profile. Please try again.";
+      if (result.error) {
+        const fieldErrors = Object.values(result.error).flat().join(" ");
+        if (fieldErrors) errorMsg = fieldErrors;
+        else if (result.error._form && Array.isArray(result.error._form)) errorMsg = result.error._form.join(" ");
+      }
+      toast({ title: "Error Saving Profile", description: errorMsg, variant: "destructive" });
+    }
   }
 
   return (
@@ -103,8 +137,8 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
                     data-ai-hint="profile avatar"
                 />
                 <label htmlFor="avatarUpload" className="absolute bottom-1 right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                    <Camera className="h-4 w-4" />
-                    <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} />
+                    {isUploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                    <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
                 </label>
             </div>
             <div className="flex-grow">
@@ -126,7 +160,6 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
                 />
             </div>
         </div>
-
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
@@ -170,12 +203,17 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
           render={({ field }) => (
             <FormItem>
               <FormLabel>Your General Location (Optional)</FormLabel>
-              <div className="relative">
-                <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <FormControl>
-                  <Input placeholder="e.g. Ikeja, Lagos" {...field} className="pl-10" />
-                </FormControl>
-              </div>
+              <Controller
+                name="location"
+                control={form.control}
+                render={({ field: locField }) => (
+                  <LocationAutocomplete
+                    onLocationSelect={(loc) => form.setValue("location", loc.address, { shouldValidate: true })}
+                    initialValue={locField.value || ''}
+                    placeholder="Enter your city or area"
+                  />
+                )}
+              />
               <FormDescription>This helps artisans understand your general area for service delivery.</FormDescription>
               <FormMessage />
             </FormItem>
@@ -230,8 +268,12 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
           </CardContent>
         </Card>
         
-        <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
-          {isLoading ? "Saving..." : <> <Save className="mr-2 h-4 w-4" /> Save Profile </>}
+        <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isSubmitting || isUploadingAvatar}>
+          {isSubmitting || isUploadingAvatar ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+          ) : (
+            <><Save className="mr-2 h-4 w-4" /> Save Profile</>
+          )}
         </Button>
       </form>
     </Form>
