@@ -90,13 +90,13 @@ export async function saveClientStep2Profile(data: {
     const clientProfileRef = doc(db, 'clientProfiles', validation.data.userId); 
     
     const profileDataToSave: Partial<ClientProfile> = {
-      userId: validation.data.userId, // Ensure userId is included
+      userId: validation.data.userId,
       location: validation.data.location,
-      username: validation.data.username || undefined, 
-      fullName: validation.data.fullName || undefined,
-      contactEmail: validation.data.contactEmail || undefined,
-      avatarUrl: validation.data.avatarUrl || undefined,
-      isLocationPublic: validation.data.isLocationPublic === undefined ? false : validation.data.isLocationPublic,
+      username: validation.data.username || null,
+      fullName: validation.data.fullName || null,
+      contactEmail: validation.data.contactEmail || null,
+      avatarUrl: validation.data.avatarUrl || null,
+      isLocationPublic: validation.data.isLocationPublic ?? false,
       onboardingCompleted: true,
       profileSetupCompleted: true,
       updatedAt: serverTimestamp(),
@@ -107,8 +107,13 @@ export async function saveClientStep2Profile(data: {
     if (!profileSnap.exists()) {
       profileDataToSave.createdAt = serverTimestamp() as any;
     }
+    
+    // Clean data to remove any keys with undefined values before sending to Firestore
+    const cleanData = Object.fromEntries(
+        Object.entries(profileDataToSave).filter(([_, v]) => v !== undefined)
+    );
 
-    await setDoc(clientProfileRef, profileDataToSave, { merge: true });
+    await setDoc(clientProfileRef, cleanData, { merge: true });
 
     console.log(`[SERVER ACTION] Client step 2 profile saved to Firestore for user ${validation.data.userId}:`, validation.data);
     return { success: true, data: validation.data };
@@ -277,19 +282,19 @@ export async function saveArtisanOnboardingProfile(
     const artisanProfileRef = doc(db, 'artisanProfiles', validation.data.userId);
     
     const dataToSave: Partial<ArtisanProfile> = { 
-      userId: validation.data.userId, // Ensure userId is included
-      username: validation.data.username || undefined,
-      profilePhotoUrl: validation.data.profilePhotoUrl || undefined,
-      headline: validation.data.headline || undefined,
+      userId: validation.data.userId,
+      username: validation.data.username || null,
+      profilePhotoUrl: validation.data.profilePhotoUrl || null,
+      headline: validation.data.headline || null,
       contactEmail: validation.data.contactEmail, 
-      contactPhone: validation.data.contactPhone || undefined,
+      contactPhone: validation.data.contactPhone || null,
       location: validation.data.location,
-      bio: validation.data.bio || undefined,
+      bio: validation.data.bio || null,
       servicesOffered: validation.data.servicesOffered,
       serviceExperiences: validation.data.serviceExperiences,
-      isLocationPublic: validation.data.isLocationPublic === undefined ? false : validation.data.isLocationPublic,
-      availabilityStatus: validation.data.availabilityStatus || undefined,
-      portfolioImageUrls: validation.data.portfolioImageUrls,
+      isLocationPublic: validation.data.isLocationPublic ?? false,
+      availabilityStatus: validation.data.availabilityStatus || 'available',
+      portfolioImageUrls: validation.data.portfolioImageUrls || [],
       onboardingCompleted: true,
       profileSetupCompleted: true,
       updatedAt: serverTimestamp(),
@@ -300,7 +305,12 @@ export async function saveArtisanOnboardingProfile(
       dataToSave.createdAt = serverTimestamp() as any; 
     }
     
-    await setDoc(artisanProfileRef, dataToSave, { merge: true });
+    // Clean data to remove any keys with undefined values before sending to Firestore
+    const cleanData = Object.fromEntries(
+        Object.entries(dataToSave).filter(([_, v]) => v !== undefined)
+    );
+
+    await setDoc(artisanProfileRef, cleanData, { merge: true });
 
     console.log(`[SERVER ACTION] Artisan onboarding profile saved to Firestore for user ${validation.data.userId}:`, validation.data);
     return { success: true, data: validation.data as ArtisanProfile };
@@ -353,3 +363,5 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
     return { complete: false, missingFields: ['N/A - Check Error'] };
   }
 }
+
+    
