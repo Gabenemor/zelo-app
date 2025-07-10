@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { List } from "lucide-react";
 import { getEscrowTransaction } from "@/lib/firestore"; 
-import { useAuthContext } from "@/components/providers/auth-provider"; 
 import { getCurrentUser } from "@/lib/auth";
 
 
-export default async function EscrowPage({ searchParams }: { searchParams?: { transactionId?: string }}) {
-  const transactionId = searchParams?.transactionId;
+export default async function EscrowPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined }}) {
+  const transactionId = typeof searchParams.transactionId === 'string' ? searchParams.transactionId : undefined;
   let specificTransaction: EscrowTransaction | null = null;
   
   const currentUser = await getCurrentUser();
