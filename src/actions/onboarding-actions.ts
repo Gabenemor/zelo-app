@@ -28,10 +28,6 @@ export async function saveClientStep1Preferences(userId: string, services: strin
   }
 
   try {
-    if (!db || Object.keys(db).length === 0) {
-      console.error("Firestore not initialized. Cannot save client preferences.");
-      return { success: false, error: { _form: ["Server error: Database not configured."] } };
-    }
     const clientProfileRef = doc(db, 'clientProfiles', userId); // Use provided userId
     await setDoc(clientProfileRef, {
       userId: userId, 
@@ -83,14 +79,10 @@ export async function saveClientStep2Profile(data: {
   }
 
   try {
-    if (!db || Object.keys(db).length === 0) {
-      console.error("Firestore not initialized. Cannot save client profile.");
-      return { success: false, error: { _form: ["Server error: Database not configured."] } };
-    }
     const clientProfileRef = doc(db, 'clientProfiles', validation.data.userId); 
     
     const profileDataToSave: Partial<ClientProfile> = {
-      userId: validation.data.userId,
+      // DO NOT include userId in the data to be written to the document itself
       location: validation.data.location,
       username: validation.data.username || null,
       fullName: validation.data.fullName || null,
@@ -148,10 +140,6 @@ export async function saveArtisanStep1Services(userId: string, servicesOffered: 
       return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
-    if (!db || Object.keys(db).length === 0) {
-      console.error("Firestore not initialized. Cannot save artisan services.");
-      return { success: false, error: { _form: ["Server error: Database not configured."] } };
-    }
     const artisanProfileRef = doc(db, 'artisanProfiles', userId); // Use provided userId
     await setDoc(artisanProfileRef, {
       userId: userId, 
@@ -191,10 +179,6 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
       return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
-    if (!db || Object.keys(db).length === 0) {
-      console.error("Firestore not initialized. Cannot update artisan primary services.");
-      return { success: false, error: { _form: ["Server error: Database not configured."] } };
-    }
     const artisanProfileRef = doc(db, 'artisanProfiles', userId);
     await setDoc(artisanProfileRef, {
       servicesOffered: validation.data.servicesOffered,
@@ -213,7 +197,6 @@ export async function updateArtisanPrimaryServices(userId: string, servicesOffer
 }
 
 const ArtisanOnboardingProfileSchema = z.object({
-  userId: z.string().min(1, "User ID is required."),
   username: z.string().min(3, "Username must be at least 3 characters.").optional().or(z.literal('')),
   profilePhotoUrl: z.string().url("Invalid URL for profile photo").optional().or(z.literal('')),
   headline: z.string().min(5, "Headline should be at least 5 characters.").max(100, "Headline too long.").optional().or(z.literal('')),
@@ -243,9 +226,10 @@ export async function saveArtisanOnboardingProfile(
     console.error("[SERVER ACTION ERROR] saveArtisanOnboardingProfile: userId is missing from input data.");
     return { success: false, error: { _form: ["User identification failed. Cannot save profile."] } };
   }
+  const userId = profileData.userId;
+
   try {
     const dataToValidate = {
-      userId: profileData.userId, 
       username: profileData.username,
       profilePhotoUrl: profileData.profilePhotoUrl,
       headline: profileData.headline,
@@ -274,15 +258,9 @@ export async function saveArtisanOnboardingProfile(
         return { success: false, error: { _form: [allErrors || "Validation failed. Please check your inputs."] } };
     }
 
-    if (!db || Object.keys(db).length === 0) {
-      console.error("Firestore not initialized. Cannot save artisan profile.");
-      return { success: false, error: { _form: ["Server error: Database not configured."] } };
-    }
-
-    const artisanProfileRef = doc(db, 'artisanProfiles', validation.data.userId);
+    const artisanProfileRef = doc(db, 'artisanProfiles', userId);
     
     const dataToSave: Partial<ArtisanProfile> = { 
-      userId: validation.data.userId,
       username: validation.data.username || null,
       profilePhotoUrl: validation.data.profilePhotoUrl || null,
       headline: validation.data.headline || null,
@@ -312,11 +290,11 @@ export async function saveArtisanOnboardingProfile(
 
     await setDoc(artisanProfileRef, cleanData, { merge: true });
 
-    console.log(`[SERVER ACTION] Artisan onboarding profile saved to Firestore for user ${validation.data.userId}:`, validation.data);
-    return { success: true, data: validation.data as ArtisanProfile };
+    console.log(`[SERVER ACTION] Artisan onboarding profile saved to Firestore for user ${userId}:`, validation.data);
+    return { success: true, data: { ...validation.data, userId } as ArtisanProfile };
 
   } catch (e: any) {
-    console.error(`[SERVER ACTION UNEXPECTED ERROR] saveArtisanOnboardingProfile for user ${profileData.userId}:`, e);
+    console.error(`[SERVER ACTION UNEXPECTED ERROR] saveArtisanOnboardingProfile for user ${userId}:`, e);
     const errorPayload: Record<string, any> = { 
       _form: ["An unexpected error occurred on the server while saving the profile. Please try again later."] 
     };
@@ -333,10 +311,6 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
     return { complete: false, missingFields: ['User ID missing'] };
   }
   try {
-    if (!db || Object.keys(db).length === 0) {
-      console.warn("Firestore not initialized during checkClientProfileCompleteness. Defaulting to incomplete.");
-      return { complete: false, missingFields: ['N/A - DB Error'] };
-    }
     const clientProfileRef = doc(db, 'clientProfiles', userId);
     const profileSnap = await getDoc(clientProfileRef);
     if (profileSnap.exists()) {
@@ -363,5 +337,3 @@ export async function checkClientProfileCompleteness(userId: string): Promise<{ 
     return { complete: false, missingFields: ['N/A - Check Error'] };
   }
 }
-
-    

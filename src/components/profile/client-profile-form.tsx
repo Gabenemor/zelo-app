@@ -126,7 +126,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
+        <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6">
             <FormItem className="flex flex-col items-center md:items-start">
               <FormLabel>Profile Photo</FormLabel>
               <Image 
