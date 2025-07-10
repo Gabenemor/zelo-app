@@ -19,10 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Briefcase, Edit, Coins, CalendarDays, MapPin, Send, UploadCloud } from "lucide-react"; // Changed DollarSign to Coins
+import { Briefcase, Edit, Coins, CalendarDays, MapPin, Send, UploadCloud } from "lucide-react";
 import type { ServiceRequest } from "@/types";
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
-import { useRouter } from "next/navigation"; // For redirecting after edit
+import { useRouter } from "next/navigation";
+import { createServiceRequest, updateServiceRequest } from "@/lib/firestore";
 
 // Mock service categories - align with artisan services
 const SERVICE_CATEGORIES = [
@@ -39,16 +40,15 @@ const serviceRequestSchema = z.object({
   category: z.string().min(1, { message: "Please select a service category." }),
   location: z.string().min(3, { message: "Location is required." }),
   budget: z.coerce.number().positive({ message: "Budget must be a positive number."}).optional(),
-  preferredDate: z.string().optional(), // Could use a date picker
-  // attachments: typeof window === 'undefined' ? z.any().optional() : z.instanceof(FileList).optional().nullable(),
+  preferredDate: z.string().optional(),
 });
 
 type ServiceRequestFormValues = z.infer<typeof serviceRequestSchema>;
 
 interface ServiceRequestFormProps {
-  clientId: string; // Logged-in client's ID
-  initialData?: Partial<ServiceRequest>; // For editing
-  isEditing?: boolean; // New prop
+  clientId: string;
+  initialData?: Partial<ServiceRequest>;
+  isEditing?: boolean;
 }
 
 export function ServiceRequestForm({ clientId, initialData, isEditing = false }: ServiceRequestFormProps) {
@@ -64,10 +64,9 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
       category: initialData?.category || "",
       location: initialData?.location || "",
       budget: initialData?.budget || undefined,
-      preferredDate: (initialData?.postedAt && typeof initialData.postedAt.getMonth === 'function') 
-        ? new Date(initialData.postedAt).toISOString().split('T')[0] 
+      preferredDate: (initialData?.postedAt && typeof initialData.postedAt.getMonth === 'function')
+        ? new Date(initialData.postedAt).toISOString().split('T')[0]
         : "",
-      // attachments: null,
     },
   });
 
@@ -75,52 +74,35 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
     form.setValue("location", location.address, { shouldValidate: true });
   };
 
-  // const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const files = event.target.files;
-  //   if (files) {
-  //     form.setValue("attachments", files);
-  //     // Handle previews if needed
-  //   }
-  // };
-
   async function onSubmit(values: ServiceRequestFormValues) {
     setIsLoading(true);
-    // In a real app, handle file uploads for 'attachments' first, get URLs, then include in submissionData.
-    // For mock, we're not processing actual files.
-    const submissionData = {
-      ...values,
-      clientId,
-      postedAt: initialData?.postedAt ? new Date(initialData.postedAt) : new Date(),
-      status: initialData?.status || ("open" as const),
-      id: initialData?.id, // Include ID if editing
-      // attachmentUrls: [] // Placeholder for uploaded file URLs
-    };
-    console.log("Service request submission (isEditing:", isEditing, "):", submissionData);
-
-    // Placeholder for actual backend submission logic
-    // if (isEditing && initialData?.id) {
-    //   // Call update action: await updateServiceRequest(initialData.id, submissionData);
-    // } else {
-    //   // Call create action: await createServiceRequest(submissionData);
-    // }
-
-    // Mock success
-    setTimeout(() => {
-      if (isEditing) {
-        toast({ title: "Service Request Updated (Mock)", description: "Your changes have been saved." });
-        // Optionally redirect to the detail page after edit
-        if (initialData?.id) {
-          router.push(`/dashboard/services/requests/${initialData.id}`);
-        } else {
-           router.push('/dashboard/services/my-requests'); // Fallback
-        }
+    try {
+      if (isEditing && initialData?.id) {
+        const updateData: Partial<ServiceRequest> = {
+          ...values,
+          budget: values.budget || undefined,
+        };
+        await updateServiceRequest(initialData.id, updateData);
+        toast({ title: "Service Request Updated", description: "Your changes have been saved." });
+        router.push(`/dashboard/services/requests/${initialData.id}?role=client`);
       } else {
-        toast({ title: "Service Request Submitted (Mock)", description: "Your request is now live." });
-        form.reset(); // Only reset for new submissions
-        router.push('/dashboard/services/my-requests');
+        const submissionData: Omit<ServiceRequest, 'id' | 'postedAt' | 'status'> = {
+          ...values,
+          clientId,
+          budget: values.budget || undefined,
+          // `postedAt` and `status` will be set by the backend function
+        };
+        await createServiceRequest(submissionData);
+        toast({ title: "Service Request Submitted", description: "Your request is now live." });
+        router.push('/dashboard/services/my-requests?role=client');
       }
+      form.reset();
+    } catch (error: any) {
+      console.error("Failed to submit service request:", error);
+      toast({ title: "Submission Failed", description: error.message || "An unexpected error occurred.", variant: "destructive"});
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -240,47 +222,6 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
             </FormItem>
           )}
         />
-
-        {/* <FormField
-            control={form.control}
-            name="attachments"
-            render={({ field }) => ( // `field` contains onChange, onBlur, value, name, ref
-            <FormItem>
-                <FormLabel>Attach Files (Optional)</FormLabel>
-                <FormControl>
-                    <div className="flex items-center justify-center w-full">
-                        <label
-                            htmlFor="attachments-upload"
-                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors"
-                        >
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
-                                <p className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-semibold text-primary">Click to upload</span> or drag and drop
-                                </p>
-                                <p className="text-xs text-muted-foreground">Images or Documents (PDF, DOCX)</p>
-                            </div>
-                            <Input
-                              id="attachments-upload"
-                              type="file"
-                              multiple
-                              className="sr-only"
-                              accept="image/*,application/pdf,.doc,.docx"
-                              onChange={(e) => {
-                                field.onChange(e.target.files);
-                                // handleAttachmentChange(e); // You might need a separate handler for previews
-                              }}
-                              disabled={isLoading}
-                            />
-                        </label>
-                    </div>
-                </FormControl>
-                <FormDescription>You can attach images or documents relevant to your request.</FormDescription>
-                <FormMessage />
-            </FormItem>
-            )}
-        /> */}
-
 
         <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading}>
           {isLoading

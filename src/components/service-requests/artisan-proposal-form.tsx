@@ -8,19 +8,18 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, Send, UploadCloud, Paperclip, Loader2 } from 'lucide-react';
-import type { ArtisanProposal, AuthUser } from '@/types'; // Assuming AuthUser is available for artisanName/avatar
-import { submitArtisanProposal } from '@/actions/proposal-actions'; // Ensure this path is correct
+import { Coins, Send, UploadCloud, Loader2 } from 'lucide-react';
+import type { ArtisanProposal } from '@/types';
+import { createProposal } from '@/lib/firestore'; // Import directly
 import { useAuthContext } from '@/components/providers/auth-provider';
 
 const proposalFormSchema = z.object({
   proposedAmount: z.coerce.number().positive({ message: "Proposed amount must be positive." }),
   coverLetter: z.string().min(50, { message: "Cover letter must be at least 50 characters." }).max(1500, "Cover letter too long."),
   portfolioFiles: z.custom<FileList | null>(
-        (val) => val === null || val instanceof FileList, // Allow FileList or null
+        (val) => val === null || val instanceof FileList,
         "Invalid file list"
     ).optional().nullable()
     .refine(
@@ -43,7 +42,7 @@ export function ArtisanProposalForm({
   onSubmitSuccess,
 }: ArtisanProposalFormProps) {
   const { toast } = useToast();
-  const { user: artisanUser, loading: authLoading } = useAuthContext(); // Get current artisan details
+  const { user: artisanUser, loading: authLoading } = useAuthContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFileNames, setSelectedFileNames] = useState<string[]>([]);
 
@@ -78,28 +77,38 @@ export function ArtisanProposalForm({
     }
 
     setIsSubmitting(true);
-    const result = await submitArtisanProposal({
-      serviceRequestId,
-      artisanId: artisanUser.uid,
-      artisanName: artisanUser.displayName || "Artisan", // Use display name from auth
-      artisanAvatarUrl: artisanUser.avatarUrl, // Use avatar from auth if available
-      proposedAmount: values.proposedAmount,
-      coverLetter: values.coverLetter,
-      portfolioFileNames: selectedFileNames, // Send file names
-    });
-    setIsSubmitting(false);
-
-    if (result.success && result.proposal) {
-      toast({ title: "Proposal Submitted!", description: "Your proposal has been sent to the client." });
-      onSubmitSuccess(result.proposal);
-      form.reset();
-      setSelectedFileNames([]);
-    } else {
-      toast({
-        title: "Submission Failed",
-        description: result.error || "Could not submit your proposal. Please try again.",
-        variant: "destructive",
-      });
+    try {
+        const proposalData: Omit<ArtisanProposal, 'id' | 'submittedAt'> = {
+            serviceRequestId,
+            artisanId: artisanUser.uid,
+            artisanName: artisanUser.displayName || "Artisan",
+            artisanAvatarUrl: artisanUser.avatarUrl,
+            proposedAmount: values.proposedAmount,
+            coverLetter: values.coverLetter,
+            portfolioFileNames: selectedFileNames,
+            status: 'pending',
+        };
+        
+        const proposalId = await createProposal(proposalData);
+        
+        const newProposal: ArtisanProposal = {
+            ...proposalData,
+            id: proposalId,
+            submittedAt: new Date(), // For optimistic update
+        };
+        
+        toast({ title: "Proposal Submitted!", description: "Your proposal has been sent to the client." });
+        onSubmitSuccess(newProposal);
+        form.reset();
+        setSelectedFileNames([]);
+    } catch (error: any) {
+        toast({
+            title: "Submission Failed",
+            description: error.message || "Could not submit your proposal. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 

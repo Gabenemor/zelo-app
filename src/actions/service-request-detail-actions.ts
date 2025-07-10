@@ -2,8 +2,8 @@
 'use server';
 
 import { updateServiceRequest } from '@/lib/firestore';
-// import type { ServiceRequest } from '@/types'; // Not directly used here
 import { revalidatePath } from 'next/cache';
+import { paymentService } from '@/lib/payments';
 
 export async function handleCancelRequestServerAction(requestId: string) {
     console.log("[Server Action] Cancelling request (live):", requestId);
@@ -22,8 +22,6 @@ export async function handleCancelRequestServerAction(requestId: string) {
 export async function handleMarkJobAsCompleteArtisanServerAction(requestId: string, artisanId: string) {
     console.log(`[Server Action] Artisan ${artisanId} marking job ${requestId} as complete (live).`);
     try {
-        // Update status to 'completed' or 'pending_client_approval'
-        // For simplicity, using 'completed'. A two-step approval is also common.
         await updateServiceRequest(requestId, { status: 'completed' }); 
         revalidatePath(`/dashboard/services/requests/${requestId}`);
         revalidatePath('/dashboard/services/my-offers');
@@ -41,7 +39,6 @@ export async function handleClientConfirmCompleteAndReleaseFundsServerAction(req
         // First, ensure the job status reflects client confirmation.
         await updateServiceRequest(requestId, { status: 'completed' });
         
-        // TODO: Trigger payment release logic here (e.g., via Paystack)
         // This would involve getting the escrow transaction ID for this service request
         // and then calling a payment service method.
         // For now, this part is simulated.
@@ -58,23 +55,36 @@ export async function handleClientConfirmCompleteAndReleaseFundsServerAction(req
     }
 }
 
-export async function handleFundEscrowServerAction(requestId: string, amount: number, clientEmail: string | undefined, serviceTitle: string) {
+export async function handleFundEscrowServerAction(
+    requestId: string, 
+    amount: number, 
+    clientEmail: string | undefined, 
+    clientId: string,
+    artisanId: string,
+    serviceTitle: string
+) {
   if (!clientEmail || amount <= 0) {
-    console.error("[Server Action] Fund Escrow Error (live): Missing details for payment.");
+    console.error("[Server Action] Fund Escrow Error: Missing details for payment.");
     return { success: false, message: "Error: Missing necessary details for payment." };
   }
-  console.log(`[Server Action] Initiating NGN ${amount.toLocaleString()} payment for service request '${serviceTitle}' (ID: '${requestId}') for client ${clientEmail} (live).`);
+  console.log(`[Server Action] Initiating NGN ${amount.toLocaleString()} payment for service request '${serviceTitle}' (ID: '${requestId}') for client ${clientEmail}.`);
   
-  // After successful Paystack payment (usually via webhook), update service request.
-  // For now, this action simulates the Paystack part and prepares a redirect.
-  // The actual `updateServiceRequest(requestId, { status: 'in_progress', escrowFunded: true });` 
-  // should happen in the Paystack webhook handler or payment callback.
-  // Revalidation of paths should also occur there.
+  try {
+    const paymentData = await paymentService.initializePayment(
+      clientEmail,
+      amount,
+      requestId,
+      clientId,
+      artisanId
+    );
 
-  return { 
-    success: true, 
-    message: `Mock Paystack: Payment for '${serviceTitle}' initiated. Redirecting...`, 
-    // This redirectUrl would typically come from Paystack and include transaction reference
-    redirectUrl: `/dashboard/payments/escrow?transactionId=live_mock_txn_${requestId}_${Date.now()}&status=funded&amount=${amount}&serviceRequestId=${requestId}` 
-  };
+    return { 
+      success: true, 
+      message: `Payment initiated. Redirecting to Paystack...`, 
+      redirectUrl: paymentData.authorization_url,
+    };
+  } catch (error: any) {
+    console.error("Error initializing payment from server action:", error);
+    return { success: false, message: error.message || "Failed to initialize payment." };
+  }
 }

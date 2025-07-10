@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,10 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
-import { Landmark, Hash, UserCheck, Save } from "lucide-react";
+import { Landmark, Hash, UserCheck, Save, Loader2 } from "lucide-react";
 import type { WithdrawalAccount } from "@/types";
+import { createWithdrawalAccount } from "@/lib/firestore";
+import { paymentService } from "@/lib/payments";
 
-// Example list of Nigerian banks - in a real app, this might come from an API
 const NIGERIAN_BANKS = [
   "Access Bank", "Citibank Nigeria", "Ecobank Nigeria", "Fidelity Bank",
   "First Bank of Nigeria", "First City Monument Bank (FCMB)", "Guaranty Trust Bank (GTB)",
@@ -60,8 +62,7 @@ export function WithdrawalSettingsForm({ initialData, userId }: WithdrawalSettin
       accountName: initialData?.accountName || "",
     },
   });
-  
-  // Effect to update form if initialData changes (e.g. after verification)
+
   React.useEffect(() => {
     if (initialData) {
       form.reset({
@@ -81,45 +82,44 @@ export function WithdrawalSettingsForm({ initialData, userId }: WithdrawalSettin
         return;
     }
     setIsVerifying(true);
-    console.log("Verifying account:", { bankName, accountNumber });
-    // Placeholder for actual bank account verification API call (e.g., Paystack, Mono)
-    // This would typically return the account name if valid.
-    // For mock, let's assume it's successful and sets a mock name.
-    setTimeout(() => {
-      const mockAccountName = "Mocked Account Holder Name"; // Replace with actual API response
-      form.setValue("accountName", mockAccountName);
-      setIsVerified(true);
-      toast({ title: "Account Verified (Mock)", description: `Account Name: ${mockAccountName}` });
+    try {
+      // In a real app, you'd map bankName to bankCode for Paystack
+      // This is a simplified mock. A real implementation needs a bank list with codes.
+      const bankCode = "058"; // Example: GTB's code
+      const verificationResult = await paymentService.verifyBankAccount(accountNumber, bankCode);
+      if (verificationResult && verificationResult.account_name) {
+        form.setValue("accountName", verificationResult.account_name);
+        setIsVerified(true);
+        toast({ title: "Account Verified", description: `Account Name: ${verificationResult.account_name}` });
+      } else {
+        throw new Error("Verification failed or account name not returned.");
+      }
+    } catch (error: any) {
+       toast({ title: "Account Verification Failed", description: "Could not verify account. Please check details or try again.", variant: "destructive" });
+       setIsVerified(false);
+    } finally {
       setIsVerifying(false);
-    }, 1500);
+    }
   };
 
   async function onSubmit(values: WithdrawalAccountFormValues) {
-    if (!isVerified && !initialData?.isVerified) { // Check if it was previously verified
+    if (!isVerified) {
         toast({ title: "Account Not Verified", description: "Please verify your account details before saving.", variant: "destructive" });
         return;
     }
     setIsLoading(true);
-    console.log("Saving withdrawal account for user:", userId, values);
-    // Placeholder for actual backend submission
-    // try {
-    //   // await db.collection("withdrawalAccounts").doc(userId).set({ ...values, userId, isVerified: true }, { merge: true });
-    //   toast({ title: "Withdrawal Account Saved", description: "Your bank details have been successfully updated." });
-    // } catch (error: any) {
-    //   toast({
-    //     title: "Save Failed",
-    //     description: error.message || "Could not save bank details. Please try again.",
-    //     variant: "destructive",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
-
-     // Mock success
-    setTimeout(() => {
-      toast({ title: "Withdrawal Account Saved (Mock)", description: "Your bank details have been updated." });
+    try {
+      await createWithdrawalAccount({ ...values, userId, isVerified: true });
+      toast({ title: "Withdrawal Account Saved", description: "Your bank details have been successfully updated." });
+    } catch (error: any) {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Could not save bank details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -168,6 +168,7 @@ export function WithdrawalSettingsForm({ initialData, userId }: WithdrawalSettin
         />
         
         <Button type="button" variant="outline" onClick={handleVerifyAccount} disabled={isVerifying || isLoading}>
+          {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
           {isVerifying ? "Verifying..." : "Verify Account Details"}
         </Button>
 
@@ -180,7 +181,7 @@ export function WithdrawalSettingsForm({ initialData, userId }: WithdrawalSettin
               <div className="relative">
                 <UserCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input placeholder="Account holder's name (auto-filled after verification)" {...field} readOnly={isVerified || !!initialData?.isVerified} className="pl-10 bg-secondary/50" />
+                  <Input placeholder="Account holder's name (auto-filled after verification)" {...field} readOnly className="pl-10 bg-secondary/50" />
                 </FormControl>
               </div>
               <FormDescription>This will be automatically filled after successful verification. Ensure it matches your registered name.</FormDescription>
@@ -196,8 +197,9 @@ export function WithdrawalSettingsForm({ initialData, userId }: WithdrawalSettin
             </div>
         )}
 
-        <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading || (!isVerified && !initialData?.isVerified)}>
-           {isLoading ? "Saving..." : <> <Save className="mr-2 h-4 w-4" /> Save Bank Details </>}
+        <Button type="submit" className="w-full md:w-auto font-semibold" disabled={isLoading || !isVerified}>
+           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+           {isLoading ? "Saving..." : "Save Bank Details"}
         </Button>
       </form>
     </Form>
