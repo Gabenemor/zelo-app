@@ -29,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { uploadProfilePhoto, uploadPortfolioImages } from "@/lib/storage";
 import { LocationAutocomplete } from "@/components/location/location-autocomplete";
+import { Label } from "@/components/ui/label";
 
 const serviceExperienceSchema = z.object({
   serviceName: z.string(),
@@ -378,14 +379,14 @@ export function ArtisanProfileForm({
             <FormItem>
                <FormControl>
                 <div className="flex items-center justify-center w-full">
-                    <label htmlFor="portfolio-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors">
+                    <Label htmlFor="portfolio-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/30 hover:bg-secondary/50 border-border hover:border-primary/50 transition-colors">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             {isUploadingPortfolio ? <Loader2 className="w-8 h-8 mb-2 text-muted-foreground animate-spin" /> : <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />}
                             <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
                             <p className="text-xs text-muted-foreground">Up to 5 images (JPG, PNG, GIF)</p>
                         </div>
                         <Input id="portfolio-upload" type="file" multiple className="sr-only" accept="image/*" onChange={handlePortfolioChange} disabled={isUploadingPortfolio || isSubmitting || uploadedPortfolioImageUrls.length >=5 }/>
-                    </label>
+                    </Label>
                 </div>
               </FormControl>
               <FormMessage className="mt-1"/>

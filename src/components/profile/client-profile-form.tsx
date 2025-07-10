@@ -138,11 +138,11 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
                   className="object-cover w-32 h-32 rounded-full border-2 border-muted"
                   data-ai-hint="profile avatar"
               />
-              <Button asChild variant="outline" size="sm" className="mt-2" disabled={isUploadingAvatar || isSubmitting}>
-                  <Label htmlFor="avatarUpload" className="cursor-pointer flex items-center">
-                      {isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
-                      {isUploadingAvatar ? "Uploading..." : "Change Photo"}
-                  </Label>
+              <Button type="button" variant="outline" size="sm" asChild className="mt-2" disabled={isUploadingAvatar || isSubmitting}>
+                <Label htmlFor="avatarUpload" className="cursor-pointer">
+                  {isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                  {isUploadingAvatar ? "Uploading..." : "Change Photo"}
+                </Label>
               </Button>
               <Input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
             </FormItem>
