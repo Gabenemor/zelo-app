@@ -92,9 +92,9 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
           budget: values.budget || undefined,
           // `postedAt` and `status` will be set by the backend function
         };
-        await createServiceRequest(submissionData);
+        const newRequestId = await createServiceRequest(submissionData);
         toast({ title: "Service Request Submitted", description: "Your request is now live." });
-        router.push('/dashboard/services/my-requests?role=client');
+        router.push(`/dashboard/services/requests/${newRequestId}?role=client`);
       }
       form.reset();
     } catch (error: any) {

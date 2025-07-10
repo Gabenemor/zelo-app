@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MapPin, CalendarDays, Coins, Briefcase, Eye, Send, CheckCircle2 } from "lucide-react"; 
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from "@/lib/utils";
 
 interface ServiceRequestCardProps {
   request: ServiceRequest;
@@ -55,47 +56,48 @@ export function ServiceRequestCard({ request, showViewButton = true, currentUser
     }
   }
 
-
   return (
-    <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-md">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-headline text-lg line-clamp-2">{request.title}</CardTitle>
-          <div className="flex items-center gap-1 shrink-0">
-            <Badge variant={getStatusVariant(request.status)} className="capitalize">
-              {request.status.replace('_', ' ')}
-            </Badge>
-             {currentUserRole === 'artisan' && applicationStatus && request.status === 'open' && getApplicationStatusBadge(applicationStatus)}
+    <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg relative group">
+      <Link href={detailLink} className="absolute inset-0 z-0" aria-label={`View details for ${request.title}`}></Link>
+      <div className="relative z-10 flex flex-col h-full bg-card rounded-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-headline text-lg line-clamp-2 group-hover:text-primary transition-colors">{request.title}</CardTitle>
+            <div className="flex items-center gap-1 shrink-0">
+              <Badge variant={getStatusVariant(request.status)} className="capitalize">
+                {request.status.replace('_', ' ')}
+              </Badge>
+              {currentUserRole === 'artisan' && applicationStatus && request.status === 'open' && getApplicationStatusBadge(applicationStatus)}
+            </div>
           </div>
-        </div>
-        <CardDescription className="flex items-center gap-1 text-xs">
-          <Briefcase className="h-3 w-3" /> {request.category}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-2 text-sm">
-        <p className="line-clamp-3 text-muted-foreground">{request.description}</p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3" /> <span>{request.location}</span>
-        </div>
-        {request.budget && (
+          <CardDescription className="flex items-center gap-1 text-xs">
+            <Briefcase className="h-3 w-3" /> {request.category}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-2 text-sm">
+          <p className="line-clamp-3 text-muted-foreground">{request.description}</p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Coins className="h-3 w-3" /> <span>Budget: ₦{request.budget.toLocaleString()}</span>
+            <MapPin className="h-3 w-3" /> <span>{request.location}</span>
           </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col items-start gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            Posted {formatDistanceToNow(new Date(request.postedAt), { addSuffix: true })}
-        </div>
-        {showViewButton && (
-            <Button asChild size="sm" variant="outline">
-                <Link href={detailLink}>
-                    <ButtonIcon className="mr-2 h-3 w-3" /> {buttonText}
-                </Link>
-            </Button>
-        )}
-      </CardFooter>
+          {request.budget && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Coins className="h-3 w-3" /> <span>Budget: ₦{request.budget.toLocaleString()}</span>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col items-start gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div>
+              Posted {formatDistanceToNow(new Date(request.postedAt), { addSuffix: true })}
+          </div>
+          {showViewButton && (
+              <Button asChild size="sm" variant="outline" className="relative z-20">
+                  <Link href={detailLink}>
+                      <ButtonIcon className="mr-2 h-3 w-3" /> {buttonText}
+                  </Link>
+              </Button>
+          )}
+        </CardFooter>
+      </div>
     </Card>
   );
 }
-
