@@ -50,7 +50,7 @@ export function ArtisanProposalForm({
   const form = useForm<ProposalFormValues>({
     resolver: zodResolver(proposalFormSchema),
     defaultValues: {
-      proposedAmount: undefined,
+      proposedAmount: currentBudget || undefined,
       coverLetter: '',
       portfolioFiles: null,
     },
@@ -123,7 +123,7 @@ export function ArtisanProposalForm({
               <div className="relative">
                 <Coins className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 700000" {...field} className="pl-10" />
+                  <Input type="number" placeholder="e.g., 700000" {...field} value={field.value ?? ''} className="pl-10" />
                 </FormControl>
               </div>
               {currentBudget && <FormDescription>Client's budget is approx. ₦{currentBudget.toLocaleString()}.</FormDescription>}
@@ -199,4 +199,3 @@ export function ArtisanProposalForm({
     </Form>
   );
 }
-

@@ -218,25 +218,24 @@ export function ArtisanProfileForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6 md:space-y-0">
-          <FormItem className="flex flex-col items-center md:items-start">
-            <FormLabel>Profile Photo</FormLabel>
+          <div className="flex flex-col items-center md:items-start">
+            <Label>Profile Photo</Label>
             <Image
               src={profilePhotoPreview || "https://placehold.co/128x128.png?text=Photo"}
               alt="Profile photo preview"
               width={128}
               height={128}
-              className="rounded-full object-cover w-32 h-32 border shadow-sm"
+              className="rounded-full object-cover w-32 h-32 border shadow-sm mt-2"
               data-ai-hint="profile photo"
             />
             <Button type="button" variant="outline" size="sm" asChild className="mt-2" disabled={isUploadingProfilePhoto || isSubmitting}>
-              <Label htmlFor="profile-photo-upload" className="cursor-pointer flex items-center">
+              <label htmlFor="profile-photo-upload" className="cursor-pointer flex items-center">
                 {isUploadingProfilePhoto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
-                {isUploadingProfilePhoto ? "Uploading..." : "Upload Photo"}
-              </Label>
+                {isUploadingProfilePhoto ? "Uploading..." : "Change Photo"}
+              </label>
             </Button>
             <Input id="profile-photo-upload" type="file" className="sr-only" accept="image/*" onChange={handleProfilePhotoChange} disabled={isUploadingProfilePhoto || isSubmitting}/>
-            <FormMessage />
-          </FormItem>
+          </div>
           <div className="w-full space-y-6">
             <FormField control={form.control} name="username" render={({ field }) => (
                 <FormItem>

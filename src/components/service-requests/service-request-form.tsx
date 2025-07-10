@@ -64,7 +64,9 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
       category: initialData?.category || "",
       location: initialData?.location || "",
       budget: initialData?.budget || undefined,
-      preferredDate: initialData?.postedAt ? new Date(initialData.postedAt).toISOString().split('T')[0] : "",
+      preferredDate: (initialData?.postedAt && typeof initialData.postedAt.getMonth === 'function') 
+        ? new Date(initialData.postedAt).toISOString().split('T')[0] 
+        : "",
       // attachments: null,
     },
   });
@@ -192,7 +194,7 @@ export function ServiceRequestForm({ clientId, initialData, isEditing = false }:
                  <div className="relative">
                   <Coins className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 10000" {...field} className="pl-10" />
+                    <Input type="number" placeholder="e.g., 10000" {...field} value={field.value ?? ''} className="pl-10" />
                   </FormControl>
                 </div>
                 <FormDescription>Enter your estimated budget for this service.</FormDescription>

@@ -36,7 +36,7 @@ const clientProfileSchema = z.object({
   contactPhone: z.string().optional().refine(val => !val || /^\+?[0-9]{10,14}$/.test(val), {
     message: "Invalid phone number format."
   }).or(z.literal('')),
-  location: z.string().min(3, { message: "Location is required." }).optional(),
+  location: z.string().min(3, { message: "Location is required." }).optional().or(z.literal('')),
   isLocationPublic: z.boolean().default(false).optional(),
   servicesLookingFor: z.array(z.string()).min(1, "Please select at least one service you're interested in.").optional(),
 });
@@ -70,7 +70,14 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
 
   useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      form.reset({
+          fullName: initialData.fullName || "",
+          contactEmail: initialData.contactEmail || "",
+          contactPhone: initialData.contactPhone || "",
+          location: initialData.location || "",
+          isLocationPublic: initialData.isLocationPublic || false,
+          servicesLookingFor: initialData.servicesLookingFor || [],
+      });
       if (initialData.avatarUrl) {
         setAvatarPreview(initialData.avatarUrl);
         setUploadedAvatarUrl(initialData.avatarUrl);
@@ -128,24 +135,24 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex flex-col items-center space-y-4 md:flex-row md:items-start md:space-x-6">
-            <FormItem className="flex flex-col items-center md:items-start">
-              <FormLabel>Profile Photo</FormLabel>
+            <div className="flex flex-col items-center md:items-start">
+              <Label>Profile Photo</Label>
               <Image 
                   src={avatarPreview || "https://placehold.co/128x128.png?text=Avatar"} 
                   alt="Profile Avatar" 
                   width={128}
                   height={128}
-                  className="object-cover w-32 h-32 rounded-full border-2 border-muted"
+                  className="object-cover w-32 h-32 rounded-full border-2 border-muted mt-2"
                   data-ai-hint="profile avatar"
               />
               <Button type="button" variant="outline" size="sm" asChild className="mt-2" disabled={isUploadingAvatar || isSubmitting}>
-                <Label htmlFor="avatarUpload" className="cursor-pointer">
+                <label htmlFor="avatarUpload" className="cursor-pointer">
                   {isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
                   {isUploadingAvatar ? "Uploading..." : "Change Photo"}
-                </Label>
+                </label>
               </Button>
               <Input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
-            </FormItem>
+            </div>
             <div className="flex-grow w-full">
                 <FormField
                 control={form.control}
