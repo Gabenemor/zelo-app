@@ -111,7 +111,7 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
 
     if (result.success) {
       toast({ title: "Profile Updated", description: "Your client profile has been saved." });
-      router.refresh(); // Refresh the page to show new data
+      router.refresh(); 
     } else {
       let errorMsg = "Could not save your profile. Please try again.";
       if (result.error) {
@@ -138,12 +138,12 @@ export function ClientProfileForm({ initialData, userId }: ClientProfileFormProp
                   data-ai-hint="profile avatar"
               />
               <Button asChild variant="outline" size="sm" className="mt-2" disabled={isUploadingAvatar || isSubmitting}>
-                  <label htmlFor="avatarUpload" className="cursor-pointer">
+                  <Label htmlFor="avatarUpload" className="cursor-pointer flex items-center">
                       {isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
                       {isUploadingAvatar ? "Uploading..." : "Change Photo"}
-                  </label>
+                  </Label>
               </Button>
-              <input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
+              <Input id="avatarUpload" type="file" className="sr-only" accept="image/*" onChange={handleAvatarChange} disabled={isUploadingAvatar || isSubmitting} />
             </FormItem>
             <div className="flex-grow w-full">
                 <FormField

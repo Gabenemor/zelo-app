@@ -103,7 +103,6 @@ export function ArtisanProfileForm({
 
   useEffect(() => {
     if (initialData) {
-      // Use form.reset to update the form with new initialData when it changes
       form.reset({
         username: initialData.username || initialData.fullName?.split(' ')[0] || "",
         headline: initialData.headline || "",
@@ -124,7 +123,6 @@ export function ArtisanProfileForm({
             };
           }) || [],
       });
-      // Also update the image previews and uploaded URLs state from initialData
       if (initialData.profilePhotoUrl) {
         setProfilePhotoPreview(initialData.profilePhotoUrl);
         setUploadedProfilePhotoUrl(initialData.profilePhotoUrl);
@@ -140,16 +138,16 @@ export function ArtisanProfileForm({
     const file = event.target.files?.[0];
     if (file && userId) {
       setIsUploadingProfilePhoto(true);
-      setProfilePhotoPreview(URL.createObjectURL(file)); // Optimistic update
+      setProfilePhotoPreview(URL.createObjectURL(file)); 
       try {
         const downloadURL = await uploadProfilePhoto(userId, file);
         setUploadedProfilePhotoUrl(downloadURL);
-        setProfilePhotoPreview(downloadURL); // Confirm with actual URL
+        setProfilePhotoPreview(downloadURL);
         toast({ title: "Profile photo uploaded!" });
       } catch (error) {
         console.error("Error uploading profile photo:", error);
         toast({ title: "Upload failed", description: "Could not upload profile photo.", variant: "destructive" });
-        setProfilePhotoPreview(uploadedProfilePhotoUrl); // Revert to previous confirmed URL
+        setProfilePhotoPreview(uploadedProfilePhotoUrl);
       } finally {
         setIsUploadingProfilePhoto(false);
       }
@@ -176,12 +174,12 @@ export function ArtisanProfileForm({
           toast({ title: "Portfolio images uploaded!" });
         } else if (currentUploadedCount >= 5) {
             toast({ title: "Portfolio Full", description: "Maximum 5 images allowed.", variant: "default"});
-            setPortfolioPreviews(uploadedPortfolioImageUrls); // Ensure previews match only uploaded
+            setPortfolioPreviews(uploadedPortfolioImageUrls);
         }
       } catch (error) {
         console.error("Error uploading portfolio images:", error);
         toast({ title: "Portfolio upload failed", description: "Could not upload all portfolio images.", variant: "destructive" });
-        setPortfolioPreviews(uploadedPortfolioImageUrls); // Revert
+        setPortfolioPreviews(uploadedPortfolioImageUrls);
       } finally {
         setIsUploadingPortfolio(false);
       }
@@ -230,10 +228,10 @@ export function ArtisanProfileForm({
               data-ai-hint="profile photo"
             />
             <Button type="button" variant="outline" size="sm" asChild className="mt-2" disabled={isUploadingProfilePhoto || isSubmitting}>
-              <label htmlFor="profile-photo-upload" className="cursor-pointer">
+              <Label htmlFor="profile-photo-upload" className="cursor-pointer flex items-center">
                 {isUploadingProfilePhoto ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
                 {isUploadingProfilePhoto ? "Uploading..." : "Upload Photo"}
-              </label>
+              </Label>
             </Button>
             <Input id="profile-photo-upload" type="file" className="sr-only" accept="image/*" onChange={handleProfilePhotoChange} disabled={isUploadingProfilePhoto || isSubmitting}/>
             <FormMessage />
