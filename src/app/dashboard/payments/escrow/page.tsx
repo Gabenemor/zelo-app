@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 
 export default async function EscrowPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined }}) {
-  const transactionId = typeof searchParams.transactionId === 'string' ? searchParams.transactionId : undefined;
+  const transactionId = typeof searchParams?.transactionId === 'string' ? searchParams.transactionId : undefined;
   let specificTransaction: EscrowTransaction | null = null;
   
   const currentUser = await getCurrentUser();
