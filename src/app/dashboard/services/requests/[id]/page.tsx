@@ -22,6 +22,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { ArtisanProposalForm } from '@/components/service-requests/artisan-proposal-form';
@@ -151,16 +152,17 @@ function ServiceRequestDetailPageContent() {
     : undefined;
 
   const handleFundEscrow = async () => {
-      if (!request || !acceptedClientProposal || !(clientProfile?.contactEmail || clientProfile?.fullName)) {
+      if (!request || !acceptedClientProposal || !authUser?.email) {
           toast({title: "Error", description: "Cannot initiate payment. Missing critical client details for payment.", variant: "destructive"});
           return;
       }
-      const clientEmailForPayment = clientProfile.contactEmail || `${clientProfile.fullName?.replace(/\s+/g, '.').toLowerCase()}@example.com`; 
       
       const result = await handleFundEscrowServerAction(
           request.id, 
           acceptedClientProposal.proposedAmount, 
-          clientEmailForPayment, 
+          authUser.email,
+          request.clientId,
+          acceptedClientProposal.artisanId,
           request.title
       );
       if (result.success && result.redirectUrl) {
@@ -274,13 +276,13 @@ function ServiceRequestDetailPageContent() {
                 </div>
               )}
 
-              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !request.escrowFunded && ( 
+              {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && !(request as any).escrowFunded && ( 
                 <Card className="mt-4 bg-primary/5 border-primary/20">
                   <CardHeader><CardTitle className="text-lg">Action: Fund Escrow</CardTitle><CardDescription>Proposal from {request.assignedArtisanName || acceptedClientProposal.artisanName} for ₦{acceptedClientProposal.proposedAmount.toLocaleString()} accepted. Fund escrow to start.</CardDescription></CardHeader>
                   <CardContent><Button onClick={handleFundEscrow} className="w-full sm:w-auto bg-green-600 hover:bg-green-700"><ShieldCheck className="mr-2 h-4 w-4" /> Fund Escrow (₦{acceptedClientProposal.proposedAmount.toLocaleString()})</Button></CardContent>
                 </Card>
               )}
-               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && request.escrowFunded && ( 
+               {isOwnerClient && request.status === 'awarded' && acceptedClientProposal && (request as any).escrowFunded && ( 
                 <Card className="mt-4 bg-green-500/10 border-green-500/30">
                   <CardHeader><CardTitle className="text-lg">Escrow Funded</CardTitle><CardDescription>Escrow of ₦{acceptedClientProposal.proposedAmount.toLocaleString()} for {request.assignedArtisanName || acceptedClientProposal.artisanName} is funded. Work can begin.</CardDescription></CardHeader>
                 </Card>
